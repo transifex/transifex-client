@@ -78,15 +78,19 @@ class Project():
             self.config = parse_json(open(self.config_file).read())
         except Exception, err:
             print "WARNING: Cannot open/parse .tx/config file", err
+            print "Run 'tx init' to fix this!"
+            raise ProjectNotInit()
 
-#        if not "resources" in self.config:
-#            self.config['resources'] = {}
-#        if len(self.config['resources']) == 0:
-#            self.config['resources']['master'] = {'regex':'.*'}
 
-        # Json dump and store in the config file
-#        self.save()
+    def create_resource(self):
+        pass
 
+
+    def validate_config(self):
+        """
+        To ensure the json structure is correctly formed.
+        """
+        pass
 
     def save(self):
         """
@@ -299,8 +303,65 @@ def _cmd_send_source_file(argv, path_to_tx=None):
 
 
 def _cmd_set_source_file(argv, path_to_tx=None):
-    pass
+    """
+    Point a source file to the configuration file.
+    
+    This file will be committed to the server when the 'tx push' command will be
+    called.
+    """
+    resource = None
+    lang = None
+    try:
+        opts, args = getopt.getopt(argv, "r:l:", ["resource=", "lang="])
+    except getopt.GetoptError:
+        usage('set_source_file')
+        return
+    for opt, arg in opts:
+        if opt in ("-r", "--resource"):
+            resource = arg
+        elif opt in ("-l", "--lang"):
+            lang = arg
 
+    if not resource:
+        print "tx: Resource argument must be given, use -r|--resource"
+        return
+    elif not lang:
+        print "tx: Language argument must be given, use -l|--lang"
+        return
+
+    # If no path provided show the usage and exit
+    if len(args) != 1:
+        usage()
+        sys.exit(2)
+
+    path_to_file = args[0]
+    if not os.path.exists(path_to_file):
+        print "tx: File does not exist."
+        return
+
+    # instantiate the Project
+    project = Project()
+
+    # FIXME: Check also if the path to source file already exists.
+    map_object = {}
+    for r_entry in project.config['resources']:
+        if r_entry['resource_name'] == resource:
+            map_object = r_entry
+            break
+
+    print "Updating config file ..."
+    if map_object:
+        map_object['source_file'] = path_to_file
+        map_object['source_lang'] = lang
+    else:
+        project.config['resources'].append({
+              'resource_name': resource,
+              'source_file': path_to_file,
+              'source_lang': lang,
+              'translations': {},
+            })
+    project.save()
+    print "Done."
 
 def _cmd_set_translation(argv, path_to_tx=None):
     pass
@@ -313,6 +374,7 @@ def usage(cmd=None):
     """
     Explain the usage of the tx client commands.
     """
+    # TODO: Implement all the command specific documentation.
     print HELP
 
 
@@ -321,6 +383,7 @@ def main(argv):
     Here we parse the flags (short, long) and we instantiate the classes.
     """
     path_to_tx = None
+    extra_opts = []
     try:
         opts, args = getopt.getopt(argv, "vhd",
             ["version", "help", "debug", "path_to_tx="])
