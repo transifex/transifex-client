@@ -5,7 +5,9 @@
 # There are placeholder args: the first is the hostname and the others are
 # the corresponding params of the url
 API_URLS = {
-    'project_get' : '%s/api/project/%s/'
+    'project_get' : '%s/api/project/%s/',
+    'get_resources': '%s/api/project/%s/resources/',
+    'push_source': '%s/api/project/%s/files/',
 }
 
 
@@ -28,6 +30,8 @@ status            Show the current configuration status.
 
 See 'tx help COMMAND' for more information on a specific command.
 """
+import ConfigParser
+import getpass
 import getopt
 import httplib
 import os
@@ -47,6 +51,7 @@ sys.setdefaultencoding('utf-8')
 class ProjectNotInit(Exception):
     pass
 
+
 class Project():
     """
     Represents an association between the local and remote project instances.
@@ -63,21 +68,21 @@ class Project():
             print "Run 'tx init' to initialize your project first!"
             raise ProjectNotInit()
 
-        # The path to the configuration file (.tx/config)
-        self.config_file = os.path.join(self.root, ".tx", "config")
+        # The path to the txdata file (.tx/txdata)
+        self.txdata_file = os.path.join(self.root, ".tx", "txdata")
         # Touch the file if it doesn't exist
-        if not os.path.exists(self.config_file):
-            print "Cannot find the configuration file (.tx/config)!"
+        if not os.path.exists(self.txdata_file):
+            print "Cannot find the txdata file (.tx/txdata)!"
             print "Run 'tx init' to fix this!"
             raise ProjectNotInit()
 
-        # The dictionary which holds the configuration parameters after deser/tion.
-        # Read the configuration in memory
-        self.config = {}
+        # The dictionary which holds the txdata parameters after deser/tion.
+        # Read the txdata in memory
+        self.txdata = {}
         try:
-            self.config = parse_json(open(self.config_file).read())
+            self.txdata = parse_json(open(self.txdata_file).read())
         except Exception, err:
-            print "WARNING: Cannot open/parse .tx/config file", err
+            print "WARNING: Cannot open/parse .tx/txdata file", err
             print "Run 'tx init' to fix this!"
             raise ProjectNotInit()
 
@@ -86,19 +91,102 @@ class Project():
         pass
 
 
-    def validate_config(self):
+    def validate_txdata(self):
         """
         To ensure the json structure is correctly formed.
         """
         pass
 
+
     def save(self):
         """
-        Store the config dictionary in the .tx/config file of the project.
+        Store the txdata dictionary in the .tx/txdata file of the project.
         """
-        fh = open(self.config_file,"w")
-        fh.write(compile_json(self.config, indent=4))
+        fh = open(self.txdata_file,"w")
+        fh.write(compile_json(self.txdata, indent=4))
         fh.close()
+
+
+    def get_project_name():
+        if "project" in self.config:
+            return self.config['project']
+
+
+    def get_full_path(self, relpath):
+        if relpath[0] == "/":
+            return os.path.join(self.root, relpath[1:])
+        else:
+            return os.path.join(self.root, relpath)
+
+
+    def push(self, url):
+        """
+        Push all the resources
+        """
+
+        raw = self.do_url_request('get_resources', hostname, project)
+        remote_resources = parse_json(raw)
+
+        local_resources = self.config['resources']
+        for remote_resource in remote_resources:
+            name = remote_resource['name']
+            for i, resource in enumerate(local_resources):
+                if name in resource['resource_name'] :
+                    del(local_resources[i])
+
+        if local_resources != []:
+            print "Following resources are not available on remote machine:", ", ".join(local_resources)
+            print "Use -f to force creation of new resources"
+            exit(1)
+        else:
+            pass
+
+#        for resource in self.config['resources']:
+#            # Push source file
+#            self.do_url_request('push_source', hostname, project)
+#            pass
+
+#            # Push translation files one by one
+#            for lang, path in resource['translations'].iteritems():
+#                url_push = "/api/project/%s/resource/%s/" % (project, resource)
+#                filename = os.path.basename(path).encode("ascii") # WTF ascii?
+#                print "Pushing %s to %s" % (path, url_push)
+#                post_multipart("localhost:8000", url_push, [('target_language',lang.encode("ascii"))],[(filename, filename, open(self.get_full_path(path)).read())])
+
+
+    def do_url_request(self, api_call, **kwargs):
+        """
+        Issues a url request.
+        """
+        # Create the Url
+        url = API_URLS[api_call] % kwargs
+        
+        # Read the credentials from the config file (.transifexrc)
+        home = os.getenv('USERPROFILE') or os.getenv('HOME')
+        txrc = os.path.join(home, ".transifexrc")
+        config = ConfigParser.RawConfigParser()
+
+        if not os.path.exists(txrc):
+            print "Cannot find the ~/.transifexrc!"
+            raise ProjectNotInit()
+
+        # FIXME do some checks :)
+        config.read(txrc)
+        username = config.get('API credentials', 'username')
+        passwd = config.get('API credentials', 'password')
+        token = config.get('API credentials', 'token')
+
+        password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        password_manager.add_password(None, host, username,passwd)
+        auth_handler = urllib2.HTTPBasicAuthHandler(password_manager)
+        opener = urllib2.build_opener(auth_handler)
+        urllib2.install_opener(opener)
+        req = urllib2.Request(url=url)
+
+        fh = urllib2.urlopen(req)
+        raw = fh.read()
+        fh.close()
+        return raw
 
 
 def post_multipart(host, selector, fields, files):
@@ -157,7 +245,7 @@ def find_dot_tx(path = os.getcwd()):
 
 
 def parse_tx_url(url):
-    m = re.match("(?P<hostname>https?://(\w|\.|:)+)/projects/p/(?P<project>(\w|-)+)/", url)
+    m = re.match("(?P<hostname>https?://(\w|\.|:)+)/projects/p/(?P<project>(\w|-)+)/?", url)
     if m:
         hostname = m.group('hostname')
         project = m.group('project')
@@ -169,24 +257,39 @@ def parse_tx_url(url):
         return None, None
 
 
-def get_project_info(hostname, project_slug):
+def get_project_info(hostname, username, passwd, project_slug):
     """
     Get the tx project info through the API.
     
     This function can also be used to check the existence of a project.
     """
     url = API_URLS['project_get'] % (hostname, project_slug)
+    opener = get_opener(hostname, username, passwd)
+    urllib2.install_opener(opener)
+    req = urllib2.Request(url=url)
     try:
-        fh = urllib2.urlopen(url)
+        fh = urllib2.urlopen(req)
         raw = fh.read()
         fh.close()
         remote_project = parse_json(raw)
         return remote_project
     except urllib2.HTTPError:
+        raise
         print "tx: The given project does not exist."
         print "Check your url and try again."
     return None
 #    remote_project = parse_json(raw)
+
+
+def get_opener(host, username, passwd):
+    """
+    Return an auth opener to use with the urlopen requests.
+    """
+    password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
+    password_manager.add_password(None, host, username,passwd)
+    auth_handler = urllib2.HTTPBasicAuthHandler(password_manager)
+    opener = urllib2.build_opener(auth_handler)
+    return opener
 
 
 def _cmd_get_source_file():
@@ -199,7 +302,7 @@ def _cmd_init(argv, path_to_tx=None):
     
     The .tx folder is created by default to the CWD!
     """
-
+    # Current working dir path
     root = os.getcwd()
 
     if path_to_tx:
@@ -246,20 +349,46 @@ def _cmd_init(argv, path_to_tx=None):
         os.mkdir(os.path.join(os.getcwd(), ".tx"))
     print "Done."
 
-    # The path to the txrc file (.tx/txrc)
-    txrc = os.path.join(root, ".tx", "txrc")
+    # Handle the credentials through transifexrc
+    home = os.getenv('USERPROFILE') or os.getenv('HOME')
+    txrc = os.path.join(home, ".transifexrc")
+    config = ConfigParser.RawConfigParser()
     # Touch the file if it doesn't exist
     if not os.path.exists(txrc):
-        print "Creating txrc file ..."
-        open(txrc, 'w').close()
-        print "Done."
+        username = raw_input("Please enter your transifex username :")
+        while (not username):
+            username = raw_input("Please enter your transifex username :")
+        # FIXME: Temporary we use basic auth, till we switch to token
+        passwd = ''
+        while (not passwd):
+            passwd = getpass.getpass()
 
-    # The path to the configuration file (.tx/config)
-    config_file = os.path.join(root, ".tx", "config")
+        print "Creating .transifexrc file ..."
+        config.add_section('API credentials')
+        config.set('API credentials', 'username', username)
+        config.set('API credentials', 'password', passwd)
+        config.set('API credentials', 'token', '')
+
+        # Writing our configuration file to 'example.cfg'
+        fh = open(txrc, 'w')
+        config.write(fh)
+        fh.close()
+    else:
+        print "Read .transifexrc file ..."
+        # FIXME do some checks :)
+        config.read(txrc)
+        username = config.get('API credentials', 'username')
+        passwd = config.get('API credentials', 'password')
+        token = config.get('API credentials', 'token')
+    print "Done."
+
+
+    # The path to the txdata file (.tx/txdata)
+    txdata_file = os.path.join(root, ".tx", "txdata")
     # Touch the file if it doesn't exist
-    if not os.path.exists(config_file):
-        print "Creating config file ..."
-        open(config_file, 'w').close()
+    if not os.path.exists(txdata_file):
+        print "Creating txdata file ..."
+        open(txdata_file, 'w').close()
         print "Done."
 
     # Get the project slug
@@ -270,7 +399,7 @@ def _cmd_init(argv, path_to_tx=None):
         hostname, project_slug = parse_tx_url(project_url)
 
     # Check the project existence
-    project_info = get_project_info(hostname, project_slug)
+    project_info = get_project_info(hostname, username, passwd, project_slug)
     if not project_info:
         # Clean the old settings 
         # FIXME: take a backup
@@ -280,13 +409,20 @@ def _cmd_init(argv, path_to_tx=None):
 
     # Write the skeleton dictionary
     print "Creating skeleton ..."
-    config = { 'resources': [],
+    txdata = { 'resources': [],
                'meta': { 'project_name': project_info['name'],
                          'project_slug': project_info['slug'],
                          'last_push': None} 
              }
-    fh = open(config_file,"w")
-    fh.write(compile_json(config, indent=4))
+    fh = open(txdata_file,"w")
+    fh.write(compile_json(txdata, indent=4))
+    fh.close()
+
+    # Writing hostname for future usages
+    config.read(txrc)
+    config.set('API credentials', 'hostname', hostname)
+    fh = open(txrc, 'w')
+    config.write(fh)
     fh.close()
     print "Done."
 
@@ -304,7 +440,7 @@ def _cmd_send_source_file(argv, path_to_tx=None):
 
 def _cmd_set_source_file(argv, path_to_tx=None):
     """
-    Point a source file to the configuration file.
+    Point a source file to the txdata file.
     
     This file will be committed to the server when the 'tx push' command will be
     called.
@@ -344,17 +480,17 @@ def _cmd_set_source_file(argv, path_to_tx=None):
 
     # FIXME: Check also if the path to source file already exists.
     map_object = {}
-    for r_entry in project.config['resources']:
+    for r_entry in project.txdata['resources']:
         if r_entry['resource_name'] == resource:
             map_object = r_entry
             break
 
-    print "Updating config file ..."
+    print "Updating txdata file ..."
     if map_object:
         map_object['source_file'] = path_to_file
         map_object['source_lang'] = lang
     else:
-        project.config['resources'].append({
+        project.txdata['resources'].append({
               'resource_name': resource,
               'source_file': path_to_file,
               'source_lang': lang,
@@ -363,9 +499,10 @@ def _cmd_set_source_file(argv, path_to_tx=None):
     project.save()
     print "Done."
 
+
 def _cmd_set_translation(argv, path_to_tx=None):
     """
-    Create a ref for a translation file in the configuration file.
+    Create a ref for a translation file in the txdata file.
     
     This file will be committed to the server when the 'tx push' command will be
     called.
@@ -404,7 +541,7 @@ def _cmd_set_translation(argv, path_to_tx=None):
     project = Project()
 
     map_object = {}
-    for r_entry in project.config['resources']:
+    for r_entry in project.txdata['resources']:
         if r_entry['resource_name'] == resource:
             map_object = r_entry
             break
@@ -418,7 +555,7 @@ def _cmd_set_translation(argv, path_to_tx=None):
         print "Source languages contain the strings which will be translated!"
         return
 
-    print "Updating config file ..."
+    print "Updating txdata file ..."
     if map_object['translations'].has_key(lang):
         for key, value in map_object['translations'][lang].items():
             if value == path_to_file:
@@ -434,6 +571,7 @@ def _cmd_set_translation(argv, path_to_tx=None):
 
 def _cmd_status(argv, path_to_tx=None):
     pass
+
 
 def usage(cmd=None):
     """
@@ -496,8 +634,9 @@ def main(argv):
             print "tx: '%s' is not a tx-command. See 'tx --help'." % cmd
             sys.exit(2)
     except:
-        raise
-#        sys.exit()
+        if _debug == 1:
+            raise
+        sys.exit()
 
 
 # Run baby :) ... run
