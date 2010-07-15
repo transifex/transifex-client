@@ -364,7 +364,72 @@ def _cmd_set_source_file(argv, path_to_tx=None):
     print "Done."
 
 def _cmd_set_translation(argv, path_to_tx=None):
-    pass
+    """
+    Create a ref for a translation file in the configuration file.
+    
+    This file will be committed to the server when the 'tx push' command will be
+    called.
+    """
+    resource = None
+    lang = None
+    try:
+        opts, args = getopt.getopt(argv, "r:l:", ["resource=", "lang="])
+    except getopt.GetoptError:
+        usage('set_translation')
+        return
+    for opt, arg in opts:
+        if opt in ("-r", "--resource"):
+            resource = arg
+        elif opt in ("-l", "--lang"):
+            lang = arg
+
+    if not resource:
+        print "tx: Resource argument must be given, use -r|--resource"
+        return
+    elif not lang:
+        print "tx: Language argument must be given, use -l|--lang"
+        return
+
+    # If no path provided show the usage and exit
+    if len(args) != 1:
+        usage()
+        sys.exit(2)
+
+    path_to_file = args[0]
+    if not os.path.exists(path_to_file):
+        print "tx: File does not exist."
+        return
+
+    # instantiate the Project
+    project = Project()
+
+    map_object = {}
+    for r_entry in project.config['resources']:
+        if r_entry['resource_name'] == resource:
+            map_object = r_entry
+            break
+
+    if not map_object:
+        print "tx: You should first run 'set_source_file' to map the source file."
+        return
+
+    if lang == map_object['source_lang']:
+        print "tx: You cannot set translation file for the source language."
+        print "Source languages contain the strings which will be translated!"
+        return
+
+    print "Updating config file ..."
+    if map_object['translations'].has_key(lang):
+        for key, value in map_object['translations'][lang].items():
+            if value == path_to_file:
+                print "tx: The file already exists in the specific resource."
+                return
+        map_object['translations'][lang]['file'] = path_to_file
+    else:
+        # Create the language file list
+        map_object['translations'][lang] = {'file' : path_to_file}
+    project.save()
+    print "Done."
 
 
 def _cmd_status(argv, path_to_tx=None):
