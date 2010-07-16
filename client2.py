@@ -30,6 +30,12 @@ status            Show the current configuration status.
 
 See 'tx help COMMAND' for more information on a specific command.
 """
+
+DEBUG = False
+AUTHENTICATION = 'HTTPAUTHBASIC'
+
+
+import base64
 import ConfigParser
 import getpass
 import getopt
@@ -154,11 +160,13 @@ class Project():
                      project=self.get_project_slug())
 
                 # Push translation files one by one
-#                for lang, path in resource['translations'].iteritems():
-#                    url_push = "/api/project/%s/resource/%s/" % (project, resource)
-#                    filename = os.path.basename(path).encode("ascii") # WTF ascii?
-#                    print "Pushing %s to %s" % (path, url_push)
-#                    post_multipart("localhost:8000", url_push, [('target_language',lang.encode("ascii"))],[(filename, filename, open(self.get_full_path(path)).read())])
+                for lang, f_obj in resource['translations'].iteritems():
+                    print "Pushing %s to %s" % (lang, f_obj['file'])
+                    self.do_url_request('push_source', multipart=True,
+                         files=[( "%s_%s" % (resource['resource_name'],
+                                             lang),
+                                 self.get_full_path(f_obj['file']))],
+                         project=self.get_project_slug())
 
 
     def do_url_request(self, api_call, multipart=False, data=None, files=[],
@@ -192,25 +200,30 @@ class Project():
 
         opener = None
         headers = None
+        req = None
         if multipart:
             # Register the streaming http handlers with urllib2
             opener = register_openers()
+            opener.add_handler(auth_handler)
+
             file_params = []
             # iterate through 2-tuples
             for f in files:
                 file_params.append(MultipartParam.from_file(f[0], f[1]))
             # headers contains the necessary Content-Type and Content-Length
-            # datagen is a generator object that yields the encoded parameters
+            # data is a generator object that yields the encoded parameters
             data, headers = multipart_encode(file_params)
-            opener.add_handler(auth_handler)
             req = urllib2.Request(url=url, data=data, headers=headers)
+            # FIXME: This is used till we have a fix from Chris.
+            base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
+            authheader =  "Basic %s" % base64string
+            req.add_header("Authorization", authheader)
         else:
             opener = urllib2.build_opener(auth_handler)
             urllib2.install_opener(opener)
             req = urllib2.Request(url=url, data=data)
 
         fh = urllib2.urlopen(req)
-
         raw = fh.read()
         fh.close()
         return raw
@@ -594,6 +607,7 @@ def main(argv):
     """
     Here we parse the flags (short, long) and we instantiate the classes.
     """
+    DEBUG = False
     path_to_tx = None
     extra_opts = []
     try:
@@ -610,8 +624,7 @@ def main(argv):
             usage()
             sys.exit()
         elif opt in ("-d", "--debug"):
-            global _debug
-            _debug = 1
+            DEBUG = True
         elif opt in ("--path_to_tx"):
             path_to_tx = arg
 
@@ -643,7 +656,7 @@ def main(argv):
             print "tx: '%s' is not a tx-command. See 'tx --help'." % cmd
             sys.exit(2)
     except:
-        if _debug == 1:
+        if DEBUG:
             raise
         sys.exit()
 
