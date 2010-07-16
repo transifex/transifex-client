@@ -5,9 +5,9 @@
 # There are placeholder args: the first is the hostname and the others are
 # the corresponding params of the url
 API_URLS = {
-    'project_get' : '%s/api/project/%s/',
-    'get_resources': '%s/api/project/%s/resources/',
-    'push_source': '%s/api/project/%s/files/',
+    'project_get' : '%(hostname)s/api/project/%(project)s/',
+    'get_resources': '%(hostname)s/api/project/%(project)s/resources/',
+    'push_source': '%(hostname)s/api/storage/'  #'%(hostname)s/api/project/%(project)s/files/',
 }
 
 
@@ -39,7 +39,12 @@ import re
 import shutil
 import sys
 import urllib2
+
 from json import loads as parse_json, dumps as compile_json
+
+from poster.encode import multipart_encode, MultipartParam
+from poster.streaminghttp import register_openers
+
 
 reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
 
@@ -107,60 +112,60 @@ class Project():
         fh.close()
 
 
-    def get_project_name():
-        if "project" in self.config:
-            return self.config['project']
+    def get_project_slug(self):
+        return self.txdata['meta']['project_slug']
 
 
     def get_full_path(self, relpath):
         if relpath[0] == "/":
-            return os.path.join(self.root, relpath[1:])
+            return relpath
         else:
             return os.path.join(self.root, relpath)
 
 
-    def push(self, url):
+    def push(self, force=False):
         """
         Push all the resources
         """
 
-        raw = self.do_url_request('get_resources', hostname, project)
+        raw = self.do_url_request('get_resources',
+                                  project=self.get_project_slug())
         remote_resources = parse_json(raw)
 
-        local_resources = self.config['resources']
+        local_resources = self.txdata['resources']
         for remote_resource in remote_resources:
             name = remote_resource['name']
             for i, resource in enumerate(local_resources):
                 if name in resource['resource_name'] :
                     del(local_resources[i])
 
-        if local_resources != []:
-            print "Following resources are not available on remote machine:", ", ".join(local_resources)
+        if local_resources != [] and not force:
+            print "Following resources are not available on remote machine:", ", ".join([i['resource_name'] for i in local_resources])
             print "Use -f to force creation of new resources"
             exit(1)
         else:
-            pass
+            for resource in self.txdata['resources']:
+                # Push source file
+                print "Pushing source file %s" % resource['source_file']
+                self.do_url_request('push_source', multipart=True,
+                     files=[( "%s_%s" % (resource['resource_name'],
+                                         resource['source_lang']),
+                             self.get_full_path(resource['source_file']))],
+                     project=self.get_project_slug())
 
-#        for resource in self.config['resources']:
-#            # Push source file
-#            self.do_url_request('push_source', hostname, project)
-#            pass
-
-#            # Push translation files one by one
-#            for lang, path in resource['translations'].iteritems():
-#                url_push = "/api/project/%s/resource/%s/" % (project, resource)
-#                filename = os.path.basename(path).encode("ascii") # WTF ascii?
-#                print "Pushing %s to %s" % (path, url_push)
-#                post_multipart("localhost:8000", url_push, [('target_language',lang.encode("ascii"))],[(filename, filename, open(self.get_full_path(path)).read())])
+                # Push translation files one by one
+#                for lang, path in resource['translations'].iteritems():
+#                    url_push = "/api/project/%s/resource/%s/" % (project, resource)
+#                    filename = os.path.basename(path).encode("ascii") # WTF ascii?
+#                    print "Pushing %s to %s" % (path, url_push)
+#                    post_multipart("localhost:8000", url_push, [('target_language',lang.encode("ascii"))],[(filename, filename, open(self.get_full_path(path)).read())])
 
 
-    def do_url_request(self, api_call, **kwargs):
+    def do_url_request(self, api_call, multipart=False, data=None, files=[],
+                       **kwargs):
         """
         Issues a url request.
         """
-        # Create the Url
-        url = API_URLS[api_call] % kwargs
-        
         # Read the credentials from the config file (.transifexrc)
         home = os.getenv('USERPROFILE') or os.getenv('HOME')
         txrc = os.path.join(home, ".transifexrc")
@@ -175,56 +180,40 @@ class Project():
         username = config.get('API credentials', 'username')
         passwd = config.get('API credentials', 'password')
         token = config.get('API credentials', 'token')
+        hostname = config.get('API credentials', 'hostname')
+
+        # Create the Url
+        kwargs['hostname'] = hostname
+        url = API_URLS[api_call] % kwargs
 
         password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        password_manager.add_password(None, host, username,passwd)
+        password_manager.add_password(None, hostname, username,passwd)
         auth_handler = urllib2.HTTPBasicAuthHandler(password_manager)
-        opener = urllib2.build_opener(auth_handler)
-        urllib2.install_opener(opener)
-        req = urllib2.Request(url=url)
+
+        opener = None
+        headers = None
+        if multipart:
+            # Register the streaming http handlers with urllib2
+            opener = register_openers()
+            file_params = []
+            # iterate through 2-tuples
+            for f in files:
+                file_params.append(MultipartParam.from_file(f[0], f[1]))
+            # headers contains the necessary Content-Type and Content-Length
+            # datagen is a generator object that yields the encoded parameters
+            data, headers = multipart_encode(file_params)
+            opener.add_handler(auth_handler)
+            req = urllib2.Request(url=url, data=data, headers=headers)
+        else:
+            opener = urllib2.build_opener(auth_handler)
+            urllib2.install_opener(opener)
+            req = urllib2.Request(url=url, data=data)
 
         fh = urllib2.urlopen(req)
+
         raw = fh.read()
         fh.close()
         return raw
-
-
-def post_multipart(host, selector, fields, files):
-    """
-    Post a number of files to the server and return the output.
-    """
-    def encode_multipart_formdata(fields, files):
-        LIMIT = '----------lImIt_of_THE_fIle_eW_$'
-        CRLF = '\r\n'
-        L = []
-        for (key, value) in fields:
-            L.append('--' + LIMIT)
-            L.append('Content-Disposition: form-data; name="%s"' % key)
-            L.append('')
-            L.append(value)
-        for (key, filename, value) in files:
-            L.append('--' + LIMIT)
-            L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
-            L.append('Content-Type: application/octet-stream')
-            L.append('')
-            L.append(value)
-        L.append('--' + LIMIT + '--')
-        L.append('')
-        body = CRLF.join(L)
-        content_type = 'multipart/form-data; boundary=%s' % LIMIT
-        return content_type, body
-    content_type, body = encode_multipart_formdata(fields, files)
-    h = httplib.HTTP(host)
-    h.putrequest('POST', selector)
-    h.putheader('content-type', content_type)
-    h.putheader('content-length', str(len(body)))
-    h.endheaders()
-    h.send(body)
-    errcode, errmsg, headers = h.getreply()
-    buf = h.file.read()
-    if errcode == 500:
-        print buf
-    return buf
 
 
 def find_dot_tx(path = os.getcwd()):
@@ -263,7 +252,7 @@ def get_project_info(hostname, username, passwd, project_slug):
     
     This function can also be used to check the existence of a project.
     """
-    url = API_URLS['project_get'] % (hostname, project_slug)
+    url = API_URLS['project_get'] % {'hostname':hostname, 'project':project_slug}
     opener = get_opener(hostname, username, passwd)
     urllib2.install_opener(opener)
     req = urllib2.Request(url=url)
@@ -426,8 +415,28 @@ def _cmd_init(argv, path_to_tx=None):
     fh.close()
     print "Done."
 
+
 def _cmd_push(argv, path_to_tx=None):
-    pass
+    """
+    Push to the server all the local files included in the txdata json structure.
+    """
+    force_creation = False
+    try:
+        opts, args = getopt.getopt(argv, "f", ["force"])
+    except getopt.GetoptError:
+        usage('push')
+        return
+    for opt, arg in opts:
+        if opt in ("-f", "--force"):
+            force_creation = True
+
+
+    # instantiate the Project
+    project = Project()
+    project.push(force_creation)
+
+    print "Done."
+
 
 
 def _cmd_pull(argv, path_to_tx=None):
