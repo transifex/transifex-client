@@ -7,7 +7,9 @@
 API_URLS = {
     'project_get' : '%(hostname)s/api/project/%(project)s/',
     'get_resources': '%(hostname)s/api/project/%(project)s/resources/',
-    'push_source': '%(hostname)s/api/storage/'  #'%(hostname)s/api/project/%(project)s/files/',
+    'push_file': '%(hostname)s/api/storage/',  #'%(hostname)s/api/project/%(project)s/files/',
+    'extract_translation': '%(hostname)s/api/project/%(project)s/resource/%(resource)s/%(language)s/',
+    'extract_source': '%(hostname)s/api/project/%(project)s/files/'  #'%(hostname)s/api/project/%(project)s/files/',
 }
 
 
@@ -57,6 +59,77 @@ reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
 # When we open file with f = codecs.open we specifi FROM what encoding to read
 # This sets the encoding for the strings which are created with f.read()
 sys.setdefaultencoding('utf-8')
+
+# Helper class to enable urllib2 to handle PUT/DELETE requests as well
+class RequestWithMethod(urllib2.Request):
+    """Workaround for using DELETE with urllib2"""
+    def __init__(self, url, method, data=None, headers={},
+        origin_req_host=None, unverifiable=False):
+        self._method = method
+        urllib2.Request.__init__(self, url, data=data, headers=headers,
+                 origin_req_host=None, unverifiable=False)
+
+    def get_method(self):
+        return self._method
+
+import itertools, mimetools, mimetypes
+
+class MultiPartForm(object):
+    """Accumulate the data to be used when posting a form."""
+
+    def __init__(self):
+        self.formFields = []
+        self.files = []
+        self.boundary = mimetools.choose_boundary()
+
+    def getContentType(self):
+        return 'multipart/form-data; boundary=%s' % self.boundary
+
+    def addField(self, name, value):
+        """Add a form field to the form data."""
+
+        self.formFields.append((name, value))
+
+    def addFile(self, fieldname, filename, fileHandle, mimetype=None):
+        """Add a file to be uploaded."""
+
+        body = fileHandle.read()
+        if mimetype is None:
+            mimetype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+
+        self.files.append((fieldname, filename, mimetype, body))
+
+    def __str__(self):
+        """Return a string representing the form data, including attached files."""
+
+        # Build a list of lists, each containing "lines" of the
+        # request.  Each part is separated by a boundary string.
+        # refer http://www.ietf.org/rfc/rfc2388.txt (RFC2388)
+
+        parts = []
+        partBoundary = '--' + self.boundary
+
+        # Add the form fields
+
+        parts.extend([ partBoundary,'Content-Disposition: form-data; name="%s"' %
+        name,\
+            '', value,] for name, value in self.formFields)
+
+        # Add the files to upload
+        # Amazon S3 expects file data to be 'Content-Disposition:
+        # form-data' instead of "file"
+
+        parts.extend([ partBoundary,'Content-Disposition: form-data; name="%s"; filename="%s"' % \
+            (fieldName, filename),'Content-Type: %s' % contentType,'',body,]
+            for fieldName, filename, contentType, body in self.files)
+
+        # Flatten the list and add closing boundary marker,
+        # then return \r\n separated data
+
+        flattened = list(itertools.chain(*parts))
+        flattened.append('--' + self.boundary + '--')
+        flattened.append('')
+        return '\r\n'.join(flattened)
 
 
 class ProjectNotInit(Exception):
@@ -133,7 +206,6 @@ class Project():
         """
         Push all the resources
         """
-
         raw = self.do_url_request('get_resources',
                                   project=self.get_project_slug())
         remote_resources = parse_json(raw)
@@ -153,24 +225,44 @@ class Project():
             for resource in self.txdata['resources']:
                 # Push source file
                 print "Pushing source file %s" % resource['source_file']
-                self.do_url_request('push_source', multipart=True,
-                     files=[( "%s_%s" % (resource['resource_name'],
+                r = self.do_url_request('push_file', multipart=True,
+                        files=[( "%s_%s" % (resource['resource_name'],
                                          resource['source_lang']),
                              self.get_full_path(resource['source_file']))],
-                     project=self.get_project_slug())
+                        method="POST",
+                        project=self.get_project_slug())
+                r = parse_json(r)
+                uuid = r['files'][0]['uuid']
+                self.do_url_request('extract_source',
+                    data=compile_json({"uuid":uuid}),
+                    encoding='application/json',
+                    method="POST",
+                    project=self.get_project_slug())
+
 
                 # Push translation files one by one
                 for lang, f_obj in resource['translations'].iteritems():
                     print "Pushing %s to %s" % (lang, f_obj['file'])
-                    self.do_url_request('push_source', multipart=True,
+                    r = self.do_url_request('push_file', multipart=True,
                          files=[( "%s_%s" % (resource['resource_name'],
                                              lang),
                                  self.get_full_path(f_obj['file']))],
-                         project=self.get_project_slug())
+                        method="POST",
+                        project=self.get_project_slug())
+
+                    r = parse_json(r)
+                    uuid = r['files'][0]['uuid']
+                    self.do_url_request('extract_translation',
+                        data=compile_json({"uuid":uuid}),
+                        encoding='application/json',
+                        method="PUT",
+                        project=self.get_project_slug(),
+                        resource=resource['resource_name'],
+                        language=lang)
 
 
-    def do_url_request(self, api_call, multipart=False, data=None, files=[],
-                       **kwargs):
+    def do_url_request(self, api_call, multipart=False, data=None,
+                       files=[], encoding=None, method="GET", **kwargs):
         """
         Issues a url request.
         """
@@ -207,13 +299,19 @@ class Project():
             opener.add_handler(auth_handler)
 
             file_params = []
-            # iterate through 2-tuples
-            for f in files:
-                file_params.append(MultipartParam.from_file(f[0], f[1]))
-            # headers contains the necessary Content-Type and Content-Length
-            # data is a generator object that yields the encoded parameters
-            data, headers = multipart_encode(file_params)
-            req = urllib2.Request(url=url, data=data, headers=headers)
+
+            form = MultiPartForm()
+
+
+            for info,filename in files:
+                fp = open(filename)
+                form.addField('resource', info.split('_')[0])
+                form.addField('language', info.split('_')[1])
+                form.addFile(info, filename, fp)
+            body = str(form)
+            req = RequestWithMethod(url=url,  method=method)
+            req.add_header('Content-type', form.getContentType())
+            req.add_data(body)
             # FIXME: This is used till we have a fix from Chris.
             base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
             authheader =  "Basic %s" % base64string
@@ -221,7 +319,9 @@ class Project():
         else:
             opener = urllib2.build_opener(auth_handler)
             urllib2.install_opener(opener)
-            req = urllib2.Request(url=url, data=data)
+            req = RequestWithMethod(url=url, data=data, method=method)
+            if encoding:
+                req.add_header("Content-Type",encoding)
 
         fh = urllib2.urlopen(req)
         raw = fh.read()
