@@ -1,5 +1,8 @@
 import os, sys, re
+from json import loads as parse_json, dumps as compile_json
 import urllib2 # This should go and instead use do_url_request everywhere
+
+from urls import API_URLS
 
 def MSG(msg, verbose=1):
     """

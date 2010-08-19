@@ -6,12 +6,13 @@ import ConfigParser
 from json import loads as parse_json, dumps as compile_json
 
 from txclib.utils import *
+from txclib.project import *
 
-def _cmd_get_source_file():
+def cmd_get_source_file():
     pass
 
 
-def _cmd_init(argv, path_to_tx=None):
+def cmd_init(argv, path_to_tx=None):
     """
     Initialize the tx client folder. 
     
@@ -69,32 +70,32 @@ def _cmd_init(argv, path_to_tx=None):
     txrc = os.path.join(home, ".transifexrc")
     config = ConfigParser.RawConfigParser()
     # Touch the file if it doesn't exist
-    if not os.path.exists(txrc):
+#    if not os.path.exists(txrc):
+    username = raw_input("Please enter your transifex username :")
+    while (not username):
         username = raw_input("Please enter your transifex username :")
-        while (not username):
-            username = raw_input("Please enter your transifex username :")
-        # FIXME: Temporary we use basic auth, till we switch to token
-        passwd = ''
-        while (not passwd):
-            passwd = getpass.getpass()
+    # FIXME: Temporary we use basic auth, till we switch to token
+    passwd = ''
+    while (not passwd):
+        passwd = getpass.getpass()
 
-        MSG("Creating .transifexrc file ...")
-        config.add_section('API credentials')
-        config.set('API credentials', 'username', username)
-        config.set('API credentials', 'password', passwd)
-        config.set('API credentials', 'token', '')
+    MSG("Creating .transifexrc file ...")
+    config.add_section('API credentials')
+    config.set('API credentials', 'username', username)
+    config.set('API credentials', 'password', passwd)
+    config.set('API credentials', 'token', '')
 
-        # Writing our configuration file to 'example.cfg'
-        fh = open(txrc, 'w')
-        config.write(fh)
-        fh.close()
-    else:
-        MSG("Read .transifexrc file ...")
-        # FIXME do some checks :)
-        config.read(txrc)
-        username = config.get('API credentials', 'username')
-        passwd = config.get('API credentials', 'password')
-        token = config.get('API credentials', 'token')
+    # Writing our configuration file to 'example.cfg'
+    fh = open(txrc, 'w')
+    config.write(fh)
+    fh.close()
+#    else:
+#        MSG("Read .transifexrc file ...")
+#        # FIXME do some checks :)
+#        config.read(txrc)
+#        username = config.get('API credentials', 'username')
+#        passwd = config.get('API credentials', 'password')
+#        token = config.get('API credentials', 'token')
     MSG("Done.")
 
 
@@ -142,7 +143,7 @@ def _cmd_init(argv, path_to_tx=None):
     MSG("Done.")
 
 
-def _cmd_push(argv, path_to_tx=None):
+def cmd_push(argv, path_to_tx=None):
     """
     Push to the server all the local files included in the txdata json structure.
     """
@@ -165,7 +166,7 @@ def _cmd_push(argv, path_to_tx=None):
 
 
 
-def _cmd_pull(argv, path_to_tx=None):
+def cmd_pull(argv, path_to_tx=None):
 
     # instantiate the Project
     project = Project()
@@ -174,11 +175,11 @@ def _cmd_pull(argv, path_to_tx=None):
     MSG("Done.")
 
 
-def _cmd_send_source_file(argv, path_to_tx=None):
+def cmd_send_source_file(argv, path_to_tx=None):
     pass
 
 
-def _cmd_set_source_file(argv, path_to_tx=None):
+def cmd_set_source_file(argv, path_to_tx=None):
     """
     Point a source file to the txdata file.
     
@@ -240,7 +241,7 @@ def _cmd_set_source_file(argv, path_to_tx=None):
     MSG("Done.")
 
 
-def _cmd_set_translation(argv, path_to_tx=None):
+def cmd_set_translation(argv, path_to_tx=None):
     """
     Create a ref for a translation file in the txdata file.
     
@@ -309,7 +310,7 @@ def _cmd_set_translation(argv, path_to_tx=None):
     MSG("Done.")
 
 
-def _cmd_status(argv, path_to_tx=None):
+def cmd_status(argv, path_to_tx=None):
     pass
 
 

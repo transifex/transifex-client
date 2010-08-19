@@ -108,21 +108,21 @@ def main(argv):
     MSG("Command : %s" % cmd)
     try:
         if cmd == 'get_source_file':
-            _cmd_get_source_file(args[1:], path_to_tx)
+            cmd_get_source_file(args[1:], path_to_tx)
         elif cmd == 'init':
-            _cmd_init(args[1:], path_to_tx)
+            cmd_init(args[1:], path_to_tx)
         elif cmd == 'push':
-            _cmd_push(args[1:], path_to_tx)
+            cmd_push(args[1:], path_to_tx)
         elif cmd == 'pull':
-            _cmd_pull(args[1:], path_to_tx)
+            cmd_pull(args[1:], path_to_tx)
         elif cmd == 'send_source_file':
-            _cmd_send_source_file(args[1:], path_to_tx)
+            cmd_send_source_file(args[1:], path_to_tx)
         elif cmd == 'set_source_file':
-            _cmd_set_source_file(args[1:], path_to_tx)
+            cmd_set_source_file(args[1:], path_to_tx)
         elif cmd == 'set_translation':
-            _cmd_set_translation(args[1:], path_to_tx)
+            cmd_set_translation(args[1:], path_to_tx)
         elif cmd == 'status':
-            _cmd_status(args[1:], path_to_tx)
+            cmd_status(args[1:], path_to_tx)
         else:
             ERRMSG("\'%s\' is not a tx-command. See \'tx --help\'." % cmd)
             sys.exit(2)

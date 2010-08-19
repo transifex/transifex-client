@@ -1,7 +1,12 @@
+import base64
 import copy
 import os
 import urllib2
 import ConfigParser
+
+from poster.streaminghttp import register_openers
+from poster.encode import multipart_encode, MultipartParam
+
 
 from txclib.web import *
 from txclib.utils import *
