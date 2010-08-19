@@ -63,7 +63,6 @@ def cmd_init(argv, path_to_tx=None):
         MSG("Creating .tx folder ...")
         # FIXME: decide the mode of the directory
         os.mkdir(os.path.join(os.getcwd(), ".tx"))
-    MSG("Done.")
 
     # Handle the credentials through transifexrc
     home = os.getenv('USERPROFILE') or os.getenv('HOME')
@@ -96,7 +95,6 @@ def cmd_init(argv, path_to_tx=None):
 #        username = config.get('API credentials', 'username')
 #        passwd = config.get('API credentials', 'password')
 #        token = config.get('API credentials', 'token')
-    MSG("Done.")
 
 
     # The path to the txdata file (.tx/txdata)
@@ -105,7 +103,7 @@ def cmd_init(argv, path_to_tx=None):
     if not os.path.exists(txdata_file):
         MSG("Creating txdata file ...")
         open(txdata_file, 'w').close()
-        MSG("Done.")
+
 
     # Get the project slug
     project_url = raw_input("Please enter your tx project url here :")
@@ -126,9 +124,9 @@ def cmd_init(argv, path_to_tx=None):
     # Write the skeleton dictionary
     MSG("Creating skeleton ...")
     txdata = { 'resources': [],
-               'meta': { 'project_name': project_info['name'],
+               'meta': { 'root_dir': os.path.abspath(root),
                          'project_slug': project_info['slug'],
-                         'last_push': None} 
+                         'last_push': None}
              }
     fh = open(txdata_file,"w")
     fh.write(compile_json(txdata, indent=4))
@@ -188,6 +186,7 @@ def cmd_set_source_file(argv, path_to_tx=None):
     """
     resource = None
     lang = None
+
     try:
         opts, args = getopt.getopt(argv, "r:l:", ["resource=", "lang="])
     except getopt.GetoptError:
@@ -218,6 +217,11 @@ def cmd_set_source_file(argv, path_to_tx=None):
 
     # instantiate the Project
     project = Project()
+    root_dir = project.txdata['meta']['root_dir']
+
+    if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
+        MSG("File must be under the project root directory.")
+        return
 
     # FIXME: Check also if the path to source file already exists.
     map_object = {}
@@ -227,6 +231,7 @@ def cmd_set_source_file(argv, path_to_tx=None):
             break
 
     MSG("Updating txdata file ...")
+    path_to_file = os.path.relpath(path_to_file, project.txdata['meta']['root_dir'])
     if map_object:
         map_object['source_file'] = path_to_file
         map_object['source_lang'] = lang
@@ -281,6 +286,14 @@ def cmd_set_translation(argv, path_to_tx=None):
     # instantiate the Project
     project = Project()
 
+    root_dir = project.txdata['meta']['root_dir']
+
+    if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
+        MSG("File must be under the project root directory.")
+        return
+
+
+
     map_object = {}
     for r_entry in project.txdata['resources']:
         if r_entry['resource_slug'] == resource:
@@ -297,6 +310,7 @@ def cmd_set_translation(argv, path_to_tx=None):
         return
 
     MSG("Updating txdata file ...")
+    path_to_file = os.path.relpath(path_to_file, root_dir)
     if map_object['translations'].has_key(lang):
         for key, value in map_object['translations'][lang].items():
             if value == path_to_file:
@@ -312,5 +326,3 @@ def cmd_set_translation(argv, path_to_tx=None):
 
 def cmd_status(argv, path_to_tx=None):
     pass
-
-
