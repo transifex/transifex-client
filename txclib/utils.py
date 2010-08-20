@@ -91,3 +91,14 @@ def valid_slug(slug):
         return True
     return False
 
+
+def traceback(self, exc=None):
+    '''print exception traceback if traceback printing enabled.
+    only to call in exception handler. returns true if traceback
+    printed.'''
+    import traceback
+    if self.tracebackflag:
+        if exc:
+            traceback.print_exception(exc[0], exc[1], exc[2])
+        else:
+            traceback.print_exc()
