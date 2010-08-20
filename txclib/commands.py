@@ -194,6 +194,8 @@ def cmd_set_source_file(argv, path_to_tx=None):
         return
     for opt, arg in opts:
         if opt in ("-r", "--resource"):
+            if not valid_slug(arg):
+                raise Exception("Valid characters for resource slugs are [-_\w]")
             resource = arg
         elif opt in ("-l", "--lang"):
             lang = arg

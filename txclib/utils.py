@@ -81,3 +81,13 @@ def get_opener(host, username, passwd):
     return opener
 
 
+def valid_slug(slug):
+    """
+    Check if a slug contains only valid characters.
+
+    Valid chars include [-_\w]
+    """
+    if re.match("^[A-Za-z0-9_-]*$", slug):
+        return True
+    return False
+
