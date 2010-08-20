@@ -144,7 +144,7 @@ class Project():
         else:
             for resource in self.txdata['resources']:
                 # Push source file
-                MSG("Pushing source file %s" % resource['source_file'])
+                MSG("Pushing source file (%s)" % resource['source_file'])
                 try:
                     r = self.do_url_request('push_file', multipart=True,
                             files=[( "%s_%s" % (resource['resource_slug'],
@@ -170,7 +170,7 @@ class Project():
 
                 # Push translation files one by one
                 for lang, f_obj in resource['translations'].iteritems():
-                    MSG("Pushing %s to %s" % (lang, f_obj['file']))
+                    MSG("Pushing '%s' translations (file: %s)" % (lang, f_obj['file']))
                     try:
                         r = self.do_url_request('push_file', multipart=True,
                              files=[( "%s_%s" % (resource['resource_slug'],
