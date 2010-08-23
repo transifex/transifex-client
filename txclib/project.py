@@ -85,12 +85,8 @@ class Project():
         """
         Pull all translations file from transifex server
         """
-        try:
-            raw = self.do_url_request('get_resources',
-                project=self.get_project_slug())
-        except Exception,e:
-            ERRMSG(e)
-            sys.exit(1)
+        raw = self.do_url_request('get_resources',
+            project=self.get_project_slug())
 
         remote_resources = parse_json(raw)
 
@@ -100,14 +96,10 @@ class Project():
 
             for lang, f_obj in resource['translations'].iteritems():
                 MSG(" -> %s: %s" % (lang, f_obj['file']))
-                try:
-                    r = self.do_url_request('pull_file',
-                        project=self.get_project_slug(),
-                        resource=resource['resource_slug'],
-                        language=lang)
-                except Exception,e:
-                    ERRMSG(e)
-                    sys.exit(1)
+                r = self.do_url_request('pull_file',
+                    project=self.get_project_slug(),
+                    resource=resource['resource_slug'],
+                    language=lang)
 #                write_to_file(filename=f_obj['file'], fd=r,
 #                    overwrite=overwrite, display_diff=display_diff)
                 local_file = f_obj['file']
@@ -121,12 +113,8 @@ class Project():
         """
         Push all the resources
         """
-        try:
-            raw = self.do_url_request('get_resources',
-                      project=self.get_project_slug())
-        except Exception,e:
-            ERRMSG(e)
-            sys.exit(1)
+        raw = self.do_url_request('get_resources',
+                  project=self.get_project_slug())
 
         remote_resources = parse_json(raw)
 
@@ -145,57 +133,39 @@ class Project():
             for resource in self.txdata['resources']:
                 # Push source file
                 MSG("Pushing source file %s" % resource['source_file'])
-                try:
-                    r = self.do_url_request('push_file', multipart=True,
-                            files=[( "%s_%s" % (resource['resource_slug'],
-                                             resource['source_lang']),
-                                 self.get_full_path(resource['source_file']))],
-                            method="POST",
-                            project=self.get_project_slug())
-                except Exception,e:
-                    ERRMSG(e)
-                    sys.exit(1)
-                r = parse_json(r)
-                uuid = r['files'][0]['uuid']
-                try:
-                    self.do_url_request('extract_source',
-                        data=compile_json({"uuid":uuid,"slug":resource['resource_slug']}),
-                        encoding='application/json',
+                r = self.do_url_request('push_file', multipart=True,
+                        files=[( "%s_%s" % (resource['resource_slug'],
+                                         resource['source_lang']),
+                             self.get_full_path(resource['source_file']))],
                         method="POST",
                         project=self.get_project_slug())
-
-                except Exception,e:
-                    ERRMSG(e)
-                    sys.exit(1)
+                r = parse_json(r)
+                uuid = r['files'][0]['uuid']
+                self.do_url_request('extract_source',
+                    data=compile_json({"uuid":uuid,"slug":resource['resource_slug']}),
+                    encoding='application/json',
+                    method="POST",
+                    project=self.get_project_slug())
 
                 # Push translation files one by one
                 for lang, f_obj in resource['translations'].iteritems():
                     MSG("Pushing %s to %s" % (lang, f_obj['file']))
-                    try:
-                        r = self.do_url_request('push_file', multipart=True,
-                             files=[( "%s_%s" % (resource['resource_slug'],
-                                                 lang),
-                                     self.get_full_path(f_obj['file']))],
-                            method="POST",
-                            project=self.get_project_slug())
-
-                    except Exception,e:
-                        ERRMSG(e)
-                        sys.exit(1)
+                    r = self.do_url_request('push_file', multipart=True,
+                         files=[( "%s_%s" % (resource['resource_slug'],
+                                             lang),
+                                 self.get_full_path(f_obj['file']))],
+                        method="POST",
+                        project=self.get_project_slug())
                     r = parse_json(r)
                     uuid = r['files'][0]['uuid']
 
-                    try:
-                        self.do_url_request('extract_translation',
-                            data=compile_json({"uuid":uuid}),
-                            encoding='application/json',
-                            method="PUT",
-                            project=self.get_project_slug(),
-                            resource=resource['resource_slug'],
-                            language=lang)
-                    except Exception,e:
-                        ERRMSG(e)
-                        sys.exit(1)
+                    self.do_url_request('extract_translation',
+                        data=compile_json({"uuid":uuid}),
+                        encoding='application/json',
+                        method="PUT",
+                        project=self.get_project_slug(),
+                        resource=resource['resource_slug'],
+                        language=lang)
 
     def do_url_request(self, api_call, multipart=False, data=None,
                        files=[], encoding=None, method="GET", **kwargs):
@@ -260,8 +230,8 @@ class Project():
 
         fh = urllib2.urlopen(req)
         if fh.code not in [200, 201]:
-            MSG("There was an error: %s" % fh.read())
-            sys.exit(1)
+            raise Exception("There was an error with the request: %s"
+                 %  fh.read())
         raw = fh.read()
         fh.close()
         return raw

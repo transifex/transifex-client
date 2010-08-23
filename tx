@@ -21,9 +21,6 @@ status            Show the current configuration status.
 See 'tx help COMMAND' for more information on a specific command.
 """
 
-DEBUG = True
-#AUTHENTICATION = 'HTTPAUTHBASIC'
-
 
 #import copy
 #import ConfigParser
@@ -79,11 +76,12 @@ def main(argv):
     Here we parse the flags (short, long) and we instantiate the classes.
     """
     DEBUG = False
+    SHOW_TRACE = False
     path_to_tx = None
     extra_opts = []
     try:
-        opts, args = getopt.getopt(argv, "vhd",
-            ["version", "help", "debug", "path_to_tx="])
+        opts, args = getopt.getopt(argv, "vhdT",
+            ["version", "help", "debug", "traceback", "path_to_tx="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -96,6 +94,8 @@ def main(argv):
             sys.exit()
         elif opt in ("-d", "--debug"):
             DEBUG = True
+        elif opt in ("-T", "--traceback"):
+            SHOW_TRACE = True
         elif opt in ("--path_to_tx"):
             path_to_tx = arg
 
@@ -116,9 +116,13 @@ def main(argv):
         ERRMSG("Command %s not found" % cmd)
         usage()
     except:
-        raise
-        sys.exit()
-
+        import traceback
+        if SHOW_TRACE:
+            traceback.print_exc()
+        else:
+            formatted_lines = traceback.format_exc().splitlines()    
+            ERRMSG(formatted_lines[-1])
+        sys.exit(1)
 
 # Run baby :) ... run
 if __name__ == "__main__":
