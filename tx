@@ -103,29 +103,18 @@ def main(argv):
     if len(args) == 0:
         usage()
         sys.exit(2)
+    
+    #if path_to_tx:
+        # CWD to dest dir
+        # What to do with input paths? We have to calculate them before teh cwd
 
     cmd = args[0]
     MSG("Command : %s" % cmd)
     try:
-        if cmd == 'get_source_file':
-            cmd_get_source_file(args[1:], path_to_tx)
-        elif cmd == 'init':
-            cmd_init(args[1:], path_to_tx)
-        elif cmd == 'push':
-            cmd_push(args[1:], path_to_tx)
-        elif cmd == 'pull':
-            cmd_pull(args[1:], path_to_tx)
-        elif cmd == 'send_source_file':
-            cmd_send_source_file(args[1:], path_to_tx)
-        elif cmd == 'set_source_file':
-            cmd_set_source_file(args[1:], path_to_tx)
-        elif cmd == 'set_translation':
-            cmd_set_translation(args[1:], path_to_tx)
-        elif cmd == 'status':
-            cmd_status(args[1:], path_to_tx)
-        else:
-            ERRMSG("\'%s\' is not a tx-command. See \'tx --help\'." % cmd)
-            sys.exit(2)
+        exec_command(cmd, args[1:], path_to_tx)
+    except KeyError:
+        ERRMSG("Command %s not found" % cmd)
+        usage()
     except:
         raise
         sys.exit()

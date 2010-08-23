@@ -92,7 +92,7 @@ def valid_slug(slug):
     return False
 
 
-def traceback(self, exc=None):
+def traceback(exc=None):
     '''print exception traceback if traceback printing enabled.
     only to call in exception handler. returns true if traceback
     printed.'''
@@ -102,3 +102,28 @@ def traceback(self, exc=None):
             traceback.print_exception(exc[0], exc[1], exc[2])
         else:
             traceback.print_exc()
+
+def discover_commands():
+    """
+    Inspect commands.py and find all available commands
+    """
+    import inspect
+    from txclib import commands
+
+    command_table = {}
+    fns = inspect.getmembers(commands, inspect.isfunction)
+
+    for name, fn in fns:
+        if name.startswith("cmd_"):
+            command_table.update({
+                name.split("cmd_")[1]:fn
+            })
+
+    return command_table
+
+def exec_command(command, *args, **kwargs):
+    """
+    Execute given command
+    """
+    commands = discover_commands()
+    commands[command](*args,**kwargs)

@@ -5,8 +5,7 @@ import getopt
 import ConfigParser
 from json import loads as parse_json, dumps as compile_json
 
-from txclib.utils import *
-from txclib.project import *
+from txclib import utils, project
 
 def cmd_get_source_file():
     pass
@@ -23,12 +22,12 @@ def cmd_init(argv, path_to_tx=None):
 
     if path_to_tx:
         if not os.path.exists(path_to_tx):
-            MSG("tx: The path to root directory does not exist!")
+            utils.MSG("tx: The path to root directory does not exist!")
             return
 
-        path = find_dot_tx(path_to_tx)
+        path = utils.find_dot_tx(path_to_tx)
         if path:
-            MSG("tx: There is already a tx folder!")
+            utils.MSG("tx: There is already a tx folder!")
             reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
             while (reinit != 'y' and reinit != 'Y' and reinit != 'N' and reinit != 'n' and reinit != ''):
                 reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
@@ -41,14 +40,14 @@ def cmd_init(argv, path_to_tx=None):
                 shutil.rmtree(rm_dir)
 
         root = path_to_tx
-        MSG("Creating .tx folder ...")
+        utils.MSG("Creating .tx folder ...")
         # FIXME: decide the mode of the directory
         os.mkdir(os.path.join(path_to_tx,".tx"))
 
     else:
-        path = find_dot_tx(root)
+        path = utils.find_dot_tx(root)
         if path:
-            MSG("tx: There is already a tx folder!")
+            utils.MSG("tx: There is already a tx folder!")
             reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
             while (reinit != 'y' and reinit != 'Y' and reinit != 'N' and reinit != 'n' and reinit != ''):
                 reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
@@ -60,7 +59,7 @@ def cmd_init(argv, path_to_tx=None):
                 rm_dir = os.path.join(path, ".tx")
                 shutil.rmtree(rm_dir)
 
-        MSG("Creating .tx folder ...")
+        utils.MSG("Creating .tx folder ...")
         # FIXME: decide the mode of the directory
         os.mkdir(os.path.join(os.getcwd(), ".tx"))
 
@@ -78,7 +77,7 @@ def cmd_init(argv, path_to_tx=None):
     while (not passwd):
         passwd = getpass.getpass()
 
-    MSG("Creating .transifexrc file ...")
+    utils.MSG("Creating .transifexrc file ...")
     config.add_section('API credentials')
     config.set('API credentials', 'username', username)
     config.set('API credentials', 'password', passwd)
@@ -89,7 +88,7 @@ def cmd_init(argv, path_to_tx=None):
     config.write(fh)
     fh.close()
 #    else:
-#        MSG("Read .transifexrc file ...")
+#        utils.MSG("Read .transifexrc file ...")
 #        # FIXME do some checks :)
 #        config.read(txrc)
 #        username = config.get('API credentials', 'username')
@@ -101,19 +100,19 @@ def cmd_init(argv, path_to_tx=None):
     txdata_file = os.path.join(root, ".tx", "txdata")
     # Touch the file if it doesn't exist
     if not os.path.exists(txdata_file):
-        MSG("Creating txdata file ...")
+        utils.MSG("Creating txdata file ...")
         open(txdata_file, 'w').close()
 
 
     # Get the project slug
     project_url = raw_input("Please enter your tx project url here :")
-    hostname, project_slug = parse_tx_url(project_url)
+    hostname, project_slug = utils.parse_tx_url(project_url)
     while (not hostname and not project_slug):
         project_url = raw_input("Please enter your tx project url here :")
-        hostname, project_slug = parse_tx_url(project_url)
+        hostname, project_slug = utils.parse_tx_url(project_url)
 
     # Check the project existence
-    project_info = get_project_info(hostname, username, passwd, project_slug)
+    project_info = project.get_project_info(hostname, username, passwd, project_slug)
     if not project_info:
         # Clean the old settings 
         # FIXME: take a backup
@@ -122,7 +121,7 @@ def cmd_init(argv, path_to_tx=None):
         return
 
     # Write the skeleton dictionary
-    MSG("Creating skeleton ...")
+    utils.MSG("Creating skeleton ...")
     txdata = { 'resources': [],
                'meta': { 'root_dir': os.path.abspath(root),
                          'project_slug': project_info['slug'],
@@ -138,7 +137,7 @@ def cmd_init(argv, path_to_tx=None):
     fh = open(txrc, 'w')
     config.write(fh)
     fh.close()
-    MSG("Done.")
+    utils.MSG("Done.")
 
 
 def cmd_push(argv, path_to_tx=None):
@@ -156,21 +155,21 @@ def cmd_push(argv, path_to_tx=None):
             force_creation = True
 
 
-    # instantiate the Project
-    project = Project()
-    project.push(force_creation)
+    # instantiate the project.Project
+    prj = project.Project()
+    prj.push(force_creation)
 
-    MSG("Done.")
+    utils.MSG("Done.")
 
 
 
 def cmd_pull(argv, path_to_tx=None):
 
-    # instantiate the Project
-    project = Project()
-    project.pull()
+    # instantiate the project.Project
+    prj = project.Project()
+    prj.pull()
 
-    MSG("Done.")
+    utils.MSG("Done.")
 
 
 def cmd_send_source_file(argv, path_to_tx=None):
@@ -194,17 +193,17 @@ def cmd_set_source_file(argv, path_to_tx=None):
         return
     for opt, arg in opts:
         if opt in ("-r", "--resource"):
-            if not valid_slug(arg):
+            if not utils.valid_slug(arg):
                 raise Exception("Valid characters for resource slugs are [-_\w]")
             resource = arg
         elif opt in ("-l", "--lang"):
             lang = arg
 
     if not resource:
-        MSG("tx: Resource argument must be given, use -r|--resource")
+        utils.MSG("tx: Resource argument must be given, use -r|--resource")
         return
     elif not lang:
-        MSG("tx: Language argument must be given, use -l|--lang")
+        utils.MSG("tx: Language argument must be given, use -l|--lang")
         return
 
     # If no path provided show the usage and exit
@@ -214,38 +213,38 @@ def cmd_set_source_file(argv, path_to_tx=None):
 
     path_to_file = args[0]
     if not os.path.exists(path_to_file):
-        MSG("tx: File does not exist.")
+        utils.MSG("tx: File does not exist.")
         return
 
-    # instantiate the Project
-    project = Project()
-    root_dir = project.txdata['meta']['root_dir']
+    # instantiate the project.Project
+    prj = project.Project()
+    root_dir = prj.txdata['meta']['root_dir']
 
     if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
-        MSG("File must be under the project root directory.")
+        utils.MSG("File must be under the project root directory.")
         return
 
     # FIXME: Check also if the path to source file already exists.
     map_object = {}
-    for r_entry in project.txdata['resources']:
+    for r_entry in prj.txdata['resources']:
         if r_entry['resource_slug'] == resource:
             map_object = r_entry
             break
 
-    MSG("Updating txdata file ...")
-    path_to_file = os.path.relpath(path_to_file, project.txdata['meta']['root_dir'])
+    utils.MSG("Updating txdata file ...")
+    path_to_file = os.path.relpath(path_to_file, prj.txdata['meta']['root_dir'])
     if map_object:
         map_object['source_file'] = path_to_file
         map_object['source_lang'] = lang
     else:
-        project.txdata['resources'].append({
+        prj.txdata['resources'].append({
               'resource_slug': resource,
               'source_file': path_to_file,
               'source_lang': lang,
               'translations': {},
             })
-    project.save()
-    MSG("Done.")
+    prj.save()
+    utils.MSG("Done.")
 
 
 def cmd_set_translation(argv, path_to_tx=None):
@@ -269,10 +268,10 @@ def cmd_set_translation(argv, path_to_tx=None):
             lang = arg
 
     if not resource:
-        MSG("tx: Resource argument must be given, use -r|--resource")
+        utils.MSG("tx: Resource argument must be given, use -r|--resource")
         return
     elif not lang:
-        MSG("tx: Language argument must be given, use -l|--lang")
+        utils.MSG("tx: Language argument must be given, use -l|--lang")
         return
 
     # If no path provided show the usage and exit
@@ -282,48 +281,48 @@ def cmd_set_translation(argv, path_to_tx=None):
 
     path_to_file = args[0]
     if not os.path.exists(path_to_file):
-        MSG("tx: File does not exist.")
+        utils.MSG("tx: File does not exist.")
         return
 
-    # instantiate the Project
-    project = Project()
+    # instantiate the project.Project
+    prj = project.Project()
 
-    root_dir = project.txdata['meta']['root_dir']
+    root_dir = prj.txdata['meta']['root_dir']
 
     if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
-        MSG("File must be under the project root directory.")
+        utils.MSG("File must be under the project root directory.")
         return
 
 
 
     map_object = {}
-    for r_entry in project.txdata['resources']:
+    for r_entry in prj.txdata['resources']:
         if r_entry['resource_slug'] == resource:
             map_object = r_entry
             break
 
     if not map_object:
-        MSG("tx: You should first run 'set_source_file' to map the source file.")
+        utils.MSG("tx: You should first run 'set_source_file' to map the source file.")
         return
 
     if lang == map_object['source_lang']:
-        MSG("tx: You cannot set translation file for the source language.")
-        MSG("Source languages contain the strings which will be translated!")
+        utils.MSG("tx: You cannot set translation file for the source language.")
+        utils.MSG("Source languages contain the strings which will be translated!")
         return
 
-    MSG("Updating txdata file ...")
+    utils.MSG("Updating txdata file ...")
     path_to_file = os.path.relpath(path_to_file, root_dir)
     if map_object['translations'].has_key(lang):
         for key, value in map_object['translations'][lang].items():
             if value == path_to_file:
-                MSG("tx: The file already exists in the specific resource.")
+                utils.MSG("tx: The file already exists in the specific resource.")
                 return
         map_object['translations'][lang]['file'] = path_to_file
     else:
         # Create the language file list
         map_object['translations'][lang] = {'file' : path_to_file}
-    project.save()
-    MSG("Done.")
+    prj.save()
+    utils.MSG("Done.")
 
 
 def cmd_status(argv, path_to_tx=None):
