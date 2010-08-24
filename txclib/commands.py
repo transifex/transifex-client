@@ -1,13 +1,24 @@
 import os
 import getpass
 import shutil
-import getopt
+from optparse import OptionParser
 import ConfigParser
 from json import loads as parse_json, dumps as compile_json
 
 from txclib import utils, project
 
 def cmd_get_source_file():
+    """
+    Fetch source file from remote server
+    """
+
+    usage="usage: %prog [tx_options] get_source_file"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-r","--resource", action="store", dest="resources",
+        default=[], help="Specify the resource for which you want to pull"
+        " the translations (defaults to all)")
+    (options, args) = parser.parse_args(argv)
+
     pass
 
 
@@ -20,12 +31,18 @@ def cmd_init(argv, path_to_tx=None):
     # Current working dir path
     root = os.getcwd()
 
+
+    usage="usage: %prog [tx_options] init"
+    parser = OptionParser(usage=usage)
+    (options, args) = parser.parse_args(argv)
+
+
     if path_to_tx:
         if not os.path.exists(path_to_tx):
             utils.MSG("tx: The path to root directory does not exist!")
             return
 
-        path = utils.find_dot_tx(path_to_tx)
+        path = path_to_tx or utils.find_dot_tx(path_to_tx)
         if path:
             utils.MSG("tx: There is already a tx folder!")
             reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
@@ -45,7 +62,7 @@ def cmd_init(argv, path_to_tx=None):
         os.mkdir(os.path.join(path_to_tx,".tx"))
 
     else:
-        path = utils.find_dot_tx(root)
+        path = path_to_tx or utils.find_dot_tx(root)
         if path:
             utils.MSG("tx: There is already a tx folder!")
             reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
@@ -144,19 +161,27 @@ def cmd_push(argv, path_to_tx=None):
     """
     Push to the server all the local files included in the txdata json structure.
     """
-    force_creation = False
-    try:
-        opts, args = getopt.getopt(argv, "f", ["force"])
-    except getopt.GetoptError:
-        usage('push')
-        return
-    for opt, arg in opts:
-        if opt in ("-f", "--force"):
-            force_creation = True
+    usage="usage: %prog [tx_options] push [options]"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-l","--language", action="store", dest="languages",
+        default=[], help="Specify which translations you want to pull"
+        " (defaults to all)")
+    parser.add_option("-r","--resource", action="store", dest="resources",
+        default=[], help="Specify the resource for which you want to pull"
+        " the translations (defaults to all)")
+    parser.add_option("-f","--force", action="store_true", dest="force_creation",
+        default=False, help="Push source files along with translations. This"
+        " can create remote resources.")
+    parser.add_option("--skip", action="store_true", dest="skip_errors",
+        default=False, help="Don't stop on errors. Useful when pushing many"
+        " files concurrently.")
+    (options, args) = parser.parse_args(argv)
+
+    force_creation = options.force_creation
 
 
     # instantiate the project.Project
-    prj = project.Project()
+    prj = project.Project(path_to_tx)
     prj.push(force_creation)
 
     utils.MSG("Done.")
@@ -164,15 +189,42 @@ def cmd_push(argv, path_to_tx=None):
 
 
 def cmd_pull(argv, path_to_tx=None):
+    """
+    Pull files from remote instance
+    """
+    usage="usage: %prog [tx_options] pull [options]"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-l","--language", action="store", dest="languages",
+        default=[], help="Specify which translations you want to pull"
+        " (defaults to all)")
+    parser.add_option("-r","--resource", action="store", dest="resources",
+        default=[], help="Specify the resource for which you want to pull"
+        " the translations (defaults to all)")
+    parser.add_option("-a","--all", action="store_true", dest="fetchall",
+        default=False, help="Fetch all translation files from server (even new"
+        " ones)")
+
+    (options, args) = parser.parse_args()
 
     # instantiate the project.Project
-    prj = project.Project()
+    prj = project.Project(path_to_tx)
     prj.pull()
 
     utils.MSG("Done.")
 
 
 def cmd_send_source_file(argv, path_to_tx=None):
+    """
+    Send source file to the server
+    """
+    usage="usage: %prog [tx_options] send_source_file [options]"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-r","--resource", action="store", dest="resources",
+        default=[], help="Specify the resources for which you want to push"
+        " the source files (defaults to all)")
+
+    (options, args) = parser.parse_args()
+
     pass
 
 
@@ -186,30 +238,24 @@ def cmd_set_source_file(argv, path_to_tx=None):
     resource = None
     lang = None
 
-    try:
-        opts, args = getopt.getopt(argv, "r:l:", ["resource=", "lang="])
-    except getopt.GetoptError:
-        usage('set_source_file')
-        return
-    for opt, arg in opts:
-        if opt in ("-r", "--resource"):
-            if not utils.valid_slug(arg):
-                raise Exception("Valid characters for resource slugs are [-_\w]")
-            resource = arg
-        elif opt in ("-l", "--lang"):
-            lang = arg
+    usage="usage: %prog [tx_options] set_source_file [options] <file>"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-s","--source-language", action="store", dest="slang",
+        default="en", help="Source languages of the source file (defaults to 'en')")
+    parser.add_option("-r","--resource", action="store", dest="resource_slug",
+        default=None, help="Specify resource name")
 
-    if not resource:
-        utils.MSG("tx: Resource argument must be given, use -r|--resource")
-        return
-    elif not lang:
-        utils.MSG("tx: Language argument must be given, use -l|--lang")
-        return
+    (options, args) = parser.parse_args()
 
-    # If no path provided show the usage and exit
+    if not options.resource_slug:
+        parser.error("You must specify a resource using the -r|--resource"
+            " option.")
+
+    resource = options.resource_slug
+    lang = options.slang
+
     if len(args) != 1:
-        usage()
-        sys.exit(2)
+        parser.error("Please specify a file")
 
     path_to_file = args[0]
     if not os.path.exists(path_to_file):
@@ -217,7 +263,7 @@ def cmd_set_source_file(argv, path_to_tx=None):
         return
 
     # instantiate the project.Project
-    prj = project.Project()
+    prj = project.Project(path_to_tx)
     root_dir = prj.txdata['meta']['root_dir']
 
     if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
@@ -254,30 +300,25 @@ def cmd_set_translation(argv, path_to_tx=None):
     This file will be committed to the server when the 'tx push' command will be
     called.
     """
-    resource = None
-    lang = None
-    try:
-        opts, args = getopt.getopt(argv, "r:l:", ["resource=", "lang="])
-    except getopt.GetoptError:
-        usage('set_translation')
-        return
-    for opt, arg in opts:
-        if opt in ("-r", "--resource"):
-            resource = arg
-        elif opt in ("-l", "--lang"):
-            lang = arg
 
-    if not resource:
-        utils.MSG("tx: Resource argument must be given, use -r|--resource")
-        return
-    elif not lang:
-        utils.MSG("tx: Language argument must be given, use -l|--lang")
-        return
+    usage="usage: %prog [tx_options] set_source_file [options] <file>"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-s","--source-language", action="store", dest="slang",
+        default=None, help="Source languages of the source file (defaults to 'en')")
+    parser.add_option("-r","--resource", action="store", dest="resource_slug",
+        default=None, help="Specify resource name")
 
-    # If no path provided show the usage and exit
+    (options, args) = parser.parse_args()
+
+    resource = options.resource_slug
+    lang = options.slang
+
+    if not resource or lang:
+        parser.error("You need to specify a resource and a language for the"
+            " translation")
+
     if len(args) != 1:
-        usage()
-        sys.exit(2)
+        parser.error("Please specify a file")
 
     path_to_file = args[0]
     if not os.path.exists(path_to_file):
@@ -285,7 +326,7 @@ def cmd_set_translation(argv, path_to_tx=None):
         return
 
     # instantiate the project.Project
-    prj = project.Project()
+    prj = project.Project(path_to_tx)
 
     root_dir = prj.txdata['meta']['root_dir']
 
@@ -326,4 +367,14 @@ def cmd_set_translation(argv, path_to_tx=None):
 
 
 def cmd_status(argv, path_to_tx=None):
+    """
+    Print status for current project
+    """
+    usage="usage: %prog [tx_options] status [options]"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-r","--resource", action="store", dest="resources",
+        default=[], help="Specify resources")
+
+    (options, args) = parser.parse_args()
+
     pass

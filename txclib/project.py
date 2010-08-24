@@ -21,12 +21,12 @@ class Project():
     Represents an association between the local and remote project instances.
     """
 
-    def __init__(self):
+    def __init__(self, path_to_tx=None):
         """
         Initialize the Project attributes.
         """
         # The path to the root of the project, where .tx lives!
-        self.root = find_dot_tx()
+        self.root = path_to_tx or find_dot_tx()
         if not self.root:
             MSG("Cannot find any .tx directory!")
             MSG("Run 'tx init' to initialize your project first!")
