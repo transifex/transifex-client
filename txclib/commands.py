@@ -395,7 +395,18 @@ def cmd_status(argv, path_to_tx=None):
 
     (options, args) = parser.parse_args(argv)
 
-    pass
+    prj = project.Project(path_to_tx)
+
+    resources = len(prj.txdata['resources'])
+    for id, res in enumerate(prj.txdata['resources']):
+        utils.MSG("%s -> %s (%s of %s)" % (prj.txdata['meta']['project_slug'],
+            res['resource_slug'], id+1, resources))
+        utils.MSG("Translation Files:")
+        utils.MSG(" - %s: %s (source)" % (res['source_lang'], res['source_file']))
+        for tr in  res['translations'].keys():
+            utils.MSG(" - %s: %s" % (tr, res['translations'][tr]['file']))
+
+        utils.MSG("")
 
 def cmd_help(argv, command=None, path_to_tx=None):
     "List all available commands"
