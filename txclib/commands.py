@@ -186,10 +186,10 @@ def cmd_push(argv, path_to_tx=None):
         " Transifex but you can filter this per resource or/and language."
     parser = OptionParser(usage=usage, description=description)
     parser.add_option("-l","--language", action="store", dest="languages",
-        default=[], help="Specify which translations you want to pull"
+        default=None, help="Specify which translations you want to pull"
         " (defaults to all)")
     parser.add_option("-r","--resource", action="store", dest="resources",
-        default=[], help="Specify the resource for which you want to pull"
+        default=None, help="Specify the resource for which you want to pull"
         " the translations (defaults to all)")
     parser.add_option("-f","--force", action="store_true", dest="force_creation",
         default=False, help="Push source files along with translations. This"
@@ -201,10 +201,12 @@ def cmd_push(argv, path_to_tx=None):
 
     force_creation = options.force_creation
 
+    languages = options.languages.split(',') if options.languages else []
+    resources = options.resources.split(',') if options.resources else []
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
-    prj.push(force_creation)
+    prj.push(force_creation, resources, languages)
 
     utils.MSG("Done.")
 
@@ -226,12 +228,20 @@ def cmd_pull(argv, path_to_tx=None):
     parser.add_option("-a","--all", action="store_true", dest="fetchall",
         default=False, help="Fetch all translation files from server (even new"
         " ones)")
+    parser.add_option("--disable-overwrite", action="store_false",
+        dest="overwrite", default=True, 
+        help="By default transifex will fetch new translations files and"\
+            " replace existing ones. Use this flag if you want to disable"\
+            " this feature")
 
     (options, args) = parser.parse_args(argv)
 
+    languages = options.languages.split(',') if options.languages else []
+    resources = options.resources.split(',') if options.resources else []
+
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
-    prj.pull()
+    prj.pull(languages, resources, options.overwrite)
 
     utils.MSG("Done.")
 

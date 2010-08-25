@@ -81,7 +81,7 @@ class Project():
         else:
             return os.path.join(self.root, relpath)
 
-    def pull(self, language=None, overwrite=True, display_diff=False):
+    def pull(self, languages=[], resources=[], overwrite=True):
         """
         Pull all translations file from transifex server
         """
@@ -95,21 +95,23 @@ class Project():
             MSG("Pulling translations for source file %s" % resource['source_file'])
 
             for lang, f_obj in resource['translations'].iteritems():
-                MSG(" -> %s: %s" % (lang, f_obj['file']))
+                if resources and resource['resource_slug'] not in resources:
+                    continue
+                if languages and lang not in languages:
+                    continue
+                local_file = f_obj['file']
+                if not overwrite:
+                    local_file = ("%s.new" % local_file)
+                MSG(" -> %s: %s" % (lang, local_file))
                 r = self.do_url_request('pull_file',
                     project=self.get_project_slug(),
                     resource=resource['resource_slug'],
                     language=lang)
-#                write_to_file(filename=f_obj['file'], fd=r,
-#                    overwrite=overwrite, display_diff=display_diff)
-                local_file = f_obj['file']
-                if not overwrite:
-                    local_file = ("%s.new" % local_file)
                 fd = open(local_file, 'w')
                 fd.write(r)
 
 
-    def push(self, force=False):
+    def push(self, force=False, resources=[], languages=[]):
         """
         Push all the resources
         """
@@ -125,30 +127,37 @@ class Project():
                 if name in resource['resource_slug'] :
                     del(local_resources[i])
 
-        if local_resources != [] and not force:
+        if local_resources and not force:
             MSG("Following resources are not available on remote machine:", ", ".join([i['resource_slug'] for i in local_resources]))
             MSG("Use -f to force creation of new resources")
             exit(1)
         else:
             for resource in self.txdata['resources']:
-                # Push source file
-                MSG("Pushing source file (%s)" % resource['source_file'])
-                r = self.do_url_request('push_file', multipart=True,
-                        files=[( "%s__%s" % (resource['resource_slug'],
-                                         resource['source_lang']),
-                             self.get_full_path(resource['source_file']))],
+                if force:
+                    if resources and resource['resource_slug'] not in resources:
+                        continue
+                    # Push source file
+                    MSG("Pushing source file (%s)" % resource['source_file'])
+                    r = self.do_url_request('push_file', multipart=True,
+                            files=[( "%s__%s" % (resource['resource_slug'],
+                                             resource['source_lang']),
+                                 self.get_full_path(resource['source_file']))],
+                            method="POST",
+                            project=self.get_project_slug())
+                    r = parse_json(r)
+                    uuid = r['files'][0]['uuid']
+                    self.do_url_request('extract_source',
+                        data=compile_json({"uuid":uuid,"slug":resource['resource_slug']}),
+                        encoding='application/json',
                         method="POST",
                         project=self.get_project_slug())
-                r = parse_json(r)
-                uuid = r['files'][0]['uuid']
-                self.do_url_request('extract_source',
-                    data=compile_json({"uuid":uuid,"slug":resource['resource_slug']}),
-                    encoding='application/json',
-                    method="POST",
-                    project=self.get_project_slug())
+                else: 
+                    MSG("Pushing translations for resource %s" % resource['resource_slug'])
 
                 # Push translation files one by one
                 for lang, f_obj in resource['translations'].iteritems():
+                    if languages and lang not in languages:
+                        continue
                     MSG("Pushing '%s' translations (file: %s)" % (lang, f_obj['file']))
                     r = self.do_url_request('push_file', multipart=True,
                          files=[( "%s__%s" % (resource['resource_slug'],
