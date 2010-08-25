@@ -149,7 +149,7 @@ class Project():
 
                 # Push translation files one by one
                 for lang, f_obj in resource['translations'].iteritems():
-                    MSG("Pushing %s to %s" % (lang, f_obj['file']))
+                    MSG("Pushing %s:%s" % (lang, f_obj['file']))
                     r = self.do_url_request('push_file', multipart=True,
                          files=[( "%s_%s" % (resource['resource_slug'],
                                              lang),
@@ -228,10 +228,14 @@ class Project():
             if encoding:
                 req.add_header("Content-Type",encoding)
 
-        fh = urllib2.urlopen(req)
-        if fh.code not in [200, 201]:
-            raise Exception("There was an error with the request: %s"
-                 %  fh.read())
+        try:
+            fh = urllib2.urlopen(req)
+        except urllib2.HTTPError, e:
+            raise Exception("%s: %s" % (e.code, e.read()))
+        except urllib2.URLError, e:
+            error = e.args[0]
+            raise Exception("%s: %s" % (error[0], error[1]))
+
         raw = fh.read()
         fh.close()
         return raw

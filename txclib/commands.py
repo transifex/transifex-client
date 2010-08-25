@@ -1,6 +1,24 @@
+# -*- coding: utf-8 -*-
+"""
+In this file we have all the top level commands for the transifex client.
+Since we're using a way to automatically list them and execute them, when
+adding code to this file you must take care of the following:
+ * Added functions must begin with 'cmd_' followed by the actual name of the
+   command being used in the command line (eg cmd_init)
+ * The description for each function that we display to the user is read from
+   the func_doc attribute which reads the doc string. So, when adding
+   docstring to a new function make sure you add an oneliner which is
+   descriptive and is meant to be seen by the user.
+ * When including libraries, it's best if you include modules instead of
+   functions because that way our function resolution will work faster and the
+   chances of overlapping are minimal
+ * All functions should use the OptionParser and should have a usage and
+   descripition field.
+"""
 import os
 import getpass
 import shutil
+import sys
 from optparse import OptionParser
 import ConfigParser
 from json import loads as parse_json, dumps as compile_json
@@ -8,12 +26,11 @@ from json import loads as parse_json, dumps as compile_json
 from txclib import utils, project
 
 def cmd_get_source_file():
-    """
-    Fetch source file from remote server
-    """
+    "Download source file from transifex server"
 
     usage="usage: %prog [tx_options] get_source_file"
-    parser = OptionParser(usage=usage)
+    description="Download source file from transifex server"
+    parser = OptionParser(usage=usage, description=description)
     parser.add_option("-r","--resource", action="store", dest="resources",
         default=[], help="Specify the resource for which you want to pull"
         " the translations (defaults to all)")
@@ -23,17 +40,16 @@ def cmd_get_source_file():
 
 
 def cmd_init(argv, path_to_tx=None):
-    """
-    Initialize the tx client folder. 
-    
-    The .tx folder is created by default to the CWD!
-    """
+    "Initialize a new transifex project."
+
     # Current working dir path
-    root = os.getcwd()
-
-
+    root = path_to_tx or os.getcwd()
     usage="usage: %prog [tx_options] init"
-    parser = OptionParser(usage=usage)
+    description="This command initializes a new project for use with"\
+        " transifex. It is recommended to execute this command in the"\
+        " top level directory of your project so that you can include"\
+        " all files under it in transifex."
+    parser = OptionParser(usage=usage, description=description)
     (options, args) = parser.parse_args(argv)
 
 
@@ -158,11 +174,17 @@ def cmd_init(argv, path_to_tx=None):
 
 
 def cmd_push(argv, path_to_tx=None):
-    """
-    Push to the server all the local files included in the txdata json structure.
-    """
+    "Push local files to remote server"
     usage="usage: %prog [tx_options] push [options]"
-    parser = OptionParser(usage=usage)
+    description="This command pushes all local files that have been added to"\
+        " Transifex to the remote server. All new translations are merged"\
+        " with existing ones and if a language doesn't exists then it gets"\
+        " created. If you want to push the source file as well (either"\
+        " because this is your first time running the client or because"\
+        " you just have updated with new entries), use the -f|--force option."\
+        " By default, this command will push all files which are watched by"\
+        " Transifex but you can filter this per resource or/and language."
+    parser = OptionParser(usage=usage, description=description)
     parser.add_option("-l","--language", action="store", dest="languages",
         default=[], help="Specify which translations you want to pull"
         " (defaults to all)")
@@ -186,14 +208,15 @@ def cmd_push(argv, path_to_tx=None):
 
     utils.MSG("Done.")
 
-
-
 def cmd_pull(argv, path_to_tx=None):
-    """
-    Pull files from remote instance
-    """
+    "Pull files from remote server to local repository"
     usage="usage: %prog [tx_options] pull [options]"
-    parser = OptionParser(usage=usage)
+    description="This command pulls all outstanding changes from the remote"\
+        " Transifex server to the local repository. By default, only the"\
+        " files that are watched by Transifex will be updated but if you"\
+        " want to fetch the translations for new languages as well, use the"\
+        " -a|--all option."
+    parser = OptionParser(usage=usage,description=description)
     parser.add_option("-l","--language", action="store", dest="languages",
         default=[], help="Specify which translations you want to pull"
         " (defaults to all)")
@@ -204,7 +227,7 @@ def cmd_pull(argv, path_to_tx=None):
         default=False, help="Fetch all translation files from server (even new"
         " ones)")
 
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args(argv)
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
@@ -214,38 +237,35 @@ def cmd_pull(argv, path_to_tx=None):
 
 
 def cmd_send_source_file(argv, path_to_tx=None):
-    """
-    Send source file to the server
-    """
+    "Upload source file to remote server"
     usage="usage: %prog [tx_options] send_source_file [options]"
     parser = OptionParser(usage=usage)
     parser.add_option("-r","--resource", action="store", dest="resources",
         default=[], help="Specify the resources for which you want to push"
         " the source files (defaults to all)")
 
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args(argv)
 
     pass
 
 
 def cmd_set_source_file(argv, path_to_tx=None):
-    """
-    Point a source file to the txdata file.
-    
-    This file will be committed to the server when the 'tx push' command will be
-    called.
-    """
+    "Assing a source file to a specific resource"
     resource = None
     lang = None
 
     usage="usage: %prog [tx_options] set_source_file [options] <file>"
-    parser = OptionParser(usage=usage)
-    parser.add_option("-s","--source-language", action="store", dest="slang",
+    description="Assign a file as the source file of a specific resource"\
+        " The source language for this file is considered to be English(en)"\
+        " if no other is provided. These settings are kept in the local conf"\
+        " file and are used to keep in sync the server with the repository."
+    parser = OptionParser(usage=usage, description=description)
+    parser.add_option("-l","--language", action="store", dest="slang",
         default="en", help="Source languages of the source file (defaults to 'en')")
     parser.add_option("-r","--resource", action="store", dest="resource_slug",
         default=None, help="Specify resource name")
 
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args(argv)
 
     if not options.resource_slug:
         parser.error("You must specify a resource using the -r|--resource"
@@ -294,26 +314,26 @@ def cmd_set_source_file(argv, path_to_tx=None):
 
 
 def cmd_set_translation(argv, path_to_tx=None):
-    """
-    Create a ref for a translation file in the txdata file.
-    
-    This file will be committed to the server when the 'tx push' command will be
-    called.
-    """
+    "Assign translation files to a resource"
 
-    usage="usage: %prog [tx_options] set_source_file [options] <file>"
-    parser = OptionParser(usage=usage)
-    parser.add_option("-s","--source-language", action="store", dest="slang",
-        default=None, help="Source languages of the source file (defaults to 'en')")
+    usage="usage: %prog [tx_options] set_translation [options] <file>"
+    description="Assign a file as the translation file of a specific resource"\
+        " in a given language. These info is stored in a configuration file"\
+        " and is used for synchronization between the server and the local"\
+        " repository"
+    parser = OptionParser(usage=usage, description=description)
+    parser.add_option("-l","--language", action="store", dest="lang",
+        default=None, help="Language of the translation file")
     parser.add_option("-r","--resource", action="store", dest="resource_slug",
         default=None, help="Specify resource name")
 
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args(argv)
 
     resource = options.resource_slug
-    lang = options.slang
+    lang = options.lang
 
-    if not resource or lang:
+    print resource, lang
+    if not resource or not lang:
         parser.error("You need to specify a resource and a language for the"
             " translation")
 
@@ -333,8 +353,6 @@ def cmd_set_translation(argv, path_to_tx=None):
     if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
         utils.MSG("File must be under the project root directory.")
         return
-
-
 
     map_object = {}
     for r_entry in prj.txdata['resources']:
@@ -367,14 +385,56 @@ def cmd_set_translation(argv, path_to_tx=None):
 
 
 def cmd_status(argv, path_to_tx=None):
-    """
-    Print status for current project
-    """
+    "Print status of current project"
+
     usage="usage: %prog [tx_options] status [options]"
-    parser = OptionParser(usage=usage)
+    description="Prints the status of the current project by reading the"\
+        " data in the configuration file."
+    parser = OptionParser(usage=usage,description=description)
     parser.add_option("-r","--resource", action="store", dest="resources",
         default=[], help="Specify resources")
 
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args(argv)
 
     pass
+
+def cmd_help(argv, command=None, path_to_tx=None):
+    "List all available commands"
+
+    usage="usage: %prog help command"
+    description="Lists all available commands in the transifex command"\
+        " client. If a command is specified, the help page of the specific"\
+        " command is displayed instead."
+
+    parser = OptionParser(usage=usage, description=description)
+
+    (options, args) = parser.parse_args(argv)
+
+    if len(args) > 1:
+        parser.error("Multiple arguments received. Exiting...")
+
+    # Get all commands
+    fns = utils.discover_commands()
+
+    # Print help for specific command
+    if len(args) == 1:
+        try:
+            fns[argv[0]](['--help'])
+        except KeyError:
+            utils.ERRMSG("Command %s not found" % argv[0])
+    # or print summary of all commands
+
+    # the code below will only be executed if the KeyError exception is thrown
+    # becuase in all other cases the function called with --help will exit
+    # instead of return here
+    keys = fns.keys()
+    keys.sort()
+
+
+    utils.MSG("Transifex command line client.\n")
+    utils.MSG("Available commands are:")
+    for key in keys:
+        utils.MSG("  %-15s\t%s" % (key, fns[key].func_doc))
+
+
+    utils.MSG("\nFor more information run %s command --help" % sys.argv[0])

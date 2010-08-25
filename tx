@@ -58,7 +58,6 @@ def main(argv):
 
    
     cmd = args[0]
-    MSG("Command : %s" % cmd)
     try:
         exec_command(cmd, args[1:], options.root_dir)
     except KeyError:
