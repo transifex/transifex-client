@@ -58,7 +58,7 @@ def cmd_init(argv, path_to_tx=None):
             utils.MSG("tx: The path to root directory does not exist!")
             return
 
-        path = path_to_tx or utils.find_dot_tx(path_to_tx)
+        path = utils.find_dot_tx(path_to_tx)
         if path:
             utils.MSG("tx: There is already a tx folder!")
             reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
@@ -332,7 +332,6 @@ def cmd_set_translation(argv, path_to_tx=None):
     resource = options.resource_slug
     lang = options.lang
 
-    print resource, lang
     if not resource or not lang:
         parser.error("You need to specify a resource and a language for the"
             " translation")
