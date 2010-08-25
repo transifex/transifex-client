@@ -1,43 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-HELP = """
-Transifex client application
-
-usage: tx [--version] [-h|--help] [-d|--debug] [-p|--path_to_tx] COMMAND ARGS
-
-COMMAND can be one of the following:
-
-get_source_file   Fetch only the source file of a specific resource.
-init              Create a local instance of a transifex project.
-push              Update remote resources with the local file content.
-pull              Fetch all files (source, translation) from server.
-send_source_file  Update the source strings of a specific remote resource.
-set_source_file   Assign a source file to a project resource locally.
-set_translation   Assign a translation file to a project resource locally.
-status            Show the current configuration status.
-
-
-See 'tx help COMMAND' for more information on a specific command.
-"""
-
-DEBUG = True
-#AUTHENTICATION = 'HTTPAUTHBASIC'
-
-
-#import copy
-#import ConfigParser
-#import getpass
-import getopt
+from optparse import OptionParser
 import os
-#import re
-#import shutil
 import sys
-#import urllib2
-
-#from json import loads as parse_json, dumps as compile_json
-#from poster.encode import multipart_encode, MultipartParam
-#from poster.streaminghttp import register_openers
 
 from txclib.commands import *
 from txclib.utils import *
@@ -65,71 +31,47 @@ except KeyboardInterrupt:
 # This sets the encoding for the strings which are created with f.read()
 sys.setdefaultencoding('utf-8')
 
-
-def usage(cmd=None):
-    """
-    Explain the usage of the tx client commands.
-    """
-    # TODO: Implement all the command specific documentation.
-    MSG(HELP)
-
+VERSION="tx v0.1"
 
 def main(argv):
     """
     Here we parse the flags (short, long) and we instantiate the classes.
     """
-    DEBUG = False
-    path_to_tx = None
-    extra_opts = []
-    try:
-        opts, args = getopt.getopt(argv, "vhd",
-            ["version", "help", "debug", "path_to_tx="])
-    except getopt.GetoptError:
-        usage()
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ("-v", "--version"):
-            MSG("Transifex Client Version 0.1")
-            sys.exit()
-        elif opt in ("-h", "--help"):
-            usage()
-            sys.exit()
-        elif opt in ("-d", "--debug"):
-            DEBUG = True
-        elif opt in ("--path_to_tx"):
-            path_to_tx = arg
+    usage = "usage: %prog [options] command [cmd_options]"
 
-    # If no commands provided show the usage and exit
-    if len(args) == 0:
-        usage()
-        sys.exit(2)
+    parser = OptionParser(usage=usage, version=VERSION)
+    parser.disable_interspersed_args()
+    parser.add_option("-q", "--quiet", 
+        action="store_true", dest="verbose", default=False,
+        help="don't print status messages to stdout")
+    parser.add_option("-r", "--root", action="store",
+        dest="root_dir", type="string", default=os.getcwd(),
+        help="change root directory (default is cwd)")
+    parser.add_option("--traceback", action="store_true",
+        dest="trace", default=False,
+        help="print full traceback on exceptions")
 
+    (options, args) = parser.parse_args()
+
+    if len(args) < 1:
+        parser.error("No command was given")
+
+   
     cmd = args[0]
-    MSG("Command : %s" % cmd)
     try:
-        if cmd == 'get_source_file':
-            cmd_get_source_file(args[1:], path_to_tx)
-        elif cmd == 'init':
-            cmd_init(args[1:], path_to_tx)
-        elif cmd == 'push':
-            cmd_push(args[1:], path_to_tx)
-        elif cmd == 'pull':
-            cmd_pull(args[1:], path_to_tx)
-        elif cmd == 'send_source_file':
-            cmd_send_source_file(args[1:], path_to_tx)
-        elif cmd == 'set_source_file':
-            cmd_set_source_file(args[1:], path_to_tx)
-        elif cmd == 'set_translation':
-            cmd_set_translation(args[1:], path_to_tx)
-        elif cmd == 'status':
-            cmd_status(args[1:], path_to_tx)
-        else:
-            ERRMSG("\'%s\' is not a tx-command. See \'tx --help\'." % cmd)
-            sys.exit(2)
-    except:
-        raise
+        exec_command(cmd, args[1:], options.root_dir)
+    except KeyError:
+        ERRMSG("Command %s not found" % cmd)
+    except SystemExit:
         sys.exit()
-
+    except:
+        import traceback
+        if options.trace:
+            traceback.print_exc()
+        else:
+            formatted_lines = traceback.format_exc().splitlines()    
+            ERRMSG(formatted_lines[-1])
+        sys.exit(1)
 
 # Run baby :) ... run
 if __name__ == "__main__":
