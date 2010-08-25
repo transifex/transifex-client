@@ -134,7 +134,7 @@ class Project():
                 # Push source file
                 MSG("Pushing source file (%s)" % resource['source_file'])
                 r = self.do_url_request('push_file', multipart=True,
-                        files=[( "%s_%s" % (resource['resource_slug'],
+                        files=[( "%s__%s" % (resource['resource_slug'],
                                          resource['source_lang']),
                              self.get_full_path(resource['source_file']))],
                         method="POST",
@@ -151,7 +151,7 @@ class Project():
                 for lang, f_obj in resource['translations'].iteritems():
                     MSG("Pushing '%s' translations (file: %s)" % (lang, f_obj['file']))
                     r = self.do_url_request('push_file', multipart=True,
-                         files=[( "%s_%s" % (resource['resource_slug'],
+                         files=[( "%s__%s" % (resource['resource_slug'],
                                              lang),
                                  self.get_full_path(f_obj['file']))],
                         method="POST",
@@ -210,8 +210,8 @@ class Project():
 
             for info,filename in files:
                 fp = open(filename)
-                form.addField('resource', info.split('_')[0])
-                form.addField('language', info.split('_')[1])
+                form.addField('resource', info.split('__')[0])
+                form.addField('language', info.split('__')[1])
                 form.addFile(info, filename, fp)
             body = str(form)
             req = RequestWithMethod(url=url,  method=method)
