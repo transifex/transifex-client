@@ -217,7 +217,9 @@ def cmd_pull(argv, path_to_tx=None):
         " Transifex server to the local repository. By default, only the"\
         " files that are watched by Transifex will be updated but if you"\
         " want to fetch the translations for new languages as well, use the"\
-        " -a|--all option."
+        " -a|--all option. (Note: new translations are saved in the .tx folder"\
+        " and require the user to manually rename them and add then in "\
+        " transifex using the set_translation command)."
     parser = OptionParser(usage=usage,description=description)
     parser.add_option("-l","--language", action="store", dest="languages",
         default=[], help="Specify which translations you want to pull"
@@ -236,12 +238,16 @@ def cmd_pull(argv, path_to_tx=None):
 
     (options, args) = parser.parse_args(argv)
 
+    if options.fetchall and options.languages:
+        parser.error("You can't user a language filter along with the"\
+            " -a|--all option")
+
     languages = options.languages.split(',') if options.languages else []
     resources = options.resources.split(',') if options.resources else []
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
-    prj.pull(languages, resources, options.overwrite)
+    prj.pull(languages, resources, options.overwrite, options.fetchall)
 
     utils.MSG("Done.")
 
@@ -404,6 +410,8 @@ def cmd_status(argv, path_to_tx=None):
         default=[], help="Specify resources")
 
     (options, args) = parser.parse_args(argv)
+
+
 
     prj = project.Project(path_to_tx)
 

@@ -81,7 +81,7 @@ class Project():
         else:
             return os.path.join(self.root, relpath)
 
-    def pull(self, languages=[], resources=[], overwrite=True):
+    def pull(self, languages=[], resources=[], overwrite=True, fetchall=False):
         """
         Pull all translations file from transifex server
         """
@@ -93,6 +93,23 @@ class Project():
         for resource in self.txdata['resources']:
             # Push source file
             MSG("Pulling translations for source file %s" % resource['source_file'])
+
+            new_translations = []
+            if fetchall:
+                raw = self.do_url_request('get_resource_details',
+                    project=self.get_project_slug(),
+                    resource=resource['resource_slug'])
+
+                details = parse_json(raw)
+                langs = details['available_languages']
+                for l in langs:
+                    if not l['code'] in resource['translations'].keys() and\
+                      not l['code'] == resource['source_lang']:
+                        new_translations.append(l['code'])
+
+                if new_translations:
+                    MSG("New translations found for the following languages: %s" %
+                        ', '.join(new_translations))
 
             for lang, f_obj in resource['translations'].iteritems():
                 if resources and resource['resource_slug'] not in resources:
@@ -110,6 +127,21 @@ class Project():
                 fd = open(local_file, 'w')
                 fd.write(r)
 
+            if new_translations:
+                trans_dir = os.path.join(self.root, ".tx", resource['resource_slug'])
+                if not os.path.exists(trans_dir):
+                    os.mkdir(trans_dir)
+
+                MSG("Pulling new translations for source file %s" % resource['source_file'])
+                for lang in new_translations:
+                    local_file = os.path.join(trans_dir, '%s_translation' % lang)
+                    MSG(" -> %s: %s" % (lang, local_file))
+                    r = self.do_url_request('pull_file',
+                        project=self.get_project_slug(),
+                        resource=resource['resource_slug'],
+                        language=lang)
+                    fd = open(local_file, 'w')
+                    fd.write(r)
 
     def push(self, force=False, resources=[], languages=[]):
         """
