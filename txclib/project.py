@@ -241,27 +241,19 @@ class Project():
         headers = None
         req = None
         if multipart:
-            # Register the streaming http handlers with urllib2
-            opener = register_openers()
-            opener.add_handler(auth_handler)
 
-            file_params = []
-
-            form = MultiPartForm()
+            opener = urllib2.build_opener(MultipartPostHandler)
 
             for info,filename in files:
-                fp = open(filename)
-                form.addField('resource', info.split('__')[0])
-                form.addField('language', info.split('__')[1])
-                form.addFile(info, filename, fp)
-            body = str(form)
-            req = RequestWithMethod(url=url,  method=method)
-            req.add_header('Content-type', form.getContentType())
-            req.add_data(body)
-            # FIXME: This is used till we have a fix from Chris.
+                data = { "resource" : info.split('__')[0],
+                         "language" : info.split('__')[1],
+                         "uploaded_file" :  open(filename,'rb') }
+
+            req = RequestWithMethod(url=url, method=method, data=data)
             base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
             authheader =  "Basic %s" % base64string
             req.add_header("Authorization", authheader)
+            urllib2.install_opener(opener)
         else:
             opener = urllib2.build_opener(auth_handler)
             urllib2.install_opener(opener)
