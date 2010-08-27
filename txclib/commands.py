@@ -25,7 +25,7 @@ from json import loads as parse_json, dumps as compile_json
 
 from txclib import utils, project
 
-def cmd_get_source_file():
+def cmd_get_source_file(path_to_tx):
     "Download source file from transifex server"
 
     usage="usage: %prog [tx_options] get_source_file"
@@ -39,11 +39,10 @@ def cmd_get_source_file():
     pass
 
 
-def cmd_init(argv, path_to_tx=None):
+def cmd_init(argv, path_to_tx):
     "Initialize a new transifex project."
 
     # Current working dir path
-    root = path_to_tx or os.getcwd()
     usage="usage: %prog [tx_options] init"
     description="This command initializes a new project for use with"\
         " transifex. It is recommended to execute this command in the"\
@@ -53,55 +52,29 @@ def cmd_init(argv, path_to_tx=None):
     (options, args) = parser.parse_args(argv)
 
 
-    if path_to_tx:
-        if not os.path.exists(path_to_tx):
-            utils.MSG("tx: The path to root directory does not exist!")
+    if os.path.isdir(os.path.join(path_to_tx,".tx")):
+        utils.MSG("tx: There is already a tx folder!")
+        reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
+        while (reinit != 'y' and reinit != 'Y' and reinit != 'N' and reinit != 'n' and reinit != ''):
+            reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
+        if not reinit or reinit == 'N':
             return
+        # Clean the old settings
+        # FIXME: take a backup
+        else:
+            rm_dir = os.path.join(path_to_tx, ".tx")
+            shutil.rmtree(rm_dir)
 
-        path = utils.find_dot_tx(path_to_tx)
-        if path:
-            utils.MSG("tx: There is already a tx folder!")
-            reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
-            while (reinit != 'y' and reinit != 'Y' and reinit != 'N' and reinit != 'n' and reinit != ''):
-                reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
-            if not reinit or reinit == 'N':
-                return
-            # Clean the old settings
-            # FIXME: take a backup
-            else:
-                rm_dir = os.path.join(path, ".tx")
-                shutil.rmtree(rm_dir)
-
-        root = path_to_tx
-        utils.MSG("Creating .tx folder ...")
-        # FIXME: decide the mode of the directory
-        os.mkdir(os.path.join(path_to_tx,".tx"))
-
-    else:
-        path = path_to_tx or utils.find_dot_tx(root)
-        if path:
-            utils.MSG("tx: There is already a tx folder!")
-            reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
-            while (reinit != 'y' and reinit != 'Y' and reinit != 'N' and reinit != 'n' and reinit != ''):
-                reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
-            if not reinit or reinit == 'N':
-                return
-            # Clean the old settings 
-            # FIXME: take a backup
-            else:
-                rm_dir = os.path.join(path, ".tx")
-                shutil.rmtree(rm_dir)
-
-        utils.MSG("Creating .tx folder ...")
-        # FIXME: decide the mode of the directory
-        os.mkdir(os.path.join(os.getcwd(), ".tx"))
+    utils.MSG("Creating .tx folder ...")
+    # FIXME: decide the mode of the directory
+    os.mkdir(os.path.join(path_to_tx,".tx"))
 
     # Handle the credentials through transifexrc
     home = os.getenv('USERPROFILE') or os.getenv('HOME')
     txrc = os.path.join(home, ".transifexrc")
     config = ConfigParser.RawConfigParser()
     # Touch the file if it doesn't exist
-#    if not os.path.exists(txrc):
+    #if not os.path.exists(txrc):
     username = raw_input("Please enter your transifex username :")
     while (not username):
         username = raw_input("Please enter your transifex username :")
@@ -130,7 +103,7 @@ def cmd_init(argv, path_to_tx=None):
 
 
     # The path to the txdata file (.tx/txdata)
-    txdata_file = os.path.join(root, ".tx", "txdata")
+    txdata_file = os.path.join(path_to_tx, ".tx", "txdata")
     # Touch the file if it doesn't exist
     if not os.path.exists(txdata_file):
         utils.MSG("Creating txdata file ...")
@@ -149,15 +122,14 @@ def cmd_init(argv, path_to_tx=None):
     if not project_info:
         # Clean the old settings 
         # FIXME: take a backup
-        rm_dir = os.path.join(root, ".tx")
+        rm_dir = os.path.join(path_to_tx, ".tx")
         shutil.rmtree(rm_dir)
         return
 
     # Write the skeleton dictionary
     utils.MSG("Creating skeleton ...")
     txdata = { 'resources': [],
-               'meta': { 'root_dir': os.path.abspath(root),
-                         'project_slug': project_info['slug'],
+               'meta': { 'project_slug': project_info['slug'],
                          'last_push': None}
              }
     fh = open(txdata_file,"w")
@@ -173,7 +145,7 @@ def cmd_init(argv, path_to_tx=None):
     utils.MSG("Done.")
 
 
-def cmd_push(argv, path_to_tx=None):
+def cmd_push(argv, path_to_tx):
     "Push local files to remote server"
     usage="usage: %prog [tx_options] push [options]"
     description="This command pushes all local files that have been added to"\
@@ -204,13 +176,14 @@ def cmd_push(argv, path_to_tx=None):
     languages = options.languages.split(',') if options.languages else []
     resources = options.resources.split(',') if options.resources else []
 
+
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
     prj.push(force_creation, resources, languages)
 
     utils.MSG("Done.")
 
-def cmd_pull(argv, path_to_tx=None):
+def cmd_pull(argv, path_to_tx):
     "Pull files from remote server to local repository"
     usage="usage: %prog [tx_options] pull [options]"
     description="This command pulls all outstanding changes from the remote"\
@@ -245,6 +218,8 @@ def cmd_pull(argv, path_to_tx=None):
     languages = options.languages.split(',') if options.languages else []
     resources = options.resources.split(',') if options.resources else []
 
+
+    os.chdir(path_to_tx)
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
     prj.pull(languages, resources, options.overwrite, options.fetchall)
@@ -252,7 +227,7 @@ def cmd_pull(argv, path_to_tx=None):
     utils.MSG("Done.")
 
 
-def cmd_send_source_file(argv, path_to_tx=None):
+def cmd_send_source_file(argv, path_to_tx):
     "Upload source file to remote server"
     usage="usage: %prog [tx_options] send_source_file [options]"
     parser = OptionParser(usage=usage)
@@ -262,10 +237,11 @@ def cmd_send_source_file(argv, path_to_tx=None):
 
     (options, args) = parser.parse_args(argv)
 
+
     pass
 
 
-def cmd_set_source_file(argv, path_to_tx=None):
+def cmd_set_source_file(argv, path_to_tx):
     "Assing a source file to a specific resource"
     resource = None
     lang = None
@@ -293,14 +269,20 @@ def cmd_set_source_file(argv, path_to_tx=None):
     if len(args) != 1:
         parser.error("Please specify a file")
 
-    path_to_file = args[0]
+    # Calculate relative path
+    path_to_file = os.path.relpath(args[0], path_to_tx)
+    # Chdir to the root dir
+    os.chdir(path_to_tx)
+
     if not os.path.exists(path_to_file):
         utils.MSG("tx: File does not exist.")
         return
 
+
+
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
-    root_dir = prj.txdata['meta']['root_dir']
+    root_dir = os.path.abspath(path_to_tx)
 
     if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
         utils.MSG("File must be under the project root directory.")
@@ -314,7 +296,7 @@ def cmd_set_source_file(argv, path_to_tx=None):
             break
 
     utils.MSG("Updating txdata file ...")
-    path_to_file = os.path.relpath(path_to_file, prj.txdata['meta']['root_dir'])
+    path_to_file = os.path.relpath(path_to_file, root_dir)
     if map_object:
         map_object['source_file'] = path_to_file
         map_object['source_lang'] = lang
@@ -329,7 +311,7 @@ def cmd_set_source_file(argv, path_to_tx=None):
     utils.MSG("Done.")
 
 
-def cmd_set_translation(argv, path_to_tx=None):
+def cmd_set_translation(argv, path_to_tx):
     "Assign translation files to a resource"
 
     usage="usage: %prog [tx_options] set_translation [options] <file>"
@@ -355,15 +337,21 @@ def cmd_set_translation(argv, path_to_tx=None):
     if len(args) != 1:
         parser.error("Please specify a file")
 
-    path_to_file = args[0]
+    # Calculate relative path
+    path_to_file = os.path.relpath(args[0], path_to_tx)
+    # Chdir to the root dir
+    os.chdir(path_to_tx)
+
     if not os.path.exists(path_to_file):
         utils.MSG("tx: File does not exist.")
         return
 
+
+
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
 
-    root_dir = prj.txdata['meta']['root_dir']
+    root_dir = os.path.abspath(path_to_tx)
 
     if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
         utils.MSG("File must be under the project root directory.")
@@ -399,7 +387,7 @@ def cmd_set_translation(argv, path_to_tx=None):
     utils.MSG("Done.")
 
 
-def cmd_status(argv, path_to_tx=None):
+def cmd_status(argv, path_to_tx):
     "Print status of current project"
 
     usage="usage: %prog [tx_options] status [options]"
@@ -426,7 +414,7 @@ def cmd_status(argv, path_to_tx=None):
 
         utils.MSG("")
 
-def cmd_help(argv, command=None, path_to_tx=None):
+def cmd_help(argv, path_to_tx):
     "List all available commands"
 
     usage="usage: %prog help command"
@@ -447,7 +435,7 @@ def cmd_help(argv, command=None, path_to_tx=None):
     # Print help for specific command
     if len(args) == 1:
         try:
-            fns[argv[0]](['--help'])
+            fns[argv[0]](['--help'], path_to_tx)
         except KeyError:
             utils.ERRMSG("Command %s not found" % argv[0])
     # or print summary of all commands

@@ -45,7 +45,7 @@ def main(argv):
         action="store_true", dest="verbose", default=False,
         help="don't print status messages to stdout")
     parser.add_option("-r", "--root", action="store",
-        dest="root_dir", type="string", default=os.getcwd(),
+        dest="root_dir", type="string", default=None,
         help="change root directory (default is cwd)")
     parser.add_option("--traceback", action="store_true",
         dest="trace", default=False,
@@ -56,10 +56,14 @@ def main(argv):
     if len(args) < 1:
         parser.error("No command was given")
 
+
+    # find .tx
+    path_to_tx = options.root_dir or utils.find_dot_tx()
+
    
     cmd = args[0]
     try:
-        exec_command(cmd, args[1:], options.root_dir)
+        exec_command(cmd, args[1:], path_to_tx)
     except KeyError:
         ERRMSG("Command %s not found" % cmd)
     except SystemExit:
