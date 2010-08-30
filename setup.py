@@ -34,13 +34,10 @@ setup(
     url="http://www.indifex.com",
     license="GPLv2",
     dependency_links = [
-        "http://atlee.ca/software/poster/",
     ],
     setup_requires = [
-        "poster >= 0.4",
     ],
     install_requires = [
-        "poster >= 0.4",
     ],
     data_files=[
     ],
