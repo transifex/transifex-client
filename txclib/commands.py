@@ -43,14 +43,22 @@ def cmd_init(argv, path_to_tx):
     "Initialize a new transifex project."
 
     # Current working dir path
-    usage="usage: %prog [tx_options] init"
+    usage="usage: %prog [tx_options] init <path>"
     description="This command initializes a new project for use with"\
         " transifex. It is recommended to execute this command in the"\
         " top level directory of your project so that you can include"\
-        " all files under it in transifex."
+        " all files under it in transifex. If no path is provided, the"\
+        " current working dir will be used."
     parser = OptionParser(usage=usage, description=description)
     (options, args) = parser.parse_args(argv)
 
+    if len(args) > 1:
+        parser.error("Too many arguments were provided. Aborting...")
+
+    if args:
+        path_to_tx = args[0]
+    else:
+        path_to_tx = os.getcwd()
 
     if os.path.isdir(os.path.join(path_to_tx,".tx")):
         utils.MSG("tx: There is already a tx folder!")
