@@ -5,9 +5,7 @@ from optparse import OptionParser
 import os
 import sys
 
-from txclib.commands import *
-from txclib.utils import *
-from txclib.project import *
+from txclib import utils
 
 reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
 
@@ -38,8 +36,14 @@ def main(argv):
     Here we parse the flags (short, long) and we instantiate the classes.
     """
     usage = "usage: %prog [options] command [cmd_options]"
+    description = "This is the Transifex command line client which"\
+		" allows you to manage your translations locally and sync"\
+ 	 	" them with the master Transifex server.\nIf you'd like to"\
+		" check the available commands issue `%prog help` or if you"\
+		" just want help with a specific command issue `%prog help"\
+		" command`"
 
-    parser = OptionParser(usage=usage, version=VERSION)
+    parser = OptionParser(usage=usage, version=VERSION, description=description)
     parser.disable_interspersed_args()
     parser.add_option("-q", "--quiet", 
         action="store_true", dest="verbose", default=False,
@@ -63,9 +67,9 @@ def main(argv):
    
     cmd = args[0]
     try:
-        exec_command(cmd, args[1:], path_to_tx)
+        utils.exec_command(cmd, args[1:], path_to_tx)
     except KeyError:
-        ERRMSG("Command %s not found" % cmd)
+        utils.ERRMSG("Command %s not found" % cmd)
     except SystemExit:
         sys.exit()
     except:
@@ -74,7 +78,7 @@ def main(argv):
             traceback.print_exc()
         else:
             formatted_lines = traceback.format_exc().splitlines()    
-            ERRMSG(formatted_lines[-1])
+            utils.ERRMSG(formatted_lines[-1])
         sys.exit(1)
 
 # Run baby :) ... run

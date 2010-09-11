@@ -5,7 +5,7 @@ API_URLS = {
     'get_resources': '%(hostname)s/api/project/%(project)s/resources/',
     'get_resource_details': '%(hostname)s/api/project/%(project)s/resource/%(resource)s/',
     'push_file': '%(hostname)s/api/storage/',  #'%(hostname)s/api/project/%(project)s/files/',
-    'pull_file': '%(hostname)s/projects/p/%(project)s/resource/%(resource)s/l/%(language)s/download/',
+    'pull_file': '%(hostname)s/api/project/%(project)s/resource/%(resource)s/%(language)s/file/',
     'extract_translation': '%(hostname)s/api/project/%(project)s/resource/%(resource)s/%(language)s/',
     'extract_source': '%(hostname)s/api/project/%(project)s/files/'  #'%(hostname)s/api/project/%(project)s/files/',
 }

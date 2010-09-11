@@ -277,6 +277,10 @@ def cmd_set_source_file(argv, path_to_tx):
     if len(args) != 1:
         parser.error("Please specify a file")
 
+    if not utils.valid_slug(resource):
+        parser.error("Invalid characters in resource slug. Valid characters"
+            " include [_-\w].")
+
     # Calculate relative path
     path_to_file = os.path.relpath(args[0], path_to_tx)
     # Chdir to the root dir

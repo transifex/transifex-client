@@ -167,7 +167,7 @@ class Project():
                     # Push source file
                     MSG("Pushing source file (%s)" % resource['source_file'])
                     r = self.do_url_request('push_file', multipart=True,
-                            files=[( "%s__%s" % (resource['resource_slug'],
+                            files=[( "%s;%s" % (resource['resource_slug'],
                                              resource['source_lang']),
                                  self.get_full_path(resource['source_file']))],
                             method="POST",
@@ -188,7 +188,7 @@ class Project():
                         continue
                     MSG("Pushing '%s' translations (file: %s)" % (lang, f_obj['file']))
                     r = self.do_url_request('push_file', multipart=True,
-                         files=[( "%s__%s" % (resource['resource_slug'],
+                         files=[( "%s;%s" % (resource['resource_slug'],
                                              lang),
                                  self.get_full_path(f_obj['file']))],
                         method="POST",
@@ -241,14 +241,12 @@ class Project():
             opener = urllib2.build_opener(MultipartPostHandler)
 
             for info,filename in files:
-                data = { "resource" : info.split('__')[0],
-                         "language" : info.split('__')[1],
+                data = { "resource" : info.split(';')[0],
+                         "language" : info.split(';')[1],
                          "uploaded_file" :  open(filename,'rb') }
 
             req = RequestWithMethod(url=url, method=method, data=data)
-            base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
-            authheader =  "Basic %s" % base64string
-            req.add_header("Authorization", authheader)
+
             urllib2.install_opener(opener)
         else:
             opener = urllib2.build_opener(auth_handler)
@@ -256,6 +254,10 @@ class Project():
             req = RequestWithMethod(url=url, data=data, method=method)
             if encoding:
                 req.add_header("Content-Type",encoding)
+
+        base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
+        authheader =  "Basic %s" % base64string
+        req.add_header("Authorization", authheader)
 
         try:
             fh = urllib2.urlopen(req)
