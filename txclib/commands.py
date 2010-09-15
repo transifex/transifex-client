@@ -231,6 +231,7 @@ def cmd_pull(argv, path_to_tx):
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
     prj.pull(languages, resources, options.overwrite, options.fetchall)
+    prj.save()
 
     utils.MSG("Done.")
 
@@ -422,7 +423,11 @@ def cmd_status(argv, path_to_tx):
         utils.MSG("Translation Files:")
         utils.MSG(" - %s: %s (source)" % (res['source_lang'], res['source_file']))
         for tr in  res['translations'].keys():
-            utils.MSG(" - %s: %s" % (tr, res['translations'][tr]['file']))
+            perc = "not yet pulled"
+            if res['translations'][tr].has_key('completed'):
+                perc = "%s" % res['translations'][tr]['completed']
+            utils.MSG(" - %s: %s [%s]" % (tr, res['translations'][tr]['file'],
+                perc))
 
         utils.MSG("")
 

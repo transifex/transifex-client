@@ -87,7 +87,7 @@ class Project():
         remote_resources = parse_json(raw)
 
         for resource in self.txdata['resources']:
-            # Push source file
+            # Pull source file
             MSG("Pulling translations for source file %s" % resource['source_file'])
 
             new_translations = []
@@ -123,6 +123,19 @@ class Project():
                 fd = open(local_file, 'w')
                 fd.write(r)
 
+                # Fetch translation statistics from the server
+                r = self.do_url_request('resource_stats',
+                    project=self.get_project_slug(),
+                    resource=resource['resource_slug'],
+                    language=lang)
+
+                stats = parse_json(r)
+
+                for res in self.txdata['resources']:
+                    if res['resource_slug'] == resource['resource_slug']:
+                        res['translations'][lang].update({
+                            'completed': stats[lang]['completed']})
+
             if new_translations:
                 trans_dir = os.path.join(self.root, ".tx", resource['resource_slug'])
                 if not os.path.exists(trans_dir):
@@ -139,6 +152,7 @@ class Project():
                     fd = open(local_file, 'w')
                     fd.write(r)
 
+            
     def push(self, force=False, resources=[], languages=[]):
         """
         Push all the resources
