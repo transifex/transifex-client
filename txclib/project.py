@@ -172,7 +172,7 @@ class Project():
                     del(local_resources[i])
 
         if local_resources and not force:
-            MSG("Following resources are not available on remote machine:", ", ".join([i['resource_slug'] for i in local_resources]))
+            MSG("Following resources are not available on remote machine: %s" % ", ".join([ i['resource_slug'] for i in local_resources ]))
             MSG("Use -f to force creation of new resources")
             exit(1)
         else:
