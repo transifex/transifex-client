@@ -107,7 +107,7 @@ class Project():
                     MSG("New translations found for the following languages: %s" %
                         ', '.join(new_translations))
 
-            for lang, f_obj in resource['translations'].iteritems():
+            for lang, f_obj in ( (l, resource['translations'][l]) for l in sorted(resource['translations'].keys())):
                 if resources and resource['resource_slug'] not in resources:
                     continue
                 if languages and lang not in languages:
@@ -122,6 +122,7 @@ class Project():
                     language=lang)
                 fd = open(local_file, 'w')
                 fd.write(r)
+                fd.close()
 
                 # Fetch translation statistics from the server
                 r = self.do_url_request('resource_stats',
@@ -151,6 +152,7 @@ class Project():
                         language=lang)
                     fd = open(local_file, 'w')
                     fd.write(r)
+                    fd.close()
 
             
     def push(self, force=False, resources=[], languages=[]):
@@ -197,7 +199,7 @@ class Project():
                     MSG("Pushing translations for resource %s" % resource['resource_slug'])
 
                 # Push translation files one by one
-                for lang, f_obj in resource['translations'].iteritems():
+                for lang, f_obj in ( (l, resource['translations'][l]) for l in sorted(resource['translations'].keys())):
                     if languages and lang not in languages:
                         continue
                     MSG("Pushing '%s' translations (file: %s)" % (lang, f_obj['file']))

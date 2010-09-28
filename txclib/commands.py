@@ -83,9 +83,9 @@ def cmd_init(argv, path_to_tx):
     config = ConfigParser.RawConfigParser()
     # Touch the file if it doesn't exist
     #if not os.path.exists(txrc):
-    username = raw_input("Please enter your transifex username :")
+    username = raw_input("Please enter your transifex username: ")
     while (not username):
-        username = raw_input("Please enter your transifex username :")
+        username = raw_input("Please enter your transifex username: ")
     # FIXME: Temporary we use basic auth, till we switch to token
     passwd = ''
     while (not passwd):
@@ -101,14 +101,6 @@ def cmd_init(argv, path_to_tx):
     fh = open(txrc, 'w')
     config.write(fh)
     fh.close()
-#    else:
-#        utils.MSG("Read .transifexrc file ...")
-#        # FIXME do some checks :)
-#        config.read(txrc)
-#        username = config.get('API credentials', 'username')
-#        passwd = config.get('API credentials', 'password')
-#        token = config.get('API credentials', 'token')
-
 
     # The path to the txdata file (.tx/txdata)
     txdata_file = os.path.join(path_to_tx, ".tx", "txdata")
@@ -117,12 +109,11 @@ def cmd_init(argv, path_to_tx):
         utils.MSG("Creating txdata file ...")
         open(txdata_file, 'w').close()
 
-
     # Get the project slug
-    project_url = raw_input("Please enter your tx project url here :")
+    project_url = raw_input("Please enter your tx project url here: ")
     hostname, project_slug = utils.parse_tx_url(project_url)
     while (not hostname and not project_slug):
-        project_url = raw_input("Please enter your tx project url here :")
+        project_url = raw_input("Please enter your tx project url here: ")
         hostname, project_slug = utils.parse_tx_url(project_url)
 
     # Check the project existence
@@ -412,8 +403,6 @@ def cmd_status(argv, path_to_tx):
 
     (options, args) = parser.parse_args(argv)
 
-
-
     prj = project.Project(path_to_tx)
 
     resources = len(prj.txdata['resources'])
@@ -421,12 +410,12 @@ def cmd_status(argv, path_to_tx):
         utils.MSG("%s -> %s (%s of %s)" % (prj.txdata['meta']['project_slug'],
             res['resource_slug'], id+1, resources))
         utils.MSG("Translation Files:")
-        utils.MSG(" - %s: %s (source)" % (res['source_lang'], res['source_file']))
-        for tr in  res['translations'].keys():
+        utils.MSG(" - %-8s: %s (source)" % (res['source_lang'], res['source_file']))
+        for tr in sorted(res['translations'].keys()):
             perc = "not yet pulled"
             if res['translations'][tr].has_key('completed'):
                 perc = "%s" % res['translations'][tr]['completed']
-            utils.MSG(" - %s: %s [%s]" % (tr, res['translations'][tr]['file'],
+            utils.MSG(" - %-8s: %s [%s]" % (tr, res['translations'][tr]['file'],
                 perc))
 
         utils.MSG("")
