@@ -8,7 +8,7 @@ from codecs import BOM
 from setuptools import setup, find_packages
 from setuptools.command.build_py import build_py as _build_py
 
-VERSION = '0.1'
+VERSION = '0.2'
 
 readme_file = open(u'README')
 long_description = readme_file.read()
@@ -24,7 +24,7 @@ package_data = {
 scripts = ['tx'] 
 
 setup(
-    name="tx",
+    name="transifex-client",
     version=VERSION,
     scripts=scripts,
     description="A command line interface for Transifex",
@@ -45,6 +45,5 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     package_data = package_data,
-    keywords = (
-        'translation localization internationalization vcs',),
+    keywords = ('translation', 'localization', 'internationalization',),
 )
