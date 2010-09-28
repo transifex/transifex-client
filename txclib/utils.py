@@ -38,8 +38,8 @@ def parse_tx_url(url):
     if m:
         hostname = m.group('hostname')
         project = m.group('project')
-        MSG("Transifex instance:", hostname)
-        MSG("Project slug:", project)
+        MSG("Transifex instance: %s" % hostname)
+        MSG("Project slug: %s" % project)
         return hostname, project
     else:
         MSG("tx: Malformed url given!")

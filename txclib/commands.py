@@ -36,7 +36,7 @@ def cmd_get_source_file(path_to_tx):
         " the translations (defaults to all)")
     (options, args) = parser.parse_args(argv)
 
-    pass
+    raise NotImplementedError
 
 
 def cmd_init(argv, path_to_tx):
@@ -62,10 +62,10 @@ def cmd_init(argv, path_to_tx):
 
     if os.path.isdir(os.path.join(path_to_tx,".tx")):
         utils.MSG("tx: There is already a tx folder!")
-        reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
+        reinit = raw_input("Do you want to delete it and reinit the project? [y/N]: ")
         while (reinit != 'y' and reinit != 'Y' and reinit != 'N' and reinit != 'n' and reinit != ''):
-            reinit = raw_input("Do you want to delete it and reinit the project? [y/N]:")
-        if not reinit or reinit == 'N':
+            reinit = raw_input("Do you want to delete it and reinit the project? [y/N]: ")
+        if not reinit or reinit in ['N', 'n', 'NO', 'no', 'No']:
             return
         # Clean the old settings
         # FIXME: take a backup
@@ -82,25 +82,29 @@ def cmd_init(argv, path_to_tx):
     txrc = os.path.join(home, ".transifexrc")
     config = ConfigParser.RawConfigParser()
     # Touch the file if it doesn't exist
-    #if not os.path.exists(txrc):
-    username = raw_input("Please enter your transifex username: ")
-    while (not username):
+    if not os.path.exists(txrc):
         username = raw_input("Please enter your transifex username: ")
-    # FIXME: Temporary we use basic auth, till we switch to token
-    passwd = ''
-    while (not passwd):
-        passwd = getpass.getpass()
+        while (not username):
+            username = raw_input("Please enter your transifex username: ")
+        # FIXME: Temporary we use basic auth, till we switch to token
+        passwd = ''
+        while (not passwd):
+            passwd = getpass.getpass()
 
-    utils.MSG("Creating .transifexrc file ...")
-    config.add_section('API credentials')
-    config.set('API credentials', 'username', username)
-    config.set('API credentials', 'password', passwd)
-    config.set('API credentials', 'token', '')
+        utils.MSG("Creating .transifexrc file ...")
+        config.add_section('API credentials')
+        config.set('API credentials', 'username', username)
+        config.set('API credentials', 'password', passwd)
+        config.set('API credentials', 'token', '')
 
-    # Writing our configuration file to 'example.cfg'
-    fh = open(txrc, 'w')
-    config.write(fh)
-    fh.close()
+        # Writing our configuration file to 'example.cfg'
+        fh = open(txrc, 'w')
+        config.write(fh)
+        fh.close()
+    else:
+        config.read(txrc)
+        username = config.get('API credentials', 'username')
+        passwd = config.get('API credentials', 'password')
 
     # The path to the txdata file (.tx/txdata)
     txdata_file = os.path.join(path_to_tx, ".tx", "txdata")
@@ -237,8 +241,7 @@ def cmd_send_source_file(argv, path_to_tx):
 
     (options, args) = parser.parse_args(argv)
 
-
-    pass
+    raise NotImplementedError
 
 
 def cmd_set_source_file(argv, path_to_tx):
@@ -299,8 +302,11 @@ def cmd_set_source_file(argv, path_to_tx):
             map_object = r_entry
             break
 
-    utils.MSG("Updating txdata file ...")
+
     path_to_file = os.path.relpath(path_to_file, root_dir)
+
+    utils.MSG("Setting source file for resource %s ( %s -> %s )." % (
+        resource, lang, path_to_file))
     if map_object:
         map_object['source_file'] = path_to_file
         map_object['source_lang'] = lang
@@ -350,8 +356,6 @@ def cmd_set_translation(argv, path_to_tx):
         utils.MSG("tx: File does not exist.")
         return
 
-
-
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
 
@@ -376,7 +380,9 @@ def cmd_set_translation(argv, path_to_tx):
         utils.MSG("Source languages contain the strings which will be translated!")
         return
 
-    utils.MSG("Updating txdata file ...")
+
+    utils.MSG("Updating resource %s ( %s -> %s )." % (
+        resource, lang, path_to_file))
     path_to_file = os.path.relpath(path_to_file, root_dir)
     if map_object['translations'].has_key(lang):
         for key, value in map_object['translations'][lang].items():
