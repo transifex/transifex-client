@@ -8,6 +8,16 @@ Check back later for content here! Until then, please visit:
   http://trac.transifex.org/wiki/Development/Transifex-1.0
 
 
+Installing
+==========
+
+You can install the latest version of transifex-client running 
+``pip install transifex-client`` or ``easy_install transifex-client``
+You can also install the `in-development version`_ of transifex-client with
+``pip install transifex-client==dev`` or ``easy_install transifex-client==dev``.
+
+.. _in-development version: http://bitbucket.org/indifex/transifex-client/get/tip.gz#egg=transifex-client-dev
+
 
 Releasing
 =========
