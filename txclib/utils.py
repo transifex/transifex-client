@@ -116,3 +116,27 @@ def exec_command(command, *args, **kwargs):
     """
     commands = discover_commands()
     commands[command](*args,**kwargs)
+
+# Stuff for command line colored output
+
+COLORS = (
+    'BLACK', 'RED', 'GREEN', 'YELLOW',
+    'BLUE', 'MAGENTA', 'CYAN', 'WHITE'
+)
+
+DISABLE_COLORS = False
+
+def color_text(text, color_name, bold=False):
+    """
+    This command can be used to colorify command line output. If the shell
+    doesn't support this or the --disable-colors options has been set, it just
+    returns the plain text.
+
+    Usage:
+        print "%s" % color_text("This text is red", "RED")
+    """
+    if color_name in COLORS and not DISABLE_COLORS:
+        return '\033[{0};{1}m{2}\033[0m'.format(
+            int(bold), COLORS.index(color_name) + 30, text)
+    else:
+        return text

@@ -115,7 +115,7 @@ class Project():
                 local_file = f_obj['file']
                 if not overwrite:
                     local_file = ("%s.new" % local_file)
-                MSG(" -> %s: %s" % (lang, local_file))
+                MSG(" -> %s: %s" % (color_text(lang,"RED"), local_file))
                 r = self.do_url_request('pull_file',
                     project=self.get_project_slug(),
                     resource=resource['resource_slug'],
@@ -145,7 +145,7 @@ class Project():
                 MSG("Pulling new translations for source file %s" % resource['source_file'])
                 for lang in new_translations:
                     local_file = os.path.join(trans_dir, '%s_translation' % lang)
-                    MSG(" -> %s: %s" % (lang, local_file))
+                    MSG(" -> %s: %s" % (color_text(lang, "RED"), local_file))
                     r = self.do_url_request('pull_file',
                         project=self.get_project_slug(),
                         resource=resource['resource_slug'],
@@ -154,7 +154,6 @@ class Project():
                     fd.write(r)
                     fd.close()
 
-            
     def push(self, force=False, resources=[], languages=[]):
         """
         Push all the resources
@@ -202,7 +201,7 @@ class Project():
                 for lang, f_obj in ( (l, resource['translations'][l]) for l in sorted(resource['translations'].keys())):
                     if languages and lang not in languages:
                         continue
-                    MSG("Pushing '%s' translations (file: %s)" % (lang, f_obj['file']))
+                    MSG("Pushing '%s' translations (file: %s)" % (color_text(lang, "RED"), f_obj['file']))
                     r = self.do_url_request('push_file', multipart=True,
                          files=[( "%s;%s" % (resource['resource_slug'],
                                              lang),

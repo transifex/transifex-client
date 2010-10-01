@@ -416,13 +416,14 @@ def cmd_status(argv, path_to_tx):
         utils.MSG("%s -> %s (%s of %s)" % (prj.txdata['meta']['project_slug'],
             res['resource_slug'], id+1, resources))
         utils.MSG("Translation Files:")
-        utils.MSG(" - %-8s: %s (source)" % (res['source_lang'], res['source_file']))
+        utils.MSG(" - %s: %s (%s)" % (utils.color_text(res['source_lang'], "RED"),
+            res['source_file'], utils.color_text("source", "YELLOW")))
         for tr in sorted(res['translations'].keys()):
             perc = "not yet pulled"
             if res['translations'][tr].has_key('completed'):
                 perc = "%s" % res['translations'][tr]['completed']
-            utils.MSG(" - %-8s: %s [%s]" % (tr, res['translations'][tr]['file'],
-                perc))
+            utils.MSG(" - %s: %s [%s]" % (utils.color_text(tr, "RED"), res['translations'][tr]['file'],
+                utils.color_text(perc,"GREEN")))
 
         utils.MSG("")
 
