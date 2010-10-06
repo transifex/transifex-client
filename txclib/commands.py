@@ -17,7 +17,7 @@ adding code to this file you must take care of the following:
 """
 import os
 import getpass
-import shutil
+import re, shutil
 import sys
 from optparse import OptionParser
 import ConfigParser
@@ -321,41 +321,8 @@ def cmd_set_source_file(argv, path_to_tx):
     utils.MSG("Done.")
 
 
-def cmd_set_translation(argv, path_to_tx):
-    "Assign translation files to a resource"
-
-    usage="usage: %prog [tx_options] set_translation [options] <file>"
-    description="Assign a file as the translation file of a specific resource"\
-        " in a given language. These info is stored in a configuration file"\
-        " and is used for synchronization between the server and the local"\
-        " repository"
-    parser = OptionParser(usage=usage, description=description)
-    parser.add_option("-l","--language", action="store", dest="lang",
-        default=None, help="Language of the translation file")
-    parser.add_option("-r","--resource", action="store", dest="resource_slug",
-        default=None, help="Specify resource name")
-
-    (options, args) = parser.parse_args(argv)
-
-    resource = options.resource_slug
-    lang = options.lang
-
-    if not resource or not lang:
-        parser.error("You need to specify a resource and a language for the"
-            " translation")
-
-    if len(args) != 1:
-        parser.error("Please specify a file")
-
-    # Calculate relative path
-    path_to_file = os.path.relpath(args[0], path_to_tx)
-    # Chdir to the root dir
-    os.chdir(path_to_tx)
-
-    if not os.path.exists(path_to_file):
-        utils.MSG("tx: File does not exist.")
-        return
-
+def _set_translation(path_to_tx, resource, lang, path_to_file):
+    """Reusable method to set translation file."""
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
 
@@ -394,6 +361,110 @@ def cmd_set_translation(argv, path_to_tx):
         # Create the language file list
         map_object['translations'][lang] = {'file' : path_to_file}
     prj.save()
+    
+
+def cmd_set_translation(argv, path_to_tx):
+    "Assign translation files to a resource"
+
+    usage="usage: %prog [tx_options] set_translation [options] <file>"
+    description="Assign a file as the translation file of a specific resource"\
+        " in a given language. These info is stored in a configuration file"\
+        " and is used for synchronization between the server and the local"\
+        " repository"
+    parser = OptionParser(usage=usage, description=description)
+    parser.add_option("-l","--language", action="store", dest="lang",
+        default=None, help="Language of the translation file")
+    parser.add_option("-r","--resource", action="store", dest="resource_slug",
+        default=None, help="Specify resource name")
+        
+    (options, args) = parser.parse_args(argv)
+
+    resource = options.resource_slug
+    lang = options.lang
+
+    if not resource or not lang:
+        parser.error("You need to specify a resource and a language for the"
+            " translation")
+
+    if len(args) != 1:
+        parser.error("Please specify a file")
+
+    # Calculate relative path
+    path_to_file = os.path.relpath(args[0], path_to_tx)
+    # Chdir to the root dir
+    os.chdir(path_to_tx)
+
+    if not os.path.exists(path_to_file):
+        utils.MSG("tx: File does not exist.")
+        return
+
+    _set_translation(path_to_tx, resource, lang, path_to_file)
+    utils.MSG("Done.")
+
+
+def cmd_auto_find(argv, path_to_tx):
+    """Automatically identify and setup translation files.
+    
+    This command goes through all files in this directory and its
+    subdirectories and tries to find matches to the expression given.
+    
+    The expression should contain '<lang>' to identify the language, or, if
+    the --regex option is defined, should be a full regular expression.
+     
+    The command will issue a `set_translation` command itself, unless
+    --dry-run is specified. This is why the --resource option is mandatory.
+    """
+
+    usage="usage: %prog [tx_options] auto_find [options] <expression>"
+    description=("Walk through all files in subdirectories for files matching "
+        "<expression> and auto-associate them with a language. You may "
+        "use the keyword '<lang>' in your expression to signify the language "
+        "locale, for example: 'po/<lang>.po'. Alternatively, you may use a "
+        "full-powered regular expression with --regex.")
+
+    parser = OptionParser(usage=usage, description=description)
+    # Mandatory
+    parser.add_option("-r","--resource", action="store", dest="resource_slug",
+        default=None, help="Specify resource name")
+    # Optional
+    parser.add_option("-d","--dry-run", action="store_true", dest="dry_run",
+        default=None, help="Do not actually set files up, just print the commands.")
+    parser.add_option("-E","--regex", action="store_true", dest="regex",
+        default=None, help="Set if the expression is a POSIX regex.")
+    (options, args) = parser.parse_args(argv)
+
+    resource = options.resource_slug
+
+    if not resource:
+        parser.error("Please specify a resource.")
+    if len(args) != 1:
+        parser.error("Please specify an expression.")
+
+    expr = args[0]
+    expr_re = '.*%s.*' % expr
+    if not options.regex:
+        # Force expr to be a valid regex expr (escaped) but keep <lang> intact
+        expr_re = re.escape(expr)
+        expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
+        expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s.*' % expr_re)
+    expr_rec = re.compile(expr_re)
+
+    #The path everything will be relative to
+    curpath = '.'
+
+    for root, dirs, files in os.walk(curpath):
+        for f in sorted(files):
+            f_path = os.path.join(root, f)
+            match = expr_rec.match(f_path)
+            if match:
+                lang = match.group('lang')
+                if not options.dry_run:
+                    _set_translation(path_to_tx, resource, lang, f_path)
+                else:
+                    utils.MSG('tx set_translation -r %(res)s -l %(lang)s %(file)s ' % {
+                        'res': resource,
+                        'lang': lang,
+                        'file': f_path})
     utils.MSG("Done.")
 
 
