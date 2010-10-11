@@ -124,6 +124,8 @@ class Project():
                     project=self.get_project_slug(),
                     resource=resource['resource_slug'],
                     language=lang)
+                base_dir = os.path.split(local_file)[0]
+                mkdir_p(base_dir)
                 fd = open(local_file, 'w')
                 fd.write(r)
                 fd.close()
@@ -154,6 +156,9 @@ class Project():
                         project=self.get_project_slug(),
                         resource=resource['resource_slug'],
                         language=lang)
+
+                    base_dir = os.path.split(local_file)[0]
+                    mkdir_p(base_dir)
                     fd = open(local_file, 'w')
                     fd.write(r)
                     fd.close()

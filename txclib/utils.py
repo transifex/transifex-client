@@ -1,4 +1,4 @@
-import os, sys, re
+import os, sys, re, errno
 from json import loads as parse_json, dumps as compile_json
 import urllib2 # This should go and instead use do_url_request everywhere
 
@@ -116,6 +116,14 @@ def exec_command(command, *args, **kwargs):
     """
     commands = discover_commands()
     commands[command](*args,**kwargs)
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc: # Python >2.5
+        if exc.errno == errno.EEXIST:
+            pass
+        else: raise
 
 # Stuff for command line colored output
 
