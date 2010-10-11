@@ -403,8 +403,9 @@ def cmd_set_translation(argv, path_to_tx):
 
 
 def cmd_auto_find(argv, path_to_tx):
-    """Automatically identify and setup translation files.
-    
+    "Automatically identify and setup translation files."
+
+    """
     This command goes through all files in this directory and its
     subdirectories and tries to find matches to the expression given.
     

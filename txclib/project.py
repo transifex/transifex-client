@@ -87,6 +87,10 @@ class Project():
         remote_resources = parse_json(raw)
 
         for resource in self.txdata['resources']:
+
+            if resources and resource['resource_slug'] not in resources:
+                continue
+
             # Pull source file
             MSG("Pulling translations for source file %s" % resource['source_file'])
 
@@ -176,6 +180,10 @@ class Project():
             exit(1)
         else:
             for resource in self.txdata['resources']:
+
+                if resources and resource['resource_slug'] not in resources:
+                    continue
+
                 if force:
                     if resources and resource['resource_slug'] not in resources:
                         continue
