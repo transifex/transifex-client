@@ -290,7 +290,11 @@ class Project():
         try:
             fh = urllib2.urlopen(req)
         except urllib2.HTTPError, e:
-            raise Exception("%s: %s" % (e.code, e.read()))
+            if e.code == 400:
+                # For 400 Bad request, we should print the message as well
+                raise Exception("%s: %s" % (e.code, e.read()))
+            else:
+                raise Exception(e)
         except urllib2.URLError, e:
             error = e.args[0]
             raise Exception("%s: %s" % (error[0], error[1]))
