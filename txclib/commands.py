@@ -494,7 +494,7 @@ def cmd_auto_find(argv, path_to_tx):
             'file': source_file})
 
     # Now let's handle the translation files.
-    for (lang, f_path) in translation_files.items():
+    for (lang, f_path) in sorted(translation_files.items()):
         if execute:
             _set_translation(path_to_tx, resource, lang, f_path)
         else:
