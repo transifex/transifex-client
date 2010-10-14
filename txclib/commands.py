@@ -530,7 +530,7 @@ def cmd_status(argv, path_to_tx):
         utils.MSG(" - %s: %s (%s)" % (utils.color_text(res['source_lang'], "RED"),
             res['source_file'], utils.color_text("source", "YELLOW")))
         for tr in sorted(res['translations'].keys()):
-            perc = "sync needed"
+            perc = "pull needed"
             if res['translations'][tr].has_key('completed'):
                 perc = "%s" % res['translations'][tr]['completed']
             utils.MSG(" - %s: %s [%s]" % (utils.color_text(tr, "RED"), res['translations'][tr]['file'],
