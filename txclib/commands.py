@@ -433,9 +433,11 @@ def cmd_auto_find(argv, path_to_tx):
     parser.add_option("-e","--execute", action="store_true", dest="execute",
         default=False, help="Execute the commands instead of just printing them.")
     parser.add_option("-E","--regex", action="store_true", dest="regex",
-        default=None, help="Set if the expression is a POSIX regex.")
+        default=False, help="Set if the expression is a POSIX regex.")
     parser.add_option("-l","--language", action="store", dest="slang",
         default="en", help="The language of the source file (default: 'en')")
+    parser.add_option("-n","--no-source", action="store_true", dest="nosource",
+        default=False, help="Disable searching for a source file.")
     (options, args) = parser.parse_args(argv)
 
     resource = options.resource_slug
@@ -479,26 +481,27 @@ def cmd_auto_find(argv, path_to_tx):
                     translation_files[lang] = f_path
 
     # The set_source_file commands needs to be handled first.
-    if not source_file:
-        utils.MSG("Could not find a source language file. Switching to dry-run "
-                  "of the command (disabling --execute switch).")
-        source_file = '<file>'
-        execute = False
-
-    if execute:
-        _set_source_file(path_to_tx, resource, source_language, source_file)
-    else:
-        utils.MSG('\ntx set_source_lang -r %(res)s -l %(lang)s %(file)s ' % {
-            'res': resource,
-            'lang': source_language,
-            'file': source_file})
+    # If source file search is enabled, go ahead and find it:
+    if not options.nosource:
+        if not source_file:
+            parser.error(
+"Could not find a source language file. Please run set_source_language\n"
+"manually and then re-run this command with the --no-source switch")
+    
+        if execute:
+            _set_source_file(path_to_tx, resource, source_language, source_file)
+        else:
+            utils.MSG('\ntx set_source_lang -r %(res)s -l %(lang)s %(file)s\n' % {
+                'res': resource,
+                'lang': source_language,
+                'file': source_file})
 
     # Now let's handle the translation files.
     for (lang, f_path) in sorted(translation_files.items()):
         if execute:
             _set_translation(path_to_tx, resource, lang, f_path)
         else:
-            utils.MSG('tx set_translation -r %(res)s -l %(lang)s %(file)s ' % {
+            utils.MSG('tx set_translation -r %(res)s -l %(lang)s %(file)s' % {
                 'res': resource,
                 'lang': lang,
                 'file': f_path})
