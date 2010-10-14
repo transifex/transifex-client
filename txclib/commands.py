@@ -404,9 +404,9 @@ def cmd_set_translation(argv, path_to_tx):
 
 
 def cmd_auto_find(argv, path_to_tx):
-    """
-    Automatically identify translation files."
+    "Automatically identify translation files."
 
+    """
     This command goes through all files in this directory and its
     subdirectories and tries to find matches to the expression given.
     
@@ -527,7 +527,7 @@ def cmd_status(argv, path_to_tx):
         utils.MSG(" - %s: %s (%s)" % (utils.color_text(res['source_lang'], "RED"),
             res['source_file'], utils.color_text("source", "YELLOW")))
         for tr in sorted(res['translations'].keys()):
-            perc = "not yet pulled"
+            perc = "sync needed"
             if res['translations'][tr].has_key('completed'):
                 perc = "%s" % res['translations'][tr]['completed']
             utils.MSG(" - %s: %s [%s]" % (utils.color_text(tr, "RED"), res['translations'][tr]['file'],
