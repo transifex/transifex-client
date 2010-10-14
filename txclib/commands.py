@@ -455,7 +455,7 @@ def cmd_auto_find(argv, path_to_tx):
         # Force expr to be a valid regex expr (escaped) but keep <lang> intact
         expr_re = re.escape(expr)
         expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
-        expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s.*' % expr_re)
+        expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s' % expr_re)
     expr_rec = re.compile(expr_re)
 
     # The path everything will be relative to
