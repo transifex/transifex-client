@@ -404,18 +404,18 @@ def cmd_set_translation(argv, path_to_tx):
 
 
 def cmd_auto_find(argv, path_to_tx):
-    "Automatically identify and setup translation files."
-
     """
+    Automatically identify translation files."
+
     This command goes through all files in this directory and its
     subdirectories and tries to find matches to the expression given.
     
     The expression should contain '<lang>' to identify the language, or, if
     the --regex option is defined, should be a full regular expression.
      
-    The command will issue a `set_source_translation` command and a number of
-    `set_translation` commands, unless if --dry-run is specified. In this case,
-    the commands will be printed on the screen instead of being executed.
+    By default, the command will print `set_source_lang` and `set_translation`
+    commands, which you can examine and run manually. If --execute is
+    specified, the commands will be executed.
     """
 
     usage="usage: %prog [tx_options] auto_find -r <resource> -l <language> [options] <expression>"
@@ -430,16 +430,17 @@ def cmd_auto_find(argv, path_to_tx):
     parser.add_option("-r","--resource", action="store", dest="resource_slug",
         default=None, help="Specify resource name")
     # Optional
-    parser.add_option("-d","--dry-run", action="store_true", dest="dry_run",
-        default=None, help="Do not actually set files up, just print the commands.")
-    parser.add_option("-l","--language", action="store", dest="slang",
-        default="en", help="The language of the source file (default: 'en')")
+    parser.add_option("-e","--execute", action="store_true", dest="execute",
+        default=False, help="Execute the commands instead of just printing them.")
     parser.add_option("-E","--regex", action="store_true", dest="regex",
         default=None, help="Set if the expression is a POSIX regex.")
+    parser.add_option("-l","--language", action="store", dest="slang",
+        default="en", help="The language of the source file (default: 'en')")
     (options, args) = parser.parse_args(argv)
 
     resource = options.resource_slug
     source_language = options.slang
+    execute = options.execute
 
     if not resource:
         parser.error("Please specify a resource.")
@@ -458,9 +459,9 @@ def cmd_auto_find(argv, path_to_tx):
     # The path everything will be relative to
     curpath = '.'
 
-    if options.dry_run:
-        utils.MSG("Dry-running: Only showing the commands which will be run "
-                  "if the -d switch is not specified.\n")
+    if not execute:
+        utils.MSG("Only printing the commands which will be run if the "
+                  "--execute switch is specified.")
 
     # First, let's construct a dictionary of all matching files.
     # Note: Only the last matching file of a language will be stored.
@@ -479,18 +480,22 @@ def cmd_auto_find(argv, path_to_tx):
 
     # The set_source_file commands needs to be handled first.
     if not source_file:
-        parser.error("Could not find a file for source language %s." % source_language)
-    if not options.dry_run:
+        utils.MSG("Could not find a source language file. Switching to dry-run "
+                  "of the command (disabling --execute switch).")
+        source_file = '<file>'
+        execute = False
+
+    if execute:
         _set_source_file(path_to_tx, resource, source_language, source_file)
     else:
-        utils.MSG('tx set_source_lang -r %(res)s -l %(lang)s %(file)s ' % {
+        utils.MSG('\ntx set_source_lang -r %(res)s -l %(lang)s %(file)s ' % {
             'res': resource,
             'lang': lang,
             'file': source_file})
 
     # Now let's handle the translation files.
     for (lang, f_path) in translation_files.items():
-        if not options.dry_run:
+        if execute:
             _set_translation(path_to_tx, resource, lang, f_path)
         else:
             utils.MSG('tx set_translation -r %(res)s -l %(lang)s %(file)s ' % {
