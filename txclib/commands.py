@@ -418,7 +418,7 @@ def cmd_auto_find(argv, path_to_tx):
     specified, the commands will be executed.
     """
 
-    usage="usage: %prog [tx_options] auto_find -r <resource> -l <language> [options] <expression>"
+    usage="usage: %prog [tx_options] auto_find -r <resource> -l <language> [options] '<expression>'"
     description=("Walk through all files in subdirectories for files matching "
         "<expression> and auto-associate them with a language. You may "
         "use the keyword '<lang>' in your expression to signify the language "
