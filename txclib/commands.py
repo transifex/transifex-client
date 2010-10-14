@@ -244,10 +244,50 @@ def cmd_send_source_file(argv, path_to_tx):
     raise NotImplementedError
 
 
+def _set_source_file(path_to_tx, resource, lang, path_to_file):
+    """Reusable method to set source file."""
+
+    # Chdir to the root dir
+    os.chdir(path_to_tx)
+
+    if not os.path.exists(path_to_file):
+        utils.MSG("tx: File does not exist.")
+        return
+
+    # instantiate the project.Project
+    prj = project.Project(path_to_tx)
+    root_dir = os.path.abspath(path_to_tx)
+
+    if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
+        utils.MSG("File must be under the project root directory.")
+        return
+
+    # FIXME: Check also if the path to source file already exists.
+    map_object = {}
+    for r_entry in prj.txdata['resources']:
+        if r_entry['resource_slug'] == resource:
+            map_object = r_entry
+            break
+
+    path_to_file = os.path.relpath(path_to_file, root_dir)
+
+    utils.MSG("Setting source file for resource %s ( %s -> %s )." % (
+        resource, lang, path_to_file))
+    if map_object:
+        map_object['source_file'] = path_to_file
+        map_object['source_lang'] = lang
+    else:
+        prj.txdata['resources'].append({
+              'resource_slug': resource,
+              'source_file': path_to_file,
+              'source_lang': lang,
+              'translations': {},
+            })
+    prj.save()
+
+
 def cmd_set_source_file(argv, path_to_tx):
-    "Assing a source file to a specific resource"
-    resource = None
-    lang = None
+    "Assign a source file to a specific resource"
 
     usage="usage: %prog [tx_options] set_source_file [options] <file>"
     description="Assign a file as the source file of a specific resource"\
@@ -278,46 +318,7 @@ def cmd_set_source_file(argv, path_to_tx):
 
     # Calculate relative path
     path_to_file = os.path.relpath(args[0], path_to_tx)
-    # Chdir to the root dir
-    os.chdir(path_to_tx)
-
-    if not os.path.exists(path_to_file):
-        utils.MSG("tx: File does not exist.")
-        return
-
-
-
-    # instantiate the project.Project
-    prj = project.Project(path_to_tx)
-    root_dir = os.path.abspath(path_to_tx)
-
-    if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
-        utils.MSG("File must be under the project root directory.")
-        return
-
-    # FIXME: Check also if the path to source file already exists.
-    map_object = {}
-    for r_entry in prj.txdata['resources']:
-        if r_entry['resource_slug'] == resource:
-            map_object = r_entry
-            break
-
-
-    path_to_file = os.path.relpath(path_to_file, root_dir)
-
-    utils.MSG("Setting source file for resource %s ( %s -> %s )." % (
-        resource, lang, path_to_file))
-    if map_object:
-        map_object['source_file'] = path_to_file
-        map_object['source_lang'] = lang
-    else:
-        prj.txdata['resources'].append({
-              'resource_slug': resource,
-              'source_file': path_to_file,
-              'source_lang': lang,
-              'translations': {},
-            })
-    prj.save()
+    _set_source_file(path_to_tx, resource, lang, path_to_file)
     utils.MSG("Done.")
 
 
@@ -412,11 +413,12 @@ def cmd_auto_find(argv, path_to_tx):
     The expression should contain '<lang>' to identify the language, or, if
     the --regex option is defined, should be a full regular expression.
      
-    The command will issue a `set_translation` command itself, unless
-    --dry-run is specified. This is why the --resource option is mandatory.
+    The command will issue a `set_source_translation` command and a number of
+    `set_translation` commands, unless if --dry-run is specified. In this case,
+    the commands will be printed on the screen instead of being executed.
     """
 
-    usage="usage: %prog [tx_options] auto_find [options] <expression>"
+    usage="usage: %prog [tx_options] auto_find -r <resource> -l <language> [options] <expression>"
     description=("Walk through all files in subdirectories for files matching "
         "<expression> and auto-associate them with a language. You may "
         "use the keyword '<lang>' in your expression to signify the language "
@@ -430,11 +432,14 @@ def cmd_auto_find(argv, path_to_tx):
     # Optional
     parser.add_option("-d","--dry-run", action="store_true", dest="dry_run",
         default=None, help="Do not actually set files up, just print the commands.")
+    parser.add_option("-l","--language", action="store", dest="slang",
+        default="en", help="The language of the source file (default: 'en')")
     parser.add_option("-E","--regex", action="store_true", dest="regex",
         default=None, help="Set if the expression is a POSIX regex.")
     (options, args) = parser.parse_args(argv)
 
     resource = options.resource_slug
+    source_language = options.slang
 
     if not resource:
         parser.error("Please specify a resource.")
@@ -450,22 +455,48 @@ def cmd_auto_find(argv, path_to_tx):
         expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s.*' % expr_re)
     expr_rec = re.compile(expr_re)
 
-    #The path everything will be relative to
+    # The path everything will be relative to
     curpath = '.'
 
+    if options.dry_run:
+        utils.MSG("Dry-running: Only showing the commands which will be run "
+                  "if the -d switch is not specified.\n")
+
+    # First, let's construct a dictionary of all matching files.
+    # Note: Only the last matching file of a language will be stored.
+    source_file = None
+    translation_files = {}
     for root, dirs, files in os.walk(curpath):
-        for f in sorted(files):
+        for f in files:
             f_path = os.path.join(root, f)
             match = expr_rec.match(f_path)
             if match:
                 lang = match.group('lang')
-                if not options.dry_run:
-                    _set_translation(path_to_tx, resource, lang, f_path)
+                if lang == source_language:
+                    source_file = f_path
                 else:
-                    utils.MSG('tx set_translation -r %(res)s -l %(lang)s %(file)s ' % {
-                        'res': resource,
-                        'lang': lang,
-                        'file': f_path})
+                    translation_files[lang] = f_path
+
+    # The set_source_file commands needs to be handled first.
+    if not source_file:
+        parser.error("Could not find a file for source language %s." % source_language)
+    if not options.dry_run:
+        _set_source_file(path_to_tx, resource, source_language, source_file)
+    else:
+        utils.MSG('tx set_source_lang -r %(res)s -l %(lang)s %(file)s ' % {
+            'res': resource,
+            'lang': lang,
+            'file': source_file})
+
+    # Now let's handle the translation files.
+    for (lang, f_path) in translation_files.items():
+        if not options.dry_run:
+            _set_translation(path_to_tx, resource, lang, f_path)
+        else:
+            utils.MSG('tx set_translation -r %(res)s -l %(lang)s %(file)s ' % {
+                'res': resource,
+                'lang': lang,
+                'file': f_path})
     utils.MSG("Done.")
 
 
