@@ -73,7 +73,7 @@ def cmd_init(argv, path_to_tx):
             rm_dir = os.path.join(path_to_tx, ".tx")
             shutil.rmtree(rm_dir)
 
-    utils.MSG("Creating .tx folder ...")
+    utils.MSG("Creating .tx folder...")
     # FIXME: decide the mode of the directory
     os.mkdir(os.path.join(path_to_tx,".tx"))
 
@@ -91,7 +91,7 @@ def cmd_init(argv, path_to_tx):
         while (not passwd):
             passwd = getpass.getpass()
 
-        utils.MSG("Creating .transifexrc file ...")
+        utils.MSG("Creating .transifexrc file...")
         config.add_section('API credentials')
         config.set('API credentials', 'username', username)
         config.set('API credentials', 'password', passwd)
@@ -110,7 +110,7 @@ def cmd_init(argv, path_to_tx):
     txdata_file = os.path.join(path_to_tx, ".tx", "txdata")
     # Touch the file if it doesn't exist
     if not os.path.exists(txdata_file):
-        utils.MSG("Creating txdata file ...")
+        utils.MSG("Creating txdata file...")
         open(txdata_file, 'w').close()
 
     # Get the project slug
@@ -130,7 +130,7 @@ def cmd_init(argv, path_to_tx):
         return
 
     # Write the skeleton dictionary
-    utils.MSG("Creating skeleton ...")
+    utils.MSG("Creating skeleton...")
     txdata = { 'resources': [],
                'meta': { 'project_slug': project_info['slug'],
                          'last_push': None}
