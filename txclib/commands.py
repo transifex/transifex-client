@@ -490,7 +490,7 @@ def cmd_auto_find(argv, path_to_tx):
     else:
         utils.MSG('\ntx set_source_lang -r %(res)s -l %(lang)s %(file)s ' % {
             'res': resource,
-            'lang': lang,
+            'lang': source_language,
             'file': source_file})
 
     # Now let's handle the translation files.
