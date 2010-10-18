@@ -163,7 +163,7 @@ class Project():
                     fd.write(r)
                     fd.close()
 
-    def push(self, force=False, resources=[], languages=[]):
+    def push(self, force=False, resources=[], languages=[], skip=False):
         """
         Push all the resources
         """
@@ -193,20 +193,26 @@ class Project():
                     if resources and resource['resource_slug'] not in resources:
                         continue
                     # Push source file
-                    MSG("Pushing source file (%s)" % resource['source_file'])
-                    r = self.do_url_request('push_file', multipart=True,
-                            files=[( "%s;%s" % (resource['resource_slug'],
-                                             resource['source_lang']),
-                                 self.get_full_path(resource['source_file']))],
+                    try:
+                        MSG("Pushing source file (%s)" % resource['source_file'])
+                        r = self.do_url_request('push_file', multipart=True,
+                                files=[( "%s;%s" % (resource['resource_slug'],
+                                                 resource['source_lang']),
+                                     self.get_full_path(resource['source_file']))],
+                                method="POST",
+                                project=self.get_project_slug())
+                        r = parse_json(r)
+                        uuid = r['files'][0]['uuid']
+                        self.do_url_request('extract_source',
+                            data=compile_json({"uuid":uuid,"slug":resource['resource_slug']}),
+                            encoding='application/json',
                             method="POST",
                             project=self.get_project_slug())
-                    r = parse_json(r)
-                    uuid = r['files'][0]['uuid']
-                    self.do_url_request('extract_source',
-                        data=compile_json({"uuid":uuid,"slug":resource['resource_slug']}),
-                        encoding='application/json',
-                        method="POST",
-                        project=self.get_project_slug())
+                    except Exception, e:
+                        if not skip:
+                            raise e
+                        else:
+                            MSG(e)
                 else: 
                     MSG("Pushing translations for resource %s" % resource['resource_slug'])
 
@@ -215,22 +221,29 @@ class Project():
                     if languages and lang not in languages:
                         continue
                     MSG("Pushing '%s' translations (file: %s)" % (color_text(lang, "RED"), f_obj['file']))
-                    r = self.do_url_request('push_file', multipart=True,
-                         files=[( "%s;%s" % (resource['resource_slug'],
-                                             lang),
-                                 self.get_full_path(f_obj['file']))],
-                        method="POST",
-                        project=self.get_project_slug())
-                    r = parse_json(r)
-                    uuid = r['files'][0]['uuid']
+                    try:
+                        r = self.do_url_request('push_file', multipart=True,
+                             files=[( "%s;%s" % (resource['resource_slug'],
+                                                 lang),
+                                     self.get_full_path(f_obj['file']))],
+                            method="POST",
+                            project=self.get_project_slug())
+                        r = parse_json(r)
+                        uuid = r['files'][0]['uuid']
 
-                    self.do_url_request('extract_translation',
-                        data=compile_json({"uuid":uuid}),
-                        encoding='application/json',
-                        method="PUT",
-                        project=self.get_project_slug(),
-                        resource=resource['resource_slug'],
-                        language=lang)
+                        self.do_url_request('extract_translation',
+                            data=compile_json({"uuid":uuid}),
+                            encoding='application/json',
+                            method="PUT",
+                            project=self.get_project_slug(),
+                            resource=resource['resource_slug'],
+                            language=lang)
+                    except Exception, e:
+                        if not skip:
+                            raise e
+                        else:
+                            ERRMSG(e)
+
 
     def do_url_request(self, api_call, multipart=False, data=None,
                        files=[], encoding=None, method="GET", **kwargs):
@@ -290,11 +303,12 @@ class Project():
         try:
             fh = urllib2.urlopen(req)
         except urllib2.HTTPError, e:
-            if e.code == 400:
-                # For 400 Bad request, we should print the message as well
-                raise Exception("%s: %s" % (e.code, e.read()))
-            else:
+            if e.code in [401, 403, 404]:
                 raise Exception(e)
+            else:
+                # For other requests, we should print the message as well
+                raise Exception("%s: %s" % (e.code, e.read()))
+
         except urllib2.URLError, e:
             error = e.args[0]
             raise Exception("%s: %s" % (error[0], error[1]))

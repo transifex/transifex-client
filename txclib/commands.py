@@ -164,11 +164,11 @@ def cmd_push(argv, path_to_tx):
 
     languages = options.languages.split(',') if options.languages else []
     resources = options.resources.split(',') if options.resources else []
-
+    skip = options.skip_errors
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
-    prj.push(force_creation, resources, languages)
+    prj.push(force_creation, resources, languages, skip=skip)
 
     utils.MSG("Done.")
 
