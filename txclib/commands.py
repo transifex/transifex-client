@@ -25,20 +25,6 @@ from json import loads as parse_json, dumps as compile_json
 
 from txclib import utils, project
 
-def cmd_get_source_file(path_to_tx):
-    "Download source file from transifex server"
-
-    usage="usage: %prog [tx_options] get_source_file"
-    description="Download source file from transifex server"
-    parser = OptionParser(usage=usage, description=description)
-    parser.add_option("-r","--resource", action="store", dest="resources",
-        default=[], help="Specify the resource for which you want to pull"
-        " the translations (defaults to all)")
-    (options, args) = parser.parse_args(argv)
-
-    raise NotImplementedError
-
-
 def cmd_init(argv, path_to_tx):
     "Initialize a new transifex project."
 
@@ -229,20 +215,6 @@ def cmd_pull(argv, path_to_tx):
     prj.save()
 
     utils.MSG("Done.")
-
-
-def cmd_send_source_file(argv, path_to_tx):
-    "Upload source file to remote server"
-    usage="usage: %prog [tx_options] send_source_file [options]"
-    parser = OptionParser(usage=usage)
-    parser.add_option("-r","--resource", action="store", dest="resources",
-        default=[], help="Specify the resources for which you want to push"
-        " the source files (defaults to all)")
-
-    (options, args) = parser.parse_args(argv)
-
-    raise NotImplementedError
-
 
 def _set_source_file(path_to_tx, resource, lang, path_to_file):
     """Reusable method to set source file."""
