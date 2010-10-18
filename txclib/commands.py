@@ -385,7 +385,7 @@ def cmd_auto_find(argv, path_to_tx):
     The expression should contain '<lang>' to identify the language, or, if
     the --regex option is defined, should be a full regular expression.
      
-    By default, the command will print `set_source_lang` and `set_translation`
+    By default, the command will print `set_source_file` and `set_translation`
     commands, which you can examine and run manually. If --execute is
     specified, the commands will be executed.
     """
@@ -427,7 +427,7 @@ def cmd_auto_find(argv, path_to_tx):
         # Force expr to be a valid regex expr (escaped) but keep <lang> intact
         expr_re = re.escape(expr)
         expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
-        expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s' % expr_re)
+        expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s$' % expr_re)
     expr_rec = re.compile(expr_re)
 
     # The path everything will be relative to
@@ -463,7 +463,7 @@ def cmd_auto_find(argv, path_to_tx):
         if execute:
             _set_source_file(path_to_tx, resource, source_language, source_file)
         else:
-            utils.MSG('\ntx set_source_lang -r %(res)s -l %(lang)s %(file)s\n' % {
+            utils.MSG('\ntx set_source_file -r %(res)s -l %(lang)s %(file)s\n' % {
                 'res': resource,
                 'lang': source_language,
                 'file': source_file})
