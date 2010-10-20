@@ -223,7 +223,8 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     os.chdir(path_to_tx)
 
     if not os.path.exists(path_to_file):
-        utils.MSG("tx: File does not exist.")
+        utils.MSG("tx: File ( %s ) does not exist." %
+            os.path.join(path_to_tx, path_to_file))
         return
 
     # instantiate the project.Project
@@ -296,9 +297,18 @@ def cmd_set_source_file(argv, path_to_tx):
 
 def _set_translation(path_to_tx, resource, lang, path_to_file):
     """Reusable method to set translation file."""
+
+    # Chdir to the root dir
+    os.chdir(path_to_tx)
+
+    if not os.path.exists(path_to_file):
+        utils.MSG("tx: File ( %s ) does not exist." %
+             os.path.join(path_to_tx, path_to_file))
+        return
+
+
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
-
     root_dir = os.path.abspath(path_to_tx)
 
     if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
@@ -368,7 +378,7 @@ def cmd_set_translation(argv, path_to_tx):
     os.chdir(path_to_tx)
 
     if not os.path.exists(path_to_file):
-        utils.MSG("tx: File does not exist.")
+        utils.MSG("tx: File ( %s ) does not exist." % path_to_file)
         return
 
     _set_translation(path_to_tx, resource, lang, path_to_file)
@@ -431,7 +441,7 @@ def cmd_auto_find(argv, path_to_tx):
     expr_rec = re.compile(expr_re)
 
     # The path everything will be relative to
-    curpath = '.'
+    curpath = os.curdir
 
     if not execute:
         utils.MSG("Only printing the commands which will be run if the "
@@ -447,6 +457,7 @@ def cmd_auto_find(argv, path_to_tx):
             match = expr_rec.match(f_path)
             if match:
                 lang = match.group('lang')
+                f_path = os.path.abspath(f_path)
                 if lang == source_language:
                     source_file = f_path
                 else:
@@ -461,22 +472,24 @@ def cmd_auto_find(argv, path_to_tx):
 "manually and then re-run this command with the --no-source switch")
     
         if execute:
-            _set_source_file(path_to_tx, resource, source_language, source_file)
+            _set_source_file(path_to_tx, resource, source_language,
+                os.path.relpath(source_file, path_to_tx))
         else:
             utils.MSG('\ntx set_source_file -r %(res)s -l %(lang)s %(file)s\n' % {
                 'res': resource,
                 'lang': source_language,
-                'file': source_file})
+                'file': os.path.relpath(source_file, curpath)})
 
     # Now let's handle the translation files.
     for (lang, f_path) in sorted(translation_files.items()):
         if execute:
-            _set_translation(path_to_tx, resource, lang, f_path)
+            _set_translation(path_to_tx, resource, lang,
+                os.path.relpath(f_path, path_to_tx))
         else:
             utils.MSG('tx set_translation -r %(res)s -l %(lang)s %(file)s' % {
                 'res': resource,
                 'lang': lang,
-                'file': f_path})
+                'file': os.path.relpath(f_path, curpath)})
     utils.MSG("Done.")
 
 
