@@ -84,9 +84,11 @@ def cmd_init(argv, path_to_tx):
         config.set('API credentials', 'token', '')
 
         # Writing our configuration file to 'example.cfg'
+        mask = os.umask(077)
         fh = open(txrc, 'w')
         config.write(fh)
         fh.close()
+        os.umask(mask)
     else:
         config.read(txrc)
         username = config.get('API credentials', 'username')
