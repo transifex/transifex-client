@@ -60,81 +60,257 @@ def cmd_init(argv, path_to_tx):
             shutil.rmtree(rm_dir)
 
     utils.MSG("Creating .tx folder...")
-    # FIXME: decide the mode of the directory
     os.mkdir(os.path.join(path_to_tx,".tx"))
 
     # Handle the credentials through transifexrc
     home = os.getenv('USERPROFILE') or os.getenv('HOME')
     txrc = os.path.join(home, ".transifexrc")
     config = ConfigParser.RawConfigParser()
-    # Touch the file if it doesn't exist
-    if not os.path.exists(txrc):
+
+    default_transifex = "http://www.transifex.net"
+    transifex_host = raw_input("Transifex instance [%s]: " % default_transifex)
+
+    if not transifex_host:
+        transifex_host = default_transifex
+
+    try:
+        config.read(txrc)
+        username = config.get(transifex_host, 'username')
+        passwd = config.get(transifex_host, 'password')
+    except Exception, e:
         username = raw_input("Please enter your transifex username: ")
         while (not username):
             username = raw_input("Please enter your transifex username: ")
-        # FIXME: Temporary we use basic auth, till we switch to token
         passwd = ''
         while (not passwd):
             passwd = getpass.getpass()
 
         utils.MSG("Creating .transifexrc file...")
-        config.add_section('API credentials')
-        config.set('API credentials', 'username', username)
-        config.set('API credentials', 'password', passwd)
-        config.set('API credentials', 'token', '')
+        config.add_section(transifex_host)
+        config.set(transifex_host, 'username', username)
+        config.set(transifex_host, 'password', passwd)
+        config.set(transifex_host, 'token', '')
+        config.set(transifex_host, 'hostname', transifex_host)
 
-        # Writing our configuration file to 'example.cfg'
+        # Writing our configuration file
         mask = os.umask(077)
         fh = open(txrc, 'w')
         config.write(fh)
         fh.close()
         os.umask(mask)
-    else:
-        config.read(txrc)
-        username = config.get('API credentials', 'username')
-        passwd = config.get('API credentials', 'password')
 
-    # The path to the txdata file (.tx/txdata)
-    txdata_file = os.path.join(path_to_tx, ".tx", "txdata")
-    # Touch the file if it doesn't exist
-    if not os.path.exists(txdata_file):
-        utils.MSG("Creating txdata file...")
-        open(txdata_file, 'w').close()
+
+    config_file = os.path.join(path_to_tx, ".tx", "config")
+    if not os.path.exists(config_file):
+        # The path to the config file (.tx/config)
+        utils.MSG("Creating skeleton...")
+        config = ConfigParser.RawConfigParser()
+        config.add_section('main')
+        config.set('main', 'host', transifex_host)
+        # Touch the file if it doesn't exist
+        utils.MSG("Creating config file...")
+        fh = open(config_file, 'w')
+        config.write(fh)
+        fh.close()
 
     # Get the project slug
-    project_url = raw_input("Please enter your tx project url here: ")
-    hostname, project_slug = utils.parse_tx_url(project_url)
-    while (not hostname and not project_slug):
-        project_url = raw_input("Please enter your tx project url here: ")
-        hostname, project_slug = utils.parse_tx_url(project_url)
 
-    # Check the project existence
-    project_info = project.get_project_info(hostname, username, passwd, project_slug)
-    if not project_info:
-        # Clean the old settings 
-        # FIXME: take a backup
-        rm_dir = os.path.join(path_to_tx, ".tx")
-        shutil.rmtree(rm_dir)
-        return
+#    while (not hostname and not project_slug):
+#        project_url = raw_input("Please enter your tx project url here: ")
+#        hostname, project_slug = utils.parse_tx_url(project_url)
+#
+#    # Check the project existence
+#    project_info = project.get_project_info(hostname, username, passwd, project_slug)
+#    if not project_info:
+#        # Clean the old settings 
+#        # FIXME: take a backup
+#        rm_dir = os.path.join(path_to_tx, ".tx")
+#        shutil.rmtree(rm_dir)
+#        return
 
     # Write the skeleton dictionary
-    utils.MSG("Creating skeleton...")
-    txdata = { 'resources': [],
-               'meta': { 'project_slug': project_info['slug'],
-                         'last_push': None}
-             }
-    fh = open(txdata_file,"w")
-    fh.write(compile_json(txdata, indent=4))
-    fh.close()
 
-    # Writing hostname for future usages
-    config.read(txrc)
-    config.set('API credentials', 'hostname', hostname)
-    fh = open(txrc, 'w')
-    config.write(fh)
-    fh.close()
     utils.MSG("Done.")
 
+def cmd_set(argv, path_to_tx):
+    "Add local or remote files under transifex"
+    usage="usage: %prog [tx_options] set [options]"
+    description="This command can be used to create a mapping between files"\
+        " and projects either using local files or using files from a remote"\
+        " Transifex server."
+    parser = OptionParser(usage=usage, description=description)
+    parser.add_option("--auto", action="store_true", dest="auto",
+        default=False, help="Used when you want to auto setup config file.")
+    parser.add_option("--local", action="store_true", dest="local",
+        default=False, help="Specifies that added file is in local directory.")
+    parser.add_option("--remote", action="store_true", dest="remote",
+        default=False, help="Used when adding remote files from Transifex.")
+    parser.add_option("-r","--resource", action="store", dest="resource",
+        default=None, help="Specify the slug of the resource that you're"
+            " setting up.")
+    parser.add_option("-S","--source", action="store_true", dest="is_source",
+        default=False, help="Specify that added file a source file.")
+
+    parser.add_option("--nosource", action="store_true", dest="nosource",
+        default=False, help="Specify that auto config shouldn't look for a"
+        " source file.")
+    parser.add_option("-s","--source-language", action="store", dest="slang",
+        default=None, help="Specify the source language of a resource.")
+    parser.add_option("-e","--execute", action="store_true", dest="execute",
+        default=False, help="Execute commands (Can be used with --auto --local)")
+    parser.add_option("-l","--language", action="store", dest="language",
+        default=None, help="Specify which translations you want to pull"
+        " (defaults to all)")
+    (options, args) = parser.parse_args(argv)
+
+    # Implement options/args checks
+    # TODO !!!!!!!
+
+    # if --auto is true
+    if options.auto:
+        if options.local:
+            try:
+                expression = args[0]
+            except IndexError:
+                parser.error("Please specify an expression.")
+            if not options.resource:
+                parser.error("Please specify a resource")
+            if not options.slang:
+                parser.error("Please specify a source language.")
+
+            _auto_local(path_to_tx, options.resource, options.slang,
+                expression, options.execute, options.nosource)
+        elif options.remote:
+            _auto_remote()
+        else:
+            parser.error("When you specify --auto, you also need one of the"
+                " --local or --remote flags")
+
+    elif options.remote:
+        parser.error("--remote flag is only supported with --auto.")
+        return
+    # if we have --source, we set source
+    elif options.is_source:
+        resource = options.resource
+        lang = options.slang
+
+        if len(args) != 1:
+            parser.error("Please specify a file")
+
+#        if not utils.valid_slug(resource):
+#            parser.error("Invalid characters in resource slug. Valid characters"
+#                " include [_-\w].")
+
+        file = args[0]
+        # Calculate relative path
+        path_to_file = os.path.relpath(file, path_to_tx)
+        _set_source_file(path_to_tx, resource, options.language, path_to_file)
+        utils.MSG("Done.")
+
+    else:
+        resource = options.resource
+        lang = options.language
+
+        if not resource or not lang:
+            parser.error("You need to specify a resource and a language for the"
+                " translation")
+
+        if len(args) != 1:
+            parser.error("Please specify a file")
+
+        # Calculate relative path
+        path_to_file = os.path.relpath(args[0], path_to_tx)
+        # Chdir to the root dir
+        os.chdir(path_to_tx)
+
+        if not os.path.exists(path_to_file):
+            utils.MSG("tx: File ( %s ) does not exist." % path_to_file)
+            return
+
+        _set_translation(path_to_tx, resource, lang, path_to_file)
+        utils.MSG("Done.")
+
+    return
+
+def _auto_local(path_to_tx, resource, source_language, expression, execute=False,
+    nosource=False, regex=False):
+    """
+    Auto configure local project
+    """
+    expr_re = '.*%s.*' %  expression
+    if not regex:
+        # Force expr to be a valid regex expr (escaped) but keep <lang> intact
+        expr_re = re.escape(expression)
+        expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
+        expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s$' % expr_re)
+        expr_rec = re.compile(expr_re)
+
+
+    # The path everything will be relative to
+    curpath = os.curdir
+
+    if not execute:
+        utils.MSG("Only printing the commands which will be run if the "
+                  "--execute switch is specified.")
+
+    # First, let's construct a dictionary of all matching files.
+    # Note: Only the last matching file of a language will be stored.
+    source_file = None
+    translation_files = {}
+    for root, dirs, files in os.walk(curpath):
+        for f in files:
+            f_path = os.path.join(root, f)
+            match = expr_rec.match(f_path)
+            if match:
+                lang = match.group('lang')
+                f_path = os.path.abspath(f_path)
+                if lang == source_language:
+                    source_file = f_path
+                else:
+                    translation_files[lang] = f_path
+
+    # The set_source_file commands needs to be handled first.
+    # If source file search is enabled, go ahead and find it:
+    if not nosource:
+        if not source_file:
+            utils.ERRMSG(
+"Could not find a source language file. Please run set_source_language\n"
+"manually and then re-run this command with the --no-source switch")
+        if execute:
+            _set_source_file(path_to_tx, resource, source_language,
+                os.path.relpath(source_file, path_to_tx))
+        else:
+            utils.MSG('\ntx set --source -r %(res)s -l %(lang)s %(file)s\n' % {
+                'res': resource,
+                'lang': source_language,
+                'file': os.path.relpath(source_file, curpath)})
+
+    prj = project.Project(path_to_tx)
+    root_dir = os.path.abspath(path_to_tx)
+
+    if execute:
+        try:
+            prj.config.get("%s" % resource, "source_file")
+        except ConfigParser.NoSectionError:
+            utils.ERRMSG("No resource with slug \"%s\" was found. Run tx set --auto"
+                "--local to do the initial configuration." % resource)
+
+    # Now let's handle the translation files.
+    if execute:
+        prj.config.set("%s" % resource, "file_filter", expression)
+    else:
+        for (lang, f_path) in sorted(translation_files.items()):
+            utils.MSG('tx set -r %(res)s -l %(lang)s %(file)s' % {
+                'res': resource,
+                'lang': lang,
+                'file': os.path.relpath(f_path, curpath)})
+
+    prj.save()
+    utils.MSG("Done.")
+
+def _auto_remote():
+    """
+    """
 
 def cmd_push(argv, path_to_tx):
     "Push local files to remote server"
@@ -170,8 +346,13 @@ def cmd_push(argv, path_to_tx):
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
-    prj.push(force_creation, resources, languages, skip=skip)
+    available_resources = prj.get_resource_list()
+    for r in resources:
+        if not r in available_resources:
+            utils.ERRMSG("Specified resource '%s' does not exist." % r)
+            return
 
+    prj.push(force_creation, resources, languages, skip=skip)
     utils.MSG("Done.")
 
 def cmd_pull(argv, path_to_tx):
@@ -195,7 +376,7 @@ def cmd_pull(argv, path_to_tx):
         default=False, help="Fetch all translation files from server (even new"
         " ones)")
     parser.add_option("--disable-overwrite", action="store_false",
-        dest="overwrite", default=True, 
+        dest="overwrite", default=True,
         help="By default transifex will fetch new translations files and"\
             " replace existing ones. Use this flag if you want to disable"\
             " this feature")
@@ -209,10 +390,14 @@ def cmd_pull(argv, path_to_tx):
     languages = options.languages.split(',') if options.languages else []
     resources = options.resources.split(',') if options.resources else []
 
-
     os.chdir(path_to_tx)
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
+    available_resources = prj.get_resource_list()
+    for r in resources:
+        if not r in available_resources:
+            utils.ERRMSG("Specified resource '%s' does not exist." % r)
+            return
     prj.pull(languages, resources, options.overwrite, options.fetchall)
     prj.save()
 
@@ -220,6 +405,13 @@ def cmd_pull(argv, path_to_tx):
 
 def _set_source_file(path_to_tx, resource, lang, path_to_file):
     """Reusable method to set source file."""
+
+    proj, res = resource.split('.')
+    if not proj or not res:
+        utils.ERRMSG("\"%s.%s\" is not a valid resource identifier. It should"
+            " be in the following format project_slug.resource_slug." %
+            (proj, res))
+        return
 
     # Chdir to the root dir
     os.chdir(path_to_tx)
@@ -237,68 +429,35 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
         utils.MSG("File must be under the project root directory.")
         return
 
-    # FIXME: Check also if the path to source file already exists.
-    map_object = {}
-    for r_entry in prj.txdata['resources']:
-        if r_entry['resource_slug'] == resource:
-            map_object = r_entry
-            break
+    utils.MSG("Setting source file for resource %s.%s ( %s -> %s )." % (
+        proj, res, lang, path_to_file))
 
     path_to_file = os.path.relpath(path_to_file, root_dir)
 
-    utils.MSG("Setting source file for resource %s ( %s -> %s )." % (
-        resource, lang, path_to_file))
-    if map_object:
-        map_object['source_file'] = path_to_file
-        map_object['source_lang'] = lang
-    else:
-        prj.txdata['resources'].append({
-              'resource_slug': resource,
-              'source_file': path_to_file,
-              'source_lang': lang,
-              'translations': {},
-            })
+    prj = project.Project(path_to_tx)
+
+    # FIXME: Check also if the path to source file already exists.
+    try:
+        prj.config.get("%s.%s" % (proj, res), "source_file")
+    except ConfigParser.NoSectionError:
+        prj.config.add_section("%s.%s" % (proj, res))
+    finally:
+        prj.config.set("%s.%s" % (proj, res), "source_file",
+           path_to_file)
+        prj.config.set("%s.%s" % (proj, res), "source_lang",
+            lang)
+
     prj.save()
-
-
-def cmd_set_source_file(argv, path_to_tx):
-    "Assign a source file to a specific resource"
-
-    usage="usage: %prog [tx_options] set_source_file [options] <file>"
-    description="Assign a file as the source file of a specific resource"\
-        " The source language for this file is considered to be English(en)"\
-        " if no other is provided. These settings are kept in the local conf"\
-        " file and are used to keep in sync the server with the repository."
-    parser = OptionParser(usage=usage, description=description)
-    parser.add_option("-l","--language", action="store", dest="slang",
-        default="en", help="Source languages of the source file (defaults to 'en')")
-    parser.add_option("-r","--resource", action="store", dest="resource_slug",
-        default=None, help="Specify resource name")
-
-    (options, args) = parser.parse_args(argv)
-
-    if not options.resource_slug:
-        parser.error("You must specify a resource using the -r|--resource"
-            " option.")
-
-    resource = options.resource_slug
-    lang = options.slang
-
-    if len(args) != 1:
-        parser.error("Please specify a file")
-
-    if not utils.valid_slug(resource):
-        parser.error("Invalid characters in resource slug. Valid characters"
-            " include [_-\w].")
-
-    # Calculate relative path
-    path_to_file = os.path.relpath(args[0], path_to_tx)
-    _set_source_file(path_to_tx, resource, lang, path_to_file)
-    utils.MSG("Done.")
 
 
 def _set_translation(path_to_tx, resource, lang, path_to_file):
     """Reusable method to set translation file."""
+
+    proj, res = resource.split('.')
+    if not project or not resource:
+        utils.ERRMSG("\"%s.%s\" is not a valid resource identifier. It should"
+            " be in the following format project_slug.resource_slug." %
+            (proj,res))
 
     # Chdir to the root dir
     os.chdir(path_to_tx)
@@ -317,183 +476,28 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
         utils.MSG("File must be under the project root directory.")
         return
 
-    map_object = {}
-    for r_entry in prj.txdata['resources']:
-        if r_entry['resource_slug'] == resource:
-            map_object = r_entry
-            break
+    try:
+        map_object = prj.config.get("%s.%s" % (proj, res), "source_file")
+    except ConfigParser.NoSectionError:
+        map_object = None
 
     if not map_object:
-        utils.MSG("tx: You should first run 'set_source_file' to map the source file.")
+        utils.MSG("tx: You should first run 'set --source' to map the source file.")
         return
 
-    if lang == map_object['source_lang']:
+    if lang ==  prj.config.get("%s.%s" % (proj, res), "source_lang"):
         utils.MSG("tx: You cannot set translation file for the source language.")
         utils.MSG("Source languages contain the strings which will be translated!")
         return
 
 
-    utils.MSG("Updating resource %s ( %s -> %s )." % (
-        resource, lang, path_to_file))
+    utils.MSG("Updating resource %s.%s ( %s -> %s )." % (
+        proj, res, lang, path_to_file))
     path_to_file = os.path.relpath(path_to_file, root_dir)
-    if map_object['translations'].has_key(lang):
-        for key, value in map_object['translations'][lang].items():
-            if value == path_to_file:
-                utils.MSG("tx: The file already exists in the specific resource.")
-                return
-        map_object['translations'][lang]['file'] = path_to_file
-    else:
-        # Create the language file list
-        map_object['translations'][lang] = {'file' : path_to_file}
+    prj.config.set("%s.%s" % (proj, res), "trans.%s" % lang,
+        path_to_file)
+
     prj.save()
-    
-
-def cmd_set_translation(argv, path_to_tx):
-    "Assign translation files to a resource"
-
-    usage="usage: %prog [tx_options] set_translation [options] <file>"
-    description="Assign a file as the translation file of a specific resource"\
-        " in a given language. These info is stored in a configuration file"\
-        " and is used for synchronization between the server and the local"\
-        " repository"
-    parser = OptionParser(usage=usage, description=description)
-    parser.add_option("-l","--language", action="store", dest="lang",
-        default=None, help="Language of the translation file")
-    parser.add_option("-r","--resource", action="store", dest="resource_slug",
-        default=None, help="Specify resource name")
-        
-    (options, args) = parser.parse_args(argv)
-
-    resource = options.resource_slug
-    lang = options.lang
-
-    if not resource or not lang:
-        parser.error("You need to specify a resource and a language for the"
-            " translation")
-
-    if len(args) != 1:
-        parser.error("Please specify a file")
-
-    # Calculate relative path
-    path_to_file = os.path.relpath(args[0], path_to_tx)
-    # Chdir to the root dir
-    os.chdir(path_to_tx)
-
-    if not os.path.exists(path_to_file):
-        utils.MSG("tx: File ( %s ) does not exist." % path_to_file)
-        return
-
-    _set_translation(path_to_tx, resource, lang, path_to_file)
-    utils.MSG("Done.")
-
-
-def cmd_auto_find(argv, path_to_tx):
-    "Automatically identify translation files."
-
-    """
-    This command goes through all files in this directory and its
-    subdirectories and tries to find matches to the expression given.
-    
-    The expression should contain '<lang>' to identify the language, or, if
-    the --regex option is defined, should be a full regular expression.
-     
-    By default, the command will print `set_source_file` and `set_translation`
-    commands, which you can examine and run manually. If --execute is
-    specified, the commands will be executed.
-    """
-
-    usage="usage: %prog [tx_options] auto_find -r <resource> -l <language> [options] '<expression>'"
-    description=("Walk through all files in subdirectories for files matching "
-        "<expression> and auto-associate them with a language. You may "
-        "use the keyword '<lang>' in your expression to signify the language "
-        "locale, for example: 'po/<lang>.po'. Alternatively, you may use a "
-        "full-powered regular expression with --regex.")
-
-    parser = OptionParser(usage=usage, description=description)
-    # Mandatory
-    parser.add_option("-r","--resource", action="store", dest="resource_slug",
-        default=None, help="Specify resource name")
-    # Optional
-    parser.add_option("-e","--execute", action="store_true", dest="execute",
-        default=False, help="Execute the commands instead of just printing them.")
-    parser.add_option("-E","--regex", action="store_true", dest="regex",
-        default=False, help="Set if the expression is a POSIX regex.")
-    parser.add_option("-l","--language", action="store", dest="slang",
-        default="en", help="The language of the source file (default: 'en')")
-    parser.add_option("-n","--no-source", action="store_true", dest="nosource",
-        default=False, help="Disable searching for a source file.")
-    (options, args) = parser.parse_args(argv)
-
-    resource = options.resource_slug
-    source_language = options.slang
-    execute = options.execute
-
-    if not resource:
-        parser.error("Please specify a resource.")
-    if len(args) != 1:
-        parser.error("Please specify an expression.")
-
-    expr = args[0]
-    expr_re = '.*%s.*' % expr
-    if not options.regex:
-        # Force expr to be a valid regex expr (escaped) but keep <lang> intact
-        expr_re = re.escape(expr)
-        expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
-        expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s$' % expr_re)
-    expr_rec = re.compile(expr_re)
-
-    # The path everything will be relative to
-    curpath = os.curdir
-
-    if not execute:
-        utils.MSG("Only printing the commands which will be run if the "
-                  "--execute switch is specified.")
-
-    # First, let's construct a dictionary of all matching files.
-    # Note: Only the last matching file of a language will be stored.
-    source_file = None
-    translation_files = {}
-    for root, dirs, files in os.walk(curpath):
-        for f in files:
-            f_path = os.path.join(root, f)
-            match = expr_rec.match(f_path)
-            if match:
-                lang = match.group('lang')
-                f_path = os.path.abspath(f_path)
-                if lang == source_language:
-                    source_file = f_path
-                else:
-                    translation_files[lang] = f_path
-
-    # The set_source_file commands needs to be handled first.
-    # If source file search is enabled, go ahead and find it:
-    if not options.nosource:
-        if not source_file:
-            parser.error(
-"Could not find a source language file. Please run set_source_language\n"
-"manually and then re-run this command with the --no-source switch")
-    
-        if execute:
-            _set_source_file(path_to_tx, resource, source_language,
-                os.path.relpath(source_file, path_to_tx))
-        else:
-            utils.MSG('\ntx set_source_file -r %(res)s -l %(lang)s %(file)s\n' % {
-                'res': resource,
-                'lang': source_language,
-                'file': os.path.relpath(source_file, curpath)})
-
-    # Now let's handle the translation files.
-    for (lang, f_path) in sorted(translation_files.items()):
-        if execute:
-            _set_translation(path_to_tx, resource, lang,
-                os.path.relpath(f_path, path_to_tx))
-        else:
-            utils.MSG('tx set_translation -r %(res)s -l %(lang)s %(file)s' % {
-                'res': resource,
-                'lang': lang,
-                'file': os.path.relpath(f_path, curpath)})
-    utils.MSG("Done.")
-
 
 def cmd_status(argv, path_to_tx):
     "Print status of current project"
@@ -509,19 +513,21 @@ def cmd_status(argv, path_to_tx):
 
     prj = project.Project(path_to_tx)
 
-    resources = len(prj.txdata['resources'])
-    for id, res in enumerate(prj.txdata['resources']):
-        utils.MSG("%s -> %s (%s of %s)" % (prj.txdata['meta']['project_slug'],
-            res['resource_slug'], id+1, resources))
+    resources = prj.get_resource_list()
+    resources_num = len(resources)
+    for id, res in enumerate(resources):
+        p, r = res.split('.')
+        utils.MSG("%s -> %s (%s of %s)" % (p, r, id+1, resources_num))
         utils.MSG("Translation Files:")
-        utils.MSG(" - %s: %s (%s)" % (utils.color_text(res['source_lang'], "RED"),
-            res['source_file'], utils.color_text("source", "YELLOW")))
-        for tr in sorted(res['translations'].keys()):
-            perc = "pull needed"
-            if res['translations'][tr].has_key('completed'):
-                perc = "%s" % res['translations'][tr]['completed']
-            utils.MSG(" - %s: %s [%s]" % (utils.color_text(tr, "RED"), res['translations'][tr]['file'],
-                utils.color_text(perc,"GREEN")))
+        slang, sfile = prj.get_source_info(res)
+        utils.MSG(" - %s: %s (%s)" % (utils.color_text(slang, "RED"),
+            sfile, utils.color_text("source", "YELLOW")))
+        files = prj.get_resource_files(res)
+        fkeys = files.keys()
+        fkeys.sort()
+        for lang in fkeys:
+            utils.MSG(" - %s: %s" % (utils.color_text(lang, "RED"),
+                files[lang]))
 
         utils.MSG("")
 
@@ -557,11 +563,9 @@ def cmd_help(argv, path_to_tx):
     keys = fns.keys()
     keys.sort()
 
-
     utils.MSG("Transifex command line client.\n")
     utils.MSG("Available commands are:")
     for key in keys:
         utils.MSG("  %-15s\t%s" % (key, fns[key].func_doc))
-
 
     utils.MSG("\nFor more information run %s command --help" % sys.argv[0])

@@ -7,6 +7,7 @@ import ConfigParser
 from txclib.web import *
 from txclib.utils import *
 from txclib.urls import API_URLS
+from txclib.config import OrderedRawConfigParser
 
 class ProjectNotInit(Exception):
     pass
@@ -28,21 +29,21 @@ class Project():
             MSG("Run 'tx init' to initialize your project first!")
             raise ProjectNotInit()
 
-        # The path to the txdata file (.tx/txdata)
-        self.txdata_file = os.path.join(self.root, ".tx", "txdata")
+        # The path to the config file (.tx/config)
+        self.config_file = os.path.join(self.root, ".tx", "config")
         # Touch the file if it doesn't exist
-        if not os.path.exists(self.txdata_file):
-            MSG("Cannot find the txdata file (.tx/txdata)!")
+        if not os.path.exists(self.config_file):
+            MSG("Cannot find the config file (.tx/config)!")
             MSG("Run 'tx init' to fix this!")
             raise ProjectNotInit()
 
-        # The dictionary which holds the txdata parameters after deser/tion.
-        # Read the txdata in memory
-        self.txdata = {}
+        # The dictionary which holds the config parameters after deser/tion.
+        # Read the config in memory
+        self.config = OrderedRawConfigParser()
         try:
-            self.txdata = parse_json(open(self.txdata_file).read())
+            self.config.read(self.config_file)
         except Exception, err:
-            MSG("WARNING: Cannot open/parse .tx/txdata file", err)
+            MSG("WARNING: Cannot open/parse .tx/config file", err)
             MSG("Run 'tx init' to fix this!")
             raise ProjectNotInit()
 
@@ -51,24 +52,93 @@ class Project():
         pass
 
 
-    def validate_txdata(self):
+    def validate_config(self):
         """
         To ensure the json structure is correctly formed.
         """
         pass
 
+    def get_resource_host(self, resource):
+        """
+        Returns the host that the resource is configured to use. If there is no
+        such option we return the default one
+        """
+        if self.config.has_option(resource, 'host'):
+            return self.config.get(resource, 'host')
+        return self.config.get('main', 'host')
+
+    def get_resource_files(self, resource):
+        """
+        Get a dict for all files assigned to a resource. First we calculate the
+        files matching the file expression and then we apply all translation
+        excpetions. The resulting dict will be in this format:
+
+        { 'en': 'path/foo/en/bar.po', 'de': 'path/foo/de/bar.po', 'es': 'path/exceptions/es.po'}
+
+        NOTE: All paths are relative to the root of the project
+        """
+        tr_files = {}
+        if self.config.has_section(resource):
+            file_filter = self.config.get(resource, "file_filter")
+            source_lang = self.config.get(resource, "source_lang")
+            expr_re = re.escape(file_filter)
+            expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
+            expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s$' % expr_re)
+            expr_rec = re.compile(expr_re)
+            for root, dirs, files in os.walk(self.root):
+                for f in files:
+                    f_path = os.path.join(root, f)
+                    match = expr_rec.match(f_path)
+                    if match:
+                        lang = match.group('lang')
+                        if lang != source_lang:
+                            f_path = os.path.relpath(f_path, self.root)
+                            tr_files.update({lang: f_path})
+
+            for (name, value) in self.config.items(resource):
+                if name.startswith("trans."):
+                    lang = name.split('.')[1]
+                    tr_files.update({lang:value})
+
+            return tr_files
+
+        return None
+
+    def get_source_info(self, resource):
+        """
+        Return the source language and source file of a specific resource
+        """
+
+        if self.config.has_section(resource):
+            return (self.config.get(resource,'source_lang'),
+                self.config.get(resource, 'source_file'))
+        return None
+
+    def get_resource_list(self, project=None):
+        """
+        Parse config file and return tuples with the following format
+
+        [ (project_slug, resource_slug), (..., ...)]
+        """
+
+        resource_list= []
+        for r in self.config.sections():
+            if r == 'main':
+                continue
+            p_slug, r_slug = r.split('.')
+            if project and p_slug != project:
+                continue
+            resource_list.append(r)
+
+        return resource_list
 
     def save(self):
         """
-        Store the txdata dictionary in the .tx/txdata file of the project.
+        Store the config dictionary in the .tx/config file of the project.
         """
-        fh = open(self.txdata_file,"w")
-        fh.write(compile_json(self.txdata, indent=4))
+        fh = open(self.config_file,"w")
+        self.config.write(fh)
         fh.close()
-
-
-    def get_project_slug(self):
-        return self.txdata['meta']['project_slug']
 
 
     def get_full_path(self, relpath):
@@ -81,48 +151,50 @@ class Project():
         """
         Pull all translations file from transifex server
         """
-        raw = self.do_url_request('get_resources',
-            project=self.get_project_slug())
+        if resources:
+            resource_list = resources
+        else:
+            resource_list = self.get_resource_list()
 
-        remote_resources = parse_json(raw)
-
-        for resource in self.txdata['resources']:
-
-            if resources and resource['resource_slug'] not in resources:
-                continue
+        for resource in resource_list:
+            project_slug, resource_slug = resource.split('.')
+            files = self.get_resource_files(resource)
+            slang, sfile = self.get_source_info(resource)
+            host = self.get_resource_host(resource)
 
             # Pull source file
-            MSG("Pulling translations for source file %s" % resource['source_file'])
+            MSG("Pulling translations for source file %s" % sfile)
 
             new_translations = []
             if fetchall:
                 raw = self.do_url_request('get_resource_details',
-                    project=self.get_project_slug(),
-                    resource=resource['resource_slug'])
+                    host=host,
+                    project=project_slug,
+                    resource=resource_slug)
 
                 details = parse_json(raw)
                 langs = details['available_languages']
+
                 for l in langs:
-                    if not l['code'] in resource['translations'].keys() and\
-                      not l['code'] == resource['source_lang']:
+                    if not l['code'] in files.keys() and\
+                      not l['code'] == slang:
                         new_translations.append(l['code'])
 
                 if new_translations:
                     MSG("New translations found for the following languages: %s" %
                         ', '.join(new_translations))
 
-            for lang, f_obj in ( (l, resource['translations'][l]) for l in sorted(resource['translations'].keys())):
-                if resources and resource['resource_slug'] not in resources:
-                    continue
+            for lang in files.keys():
+                local_file = files[lang]
                 if languages and lang not in languages:
                     continue
-                local_file = f_obj['file']
                 if not overwrite:
                     local_file = ("%s.new" % local_file)
                 MSG(" -> %s: %s" % (color_text(lang,"RED"), local_file))
                 r = self.do_url_request('pull_file',
-                    project=self.get_project_slug(),
-                    resource=resource['resource_slug'],
+                    host=host,
+                    project=project_slug,
+                    resource=resource_slug,
                     language=lang)
                 base_dir = os.path.split(local_file)[0]
                 mkdir_p(base_dir)
@@ -131,30 +203,32 @@ class Project():
                 fd.close()
 
                 # Fetch translation statistics from the server
-                r = self.do_url_request('resource_stats',
-                    project=self.get_project_slug(),
-                    resource=resource['resource_slug'],
-                    language=lang)
-
-                stats = parse_json(r)
-
-                for res in self.txdata['resources']:
-                    if res['resource_slug'] == resource['resource_slug']:
-                        res['translations'][lang].update({
-                            'completed': stats[lang]['completed']})
+#                r = self.do_url_request('resource_stats',
+#                    project=self.get_project_slug(),
+#                    resource=resource['resource_slug'],
+#                    language=lang)
+#
+#                stats = parse_json(r)
+#
+#                for res in self.config['resources']:
+#                    if res['resource_slug'] == resource['resource_slug']:
+#                        res['translations'][lang].update({
+#                            'completed': stats[lang]['completed']})
+#
 
             if new_translations:
-                trans_dir = os.path.join(self.root, ".tx", resource['resource_slug'])
+                trans_dir = os.path.join(self.root, ".tx", resource)
                 if not os.path.exists(trans_dir):
                     os.mkdir(trans_dir)
 
-                MSG("Pulling new translations for source file %s" % resource['source_file'])
+                MSG("Pulling new translations for source file %s" % sfile)
                 for lang in new_translations:
                     local_file = os.path.join(trans_dir, '%s_translation' % lang)
                     MSG(" -> %s: %s" % (color_text(lang, "RED"), local_file))
                     r = self.do_url_request('pull_file',
-                        project=self.get_project_slug(),
-                        resource=resource['resource_slug'],
+                        host=host,
+                        project=project_slug,
+                        resource=resource_slug,
                         language=lang)
 
                     base_dir = os.path.split(local_file)[0]
@@ -167,85 +241,73 @@ class Project():
         """
         Push all the resources
         """
-        raw = self.do_url_request('get_resources',
-                  project=self.get_project_slug())
 
-        remote_resources = parse_json(raw)
-
-        local_resources = copy.copy(self.txdata['resources'])
-        for remote_resource in remote_resources:
-            name = remote_resource['slug']
-            for i, resource in enumerate(local_resources):
-                if name in resource['resource_slug'] :
-                    del(local_resources[i])
-
-        if local_resources and not force:
-            MSG("Following resources are not available on remote machine: %s" % ", ".join([ i['resource_slug'] for i in local_resources ]))
-            MSG("Use -f to force creation of new resources")
-            exit(1)
+        if resources:
+            resource_list = resources
         else:
-            for resource in self.txdata['resources']:
+            resource_list = self.get_resource_list()
 
-                if resources and resource['resource_slug'] not in resources:
+        for resource in resource_list:
+            project_slug, resource_slug = resource.split('.')
+            files = self.get_resource_files(resource)
+            slang, sfile = self.get_source_info(resource)
+            host = self.get_resource_host(resource)
+
+            if force:
+                # Push source file
+                try:
+                    MSG("Pushing source file (%s)" % sfile)
+                    r = self.do_url_request('push_file', host=host, multipart=True,
+                            files=[( "%s;%s" % (resource_slug, slang),
+                            self.get_full_path(sfile))],
+                            method="POST",
+                            project=project_slug)
+                    r = parse_json(r)
+                    uuid = r['files'][0]['uuid']
+                    self.do_url_request('extract_source',
+                        host=host,
+                        data=compile_json({"uuid":uuid,"slug":resource_slug}),
+                        encoding='application/json',
+                        method="POST",
+                        project=project_slug)
+                except Exception, e:
+                    if not skip:
+                        raise e
+                    else:
+                        MSG(e)
+
+            MSG("Pushing translations for resource %s" % resource_slug)
+
+            # Push translation files one by one
+            for lang in files.keys():
+                local_file = files[lang]
+                if languages and lang not in languages:
                     continue
-
-                if force:
-                    if resources and resource['resource_slug'] not in resources:
-                        continue
-                    # Push source file
-                    try:
-                        MSG("Pushing source file (%s)" % resource['source_file'])
-                        r = self.do_url_request('push_file', multipart=True,
-                                files=[( "%s;%s" % (resource['resource_slug'],
-                                                 resource['source_lang']),
-                                     self.get_full_path(resource['source_file']))],
-                                method="POST",
-                                project=self.get_project_slug())
-                        r = parse_json(r)
-                        uuid = r['files'][0]['uuid']
-                        self.do_url_request('extract_source',
-                            data=compile_json({"uuid":uuid,"slug":resource['resource_slug']}),
-                            encoding='application/json',
-                            method="POST",
-                            project=self.get_project_slug())
-                    except Exception, e:
-                        if not skip:
-                            raise e
-                        else:
-                            MSG(e)
-                else: 
-                    MSG("Pushing translations for resource %s" % resource['resource_slug'])
-
-                # Push translation files one by one
-                for lang, f_obj in ( (l, resource['translations'][l]) for l in sorted(resource['translations'].keys())):
-                    if languages and lang not in languages:
-                        continue
-                    MSG("Pushing '%s' translations (file: %s)" % (color_text(lang, "RED"), f_obj['file']))
-                    try:
-                        r = self.do_url_request('push_file', multipart=True,
-                             files=[( "%s;%s" % (resource['resource_slug'],
-                                                 lang),
-                                     self.get_full_path(f_obj['file']))],
-                            method="POST",
-                            project=self.get_project_slug())
-                        r = parse_json(r)
-                        uuid = r['files'][0]['uuid']
-
-                        self.do_url_request('extract_translation',
-                            data=compile_json({"uuid":uuid}),
-                            encoding='application/json',
-                            method="PUT",
-                            project=self.get_project_slug(),
-                            resource=resource['resource_slug'],
-                            language=lang)
-                    except Exception, e:
-                        if not skip:
-                            raise e
-                        else:
-                            ERRMSG(e)
+                MSG("Pushing '%s' translations (file: %s)" % (color_text(lang, "RED"), local_file))
+                try:
+                    r = self.do_url_request('push_file', host=host, multipart=True,
+                        files=[( "%s;%s" % (resource_slug, lang),
+                        self.get_full_path(local_file))],
+                        method="POST",
+                        project=project_slug)
+                    r = parse_json(r)
+                    uuid = r['files'][0]['uuid']
+                    self.do_url_request('extract_translation',
+                        host=host,
+                        data=compile_json({"uuid":uuid}),
+                        encoding='application/json',
+                        method="PUT",
+                        project=project_slug,
+                        resource=resource_slug,
+                        language=lang)
+                except Exception, e:
+                    if not skip:
+                        raise e
+                    else:
+                        ERRMSG(e)
 
 
-    def do_url_request(self, api_call, multipart=False, data=None,
+    def do_url_request(self, api_call, host=None, multipart=False, data=None,
                        files=[], encoding=None, method="GET", **kwargs):
         """
         Issues a url request.
@@ -259,36 +321,42 @@ class Project():
             MSG("Cannot find the ~/.transifexrc!")
             raise ProjectNotInit()
 
+        if not host:
+            host = self.config.get('main', 'host')
+
         # FIXME do some checks :)
         config.read(txrc)
-        username = config.get('API credentials', 'username')
-        passwd = config.get('API credentials', 'password')
-        token = config.get('API credentials', 'token')
-        hostname = config.get('API credentials', 'hostname')
+        try:
+            username = config.get(host, 'username')
+            passwd = config.get(host, 'password')
+            token = config.get(host, 'token')
+            hostname = config.get(host, 'hostname')
+        except ConfigParser.NoSectionError:
+            raise Exception("No user credentials found for host %s. Edit"
+                " ~/.transifexrc and add the appropriate info in there." %
+                host)
 
         # Create the Url
         kwargs['hostname'] = hostname
         url = API_URLS[api_call] % kwargs
 
         password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        password_manager.add_password(None, hostname, username,passwd)
+        password_manager.add_password(None, hostname, username, passwd)
         auth_handler = urllib2.HTTPBasicAuthHandler(password_manager)
 
         opener = None
         headers = None
         req = None
+
         if multipart:
-
             opener = urllib2.build_opener(MultipartPostHandler)
-
             for info,filename in files:
                 data = { "resource" : info.split(';')[0],
                          "language" : info.split(';')[1],
                          "uploaded_file" :  open(filename,'rb') }
 
-            req = RequestWithMethod(url=url, method=method, data=data)
-
             urllib2.install_opener(opener)
+            req = RequestWithMethod(url=url, data=data, method=method)
         else:
             opener = urllib2.build_opener(auth_handler)
             urllib2.install_opener(opener)
@@ -297,7 +365,7 @@ class Project():
                 req.add_header("Content-Type",encoding)
 
         base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
-        authheader =  "Basic %s" % base64string
+        authheader = "Basic %s" % base64string
         req.add_header("Authorization", authheader)
 
         try:
@@ -316,5 +384,4 @@ class Project():
         raw = fh.read()
         fh.close()
         return raw
-
 
