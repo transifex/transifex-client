@@ -16,7 +16,6 @@ adding code to this file you must take care of the following:
    descripition field.
 """
 import os
-import getpass
 import re, shutil
 import sys
 from optparse import OptionParser
@@ -73,31 +72,6 @@ def cmd_init(argv, path_to_tx):
     if not transifex_host:
         transifex_host = default_transifex
 
-    try:
-        config.read(txrc)
-        username = config.get(transifex_host, 'username')
-        passwd = config.get(transifex_host, 'password')
-    except Exception, e:
-        username = raw_input("Please enter your transifex username: ")
-        while (not username):
-            username = raw_input("Please enter your transifex username: ")
-        passwd = ''
-        while (not passwd):
-            passwd = getpass.getpass()
-
-        utils.MSG("Creating .transifexrc file...")
-        config.add_section(transifex_host)
-        config.set(transifex_host, 'username', username)
-        config.set(transifex_host, 'password', passwd)
-        config.set(transifex_host, 'token', '')
-        config.set(transifex_host, 'hostname', transifex_host)
-
-        # Writing our configuration file
-        mask = os.umask(077)
-        fh = open(txrc, 'w')
-        config.write(fh)
-        fh.close()
-        os.umask(mask)
 
 
     config_file = os.path.join(path_to_tx, ".tx", "config")
@@ -112,6 +86,10 @@ def cmd_init(argv, path_to_tx):
         fh = open(config_file, 'w')
         config.write(fh)
         fh.close()
+
+    prj = project.Project(path_to_tx)
+    prj.getset_host_credentials(transifex_host)
+    prj.save()
 
     # Get the project slug
 
@@ -181,7 +159,11 @@ def cmd_set(argv, path_to_tx):
             _auto_local(path_to_tx, options.resource, options.slang,
                 expression, options.execute, options.nosource)
         elif options.remote:
-            _auto_remote()
+            try:
+                url = args[0]
+            except IndexError:
+                parser.error("Please specify an remote url")
+            _auto_remote(path_to_tx, url)
         else:
             parser.error("When you specify --auto, you also need one of the"
                 " --local or --remote flags")
@@ -192,14 +174,15 @@ def cmd_set(argv, path_to_tx):
     # if we have --source, we set source
     elif options.is_source:
         resource = options.resource
+        resource_slug = resource.split('.')[1]
         lang = options.slang
 
         if len(args) != 1:
             parser.error("Please specify a file")
 
-#        if not utils.valid_slug(resource):
-#            parser.error("Invalid characters in resource slug. Valid characters"
-#                " include [_-\w].")
+        if not utils.valid_slug(resource_slug):
+            parser.error("Invalid characters in resource slug. Valid characters"
+                " include [_-\w].")
 
         file = args[0]
         # Calculate relative path
@@ -294,6 +277,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
         except ConfigParser.NoSectionError:
             utils.ERRMSG("No resource with slug \"%s\" was found. Run tx set --auto"
                 "--local to do the initial configuration." % resource)
+            return
 
     # Now let's handle the translation files.
     if execute:
@@ -308,9 +292,48 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     prj.save()
     utils.MSG("Done.")
 
-def _auto_remote():
+def _auto_remote(path_to_tx, url):
     """
+    Initialize a remote release/project/resource to the current directory.
     """
+    # How will this work:
+    # ==================
+    # parse url and see if it's valid
+    # get_item_details for json
+    # get down to resources
+    # for r in resources do set_resource()
+
+    type, vars = utils.parse_tx_url(url)
+    prj = project.Project(path_to_tx)
+    username, password = prj.getset_host_credentials(vars['hostname'])
+
+
+    if type == 'project':
+        proj_info = utils.get_project_details(vars['hostname'], username,
+            password, vars['project'])
+        resources = [ r['slug'] for r in proj_info['resources'] ]
+    elif type == 'release':
+        rel_info = utils.get_release_details(vars['hostname'], username,
+            password, vars['project'], vars['release'])
+        resources = [ r['slug'] for r in rel_info['resources'] ]
+    elif type == 'resource':
+        resources = [vars['resource']]
+    else:
+        ERRMSG("Url '%s' is not recognized." % url)
+        return
+
+    for resource in resources:
+        res_info = utils.get_resource_details(vars['hostname'],
+            username, password,
+            vars['project'], resource)
+        prj.set_remote_resource(
+            resource='.'.join([vars['project'], resource]),
+            host = vars['hostname'],
+            source_lang = res_info['source_language']['code'],
+            i18n_type = res_info['i18n_type'])
+
+    prj.save()
+
 
 def cmd_push(argv, path_to_tx):
     "Push local files to remote server"
@@ -336,6 +359,9 @@ def cmd_push(argv, path_to_tx):
     parser.add_option("--skip", action="store_true", dest="skip_errors",
         default=False, help="Don't stop on errors. Useful when pushing many"
         " files concurrently.")
+    parser.add_option("--source", action="store_true", dest="push_source",
+        default=False, help="Force the pushing of the source file to the server")
+
     (options, args) = parser.parse_args(argv)
 
     force_creation = options.force_creation
@@ -352,7 +378,8 @@ def cmd_push(argv, path_to_tx):
             utils.ERRMSG("Specified resource '%s' does not exist." % r)
             return
 
-    prj.push(force_creation, resources, languages, skip=skip)
+    prj.push(force=force_creation, resources=resources, languages=languages,
+        skip=skip, source=options.push_source)
     utils.MSG("Done.")
 
 def cmd_pull(argv, path_to_tx):
@@ -375,6 +402,8 @@ def cmd_pull(argv, path_to_tx):
     parser.add_option("-a","--all", action="store_true", dest="fetchall",
         default=False, help="Fetch all translation files from server (even new"
         " ones)")
+    parser.add_option("-f","--force", action="store_true", dest="force",
+        default=False, help="Force download of translations files.")
     parser.add_option("--disable-overwrite", action="store_false",
         dest="overwrite", default=True,
         help="By default transifex will fetch new translations files and"\
@@ -398,7 +427,8 @@ def cmd_pull(argv, path_to_tx):
         if not r in available_resources:
             utils.ERRMSG("Specified resource '%s' does not exist." % r)
             return
-    prj.pull(languages, resources, options.overwrite, options.fetchall)
+    prj.pull(languages, resources, options.overwrite, options.fetchall,
+        options.force)
     prj.save()
 
     utils.MSG("Done.")
@@ -519,7 +549,8 @@ def cmd_status(argv, path_to_tx):
         p, r = res.split('.')
         utils.MSG("%s -> %s (%s of %s)" % (p, r, id+1, resources_num))
         utils.MSG("Translation Files:")
-        slang, sfile = prj.get_source_info(res)
+        slang = prj.get_resource_option(res, 'source_lang')
+        sfile = prj.get_resource_option(res, 'source_file')
         utils.MSG(" - %s: %s (%s)" % (utils.color_text(slang, "RED"),
             sfile, utils.color_text("source", "YELLOW")))
         files = prj.get_resource_files(res)

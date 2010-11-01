@@ -1,8 +1,11 @@
 import base64
 import copy
+import getpass
 import os
+import re
 import urllib2
 import ConfigParser
+import datetime, time
 
 from txclib.web import *
 from txclib.utils import *
@@ -48,6 +51,22 @@ class Project():
             raise ProjectNotInit()
 
 
+        home = os.getenv('USERPROFILE') or os.getenv('HOME')
+        self.txrc_file = os.path.join(home, ".transifexrc")
+        if not os.path.exists(self.txrc_file):
+            MSG("Cannot find the global config file (%s)!" % txrc_file)
+            MSG("Run 'tx init' to fix this!")
+            raise ProjectNotInit()
+
+        self.txrc = ConfigParser.RawConfigParser()
+        try:
+            self.txrc.read(self.txrc_file)
+        except Exception, err:
+            MSG("WARNING: Cannot global conf file (%s)" %  err)
+            MSG("Run 'tx init' to fix this!")
+            raise ProjectNotInit()
+
+
     def create_resource(self):
         pass
 
@@ -57,6 +76,50 @@ class Project():
         To ensure the json structure is correctly formed.
         """
         pass
+
+    def getset_host_credentials(self, host):
+        """
+        Read .transifexrc and report user,pass for a specific host else ask the
+        user for input.
+        """
+        try:
+            username = self.txrc.get(host, 'username')
+            passwd = self.txrc.get(host, 'password')
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            MSG("No entry found for host %s. Creating..." % host)
+            username = raw_input("Please enter your transifex username: ")
+            while (not username):
+                username = raw_input("Please enter your transifex username: ")
+            passwd = ''
+            while (not passwd):
+                passwd = getpass.getpass()
+
+            MSG("Updating %s file..." % self.txrc_file)
+            self.txrc.add_section(host)
+            self.txrc.set(host, 'username', username)
+            self.txrc.set(host, 'password', passwd)
+            self.txrc.set(host, 'token', '')
+            self.txrc.set(host, 'hostname', host)
+
+        return username, passwd
+
+    def set_remote_resource(self, resource, source_lang, i18n_type, host,
+            file_filter="translations/%(proj)s.%(res)s/<lang>.%(extension)s"):
+        """
+        Method to handle the add/conf of a remote resource.
+        """
+        if not self.config.has_section(resource):
+            self.config.add_section(resource)
+
+        p_slug, r_slug = resource.split('.')
+
+        self.config.set(resource, 'source_lang', source_lang)
+        self.config.set(resource, 'file_filter', file_filter % {'proj': p_slug,
+            'res': r_slug, 'extension': FILE_EXTENSIONS[i18n_type]})
+        if host != self.config.get('main', 'host'):
+            self.config.set(resource, 'host', host)
+        # NOW WHAT?
+        #self.config.set(resource,'source_file', ???)
 
     def get_resource_host(self, resource):
         """
@@ -104,14 +167,16 @@ class Project():
 
         return None
 
-    def get_source_info(self, resource):
+    def get_resource_option(self, resource, option):
         """
-        Return the source language and source file of a specific resource
+        Return the requested option for a specific resource
+
+        If there is no such option, we return None
         """
 
         if self.config.has_section(resource):
-            return (self.config.get(resource,'source_lang'),
-                self.config.get(resource, 'source_file'))
+            if self.config.has_option(resource, option):
+                return self.config.get(resource,option)
         return None
 
     def get_resource_list(self, project=None):
@@ -140,6 +205,15 @@ class Project():
         self.config.write(fh)
         fh.close()
 
+        # Writing global configuration file
+        mask = os.umask(077)
+        fh = open(self.txrc_file, 'w')
+        self.txrc.write(fh)
+        fh.close()
+        os.umask(mask)
+
+
+
 
     def get_full_path(self, relpath):
         if relpath[0] == "/":
@@ -147,7 +221,8 @@ class Project():
         else:
             return os.path.join(self.root, relpath)
 
-    def pull(self, languages=[], resources=[], overwrite=True, fetchall=False):
+    def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
+        force=False):
         """
         Pull all translations file from transifex server
         """
@@ -159,15 +234,19 @@ class Project():
         for resource in resource_list:
             project_slug, resource_slug = resource.split('.')
             files = self.get_resource_files(resource)
-            slang, sfile = self.get_source_info(resource)
+            slang = self.get_resource_option(resource, 'source_lang')
+            sfile = self.get_resource_option(resource, 'source_file')
             host = self.get_resource_host(resource)
+            file_filter = self.config.get(resource, 'file_filter')
 
             # Pull source file
-            MSG("Pulling translations for source file %s" % sfile)
+            MSG("Pulling translations for resource %s (source: %s)" %
+                (resource, sfile))
 
             new_translations = []
             if fetchall:
-                raw = self.do_url_request('get_resource_details',
+                timestamp = time.time()
+                raw = self.do_url_request('resource_details',
                     host=host,
                     project=project_slug,
                     resource=resource_slug)
@@ -186,6 +265,30 @@ class Project():
 
             for lang in files.keys():
                 local_file = files[lang]
+
+                if not force:
+                    # Check remote timestamp for file and skip update if needed
+                    r = self.do_url_request('resource_stats',
+                        host=host,
+                        project=project_slug,
+                        resource=resource_slug,
+                        language=lang)
+
+                    stats = parse_json(r)
+                    if stats.has_key(lang):
+                        time_format = "%Y-%m-%d %H:%M:%S"
+             
+                        try:
+                            remote_time = time.mktime(datetime.datetime.strptime(stats[lang]['last_update'], time_format).utctimetuple())
+                        except TypeError,e:
+                            remote_time = None
+                        local_time = time.mktime(time.gmtime(os.path.getmtime(local_file)))
+
+
+                        if remote_time and remote_time < local_time:
+                            MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
+                            continue
+
                 if languages and lang not in languages:
                     continue
                 if not overwrite:
@@ -223,7 +326,9 @@ class Project():
 
                 MSG("Pulling new translations for source file %s" % sfile)
                 for lang in new_translations:
-                    local_file = os.path.join(trans_dir, '%s_translation' % lang)
+                    local_file = os.path.join(self.root,
+                        re.sub('<lang>', lang, file_filter))
+
                     MSG(" -> %s: %s" % (color_text(lang, "RED"), local_file))
                     r = self.do_url_request('pull_file',
                         host=host,
@@ -237,11 +342,11 @@ class Project():
                     fd.write(r)
                     fd.close()
 
-    def push(self, force=False, resources=[], languages=[], skip=False):
+
+    def push(self, source=False, force=False, resources=[], languages=[], skip=False):
         """
         Push all the resources
         """
-
         if resources:
             resource_list = resources
         else:
@@ -250,10 +355,13 @@ class Project():
         for resource in resource_list:
             project_slug, resource_slug = resource.split('.')
             files = self.get_resource_files(resource)
-            slang, sfile = self.get_source_info(resource)
+            slang = self.get_resource_option(resource, 'source_lang')
+            sfile = self.get_resource_option(resource, 'source_file')
             host = self.get_resource_host(resource)
 
-            if force:
+            MSG("Pushing translations for resource %s:" % resource_slug)
+
+            if source:
                 # Push source file
                 try:
                     MSG("Pushing source file (%s)" % sfile)
@@ -276,13 +384,32 @@ class Project():
                     else:
                         MSG(e)
 
-            MSG("Pushing translations for resource %s" % resource_slug)
-
             # Push translation files one by one
             for lang in files.keys():
                 local_file = files[lang]
                 if languages and lang not in languages:
                     continue
+
+                if not force:
+                    # Check remote timestamp for file and skip update if needed
+                    r = self.do_url_request('resource_stats',
+                        host=host,
+                        project=project_slug,
+                        resource=resource_slug,
+                        language=lang)
+
+                    stats = parse_json(r)
+                    time_format = "%Y-%m-%d %H:%M:%S"
+                    try:
+                        remote_time = time.mktime(datetime.datetime.strptime(stats[lang]['last_update'], time_format).utctimetuple())
+                    except TypeError, e:
+                        remote_time = None
+                    local_time = time.mktime(time.gmtime(os.path.getmtime(local_file)))
+
+                    if remote_time and remote_time > local_time:
+                        MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
+                        continue
+
                 MSG("Pushing '%s' translations (file: %s)" % (color_text(lang, "RED"), local_file))
                 try:
                     r = self.do_url_request('push_file', host=host, multipart=True,
@@ -313,24 +440,12 @@ class Project():
         Issues a url request.
         """
         # Read the credentials from the config file (.transifexrc)
-        home = os.getenv('USERPROFILE') or os.getenv('HOME')
-        txrc = os.path.join(home, ".transifexrc")
-        config = ConfigParser.RawConfigParser()
-
-        if not os.path.exists(txrc):
-            MSG("Cannot find the ~/.transifexrc!")
-            raise ProjectNotInit()
-
-        if not host:
-            host = self.config.get('main', 'host')
-
-        # FIXME do some checks :)
-        config.read(txrc)
+        
         try:
-            username = config.get(host, 'username')
-            passwd = config.get(host, 'password')
-            token = config.get(host, 'token')
-            hostname = config.get(host, 'hostname')
+            username = self.txrc.get(host, 'username')
+            passwd = self.txrc.get(host, 'password')
+            token = self.txrc.get(host, 'token')
+            hostname = self.txrc.get(host, 'hostname')
         except ConfigParser.NoSectionError:
             raise Exception("No user credentials found for host %s. Edit"
                 " ~/.transifexrc and add the appropriate info in there." %
