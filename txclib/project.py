@@ -51,12 +51,14 @@ class Project():
             raise ProjectNotInit()
 
 
-        home = os.getenv('USERPROFILE') or os.getenv('HOME')
+        home = os.path.expanduser("~")
         self.txrc_file = os.path.join(home, ".transifexrc")
         if not os.path.exists(self.txrc_file):
-            MSG("Cannot find the global config file (%s)!" % txrc_file)
-            MSG("Run 'tx init' to fix this!")
-            raise ProjectNotInit()
+            MSG("No configuration file found.")
+            # Writing global configuration file
+            mask = os.umask(077)
+            open(self.txrc_file, 'w').close()
+            os.umask(mask)
 
         self.txrc = ConfigParser.RawConfigParser()
         try:
@@ -104,7 +106,7 @@ class Project():
         return username, passwd
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
-            file_filter="translations/%(proj)s.%(res)s/<lang>.%(extension)s"):
+            file_filter="translations<sep>%(proj)s.%(res)s<sep><lang>.%(extension)s"):
         """
         Method to handle the add/conf of a remote resource.
         """
@@ -112,6 +114,7 @@ class Project():
             self.config.add_section(resource)
 
         p_slug, r_slug = resource.split('.')
+        file_filter = re.sub("<sep>", os.sep, file_filter)
 
         self.config.set(resource, 'source_lang', source_lang)
         self.config.set(resource, 'file_filter', file_filter % {'proj': p_slug,

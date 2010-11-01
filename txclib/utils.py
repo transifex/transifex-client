@@ -24,7 +24,7 @@ def ERRMSG(msg, verbosity=1):
     """
     sys.stderr.write('--> ERROR: %s\n' % msg)
 
-def find_dot_tx(path = os.getcwd()):
+def find_dot_tx(path = os.path.curdir, previous = None):
     """
     Return the path where .tx folder is found.
 
@@ -32,13 +32,13 @@ def find_dot_tx(path = os.getcwd()):
     This process is functioning recursively from the current directory to each 
     one of the ancestors dirs.
     """
-    if path == "/":
+    if path == previous:
         return None
     joined = os.path.join(path, ".tx")
     if os.path.isdir(joined):
         return path
     else:
-        return find_dot_tx(os.path.dirname(path))
+        return find_dot_tx(os.path.dirname(path), path)
 
 
 TX_URLS = {

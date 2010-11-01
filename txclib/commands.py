@@ -73,7 +73,6 @@ def cmd_init(argv, path_to_tx):
         transifex_host = default_transifex
 
 
-
     config_file = os.path.join(path_to_tx, ".tx", "config")
     if not os.path.exists(config_file):
         # The path to the config file (.tx/config)
