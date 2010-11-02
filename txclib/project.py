@@ -114,7 +114,7 @@ class Project():
             self.config.add_section(resource)
 
         p_slug, r_slug = resource.split('.')
-        file_filter = re.sub("<sep>", os.sep, file_filter)
+        file_filter = re.sub("<sep>", r"%s" % os.sep, file_filter)
 
         self.config.set(resource, 'source_lang', source_lang)
         self.config.set(resource, 'file_filter', file_filter % {'proj': p_slug,
@@ -145,8 +145,12 @@ class Project():
         """
         tr_files = {}
         if self.config.has_section(resource):
-            file_filter = self.config.get(resource, "file_filter")
+            try:
+                file_filter = self.config.get(resource, "file_filter")
+            except ConfigParser.NoOptionError:
+                file_filter = "$^"
             source_lang = self.config.get(resource, "source_lang")
+
             expr_re = re.escape(file_filter)
             expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
             expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s$' % expr_re)
@@ -240,7 +244,10 @@ class Project():
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_resource_option(resource, 'source_file')
             host = self.get_resource_host(resource)
-            file_filter = self.config.get(resource, 'file_filter')
+            try:
+                file_filter = self.config.get(resource, 'file_filter')
+            except ConfigParser.NoOptionError:
+                file_filter = None
 
             # Pull source file
             MSG("Pulling translations for resource %s (source: %s)" %
@@ -394,18 +401,18 @@ class Project():
                     continue
 
                 if not force:
-                    # Check remote timestamp for file and skip update if needed
-                    r = self.do_url_request('resource_stats',
-                        host=host,
-                        project=project_slug,
-                        resource=resource_slug,
-                        language=lang)
-
-                    stats = parse_json(r)
-                    time_format = "%Y-%m-%d %H:%M:%S"
                     try:
+                        r = self.do_url_request('resource_stats',
+                            host=host,
+                            project=project_slug,
+                            resource=resource_slug,
+                            language=lang)
+
+                        # Check remote timestamp for file and skip update if needed
+                        stats = parse_json(r)
+                        time_format = "%Y-%m-%d %H:%M:%S"
                         remote_time = time.mktime(datetime.datetime.strptime(stats[lang]['last_update'], time_format).utctimetuple())
-                    except TypeError, e:
+                    except Exception, e:
                         remote_time = None
                     local_time = time.mktime(time.gmtime(os.path.getmtime(local_file)))
 
@@ -493,11 +500,10 @@ class Project():
                 raise Exception(e)
             else:
                 # For other requests, we should print the message as well
-                raise Exception("%s: %s" % (e.code, e.read()))
-
+                raise Exception("Remote server replied: %s" % e.read())
         except urllib2.URLError, e:
             error = e.args[0]
-            raise Exception("%s: %s" % (error[0], error[1]))
+            raise Exception("Remote server replied: %s" % error[1])
 
         raw = fh.read()
         fh.close()

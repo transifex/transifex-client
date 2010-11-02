@@ -22,7 +22,7 @@ def ERRMSG(msg, verbosity=1):
     """
     STDERR logging function
     """
-    sys.stderr.write('--> ERROR: %s\n' % msg)
+    sys.stderr.write('%s\n' % msg)
 
 def find_dot_tx(path = os.path.curdir, previous = None):
     """
@@ -115,6 +115,9 @@ def get_project_details(hostname, username, passwd, project_slug):
         remote_project = parse_json(raw)
     except urllib2.HTTPError:
         raise Exception("tx: The given project does not exist.")
+    except urllib2.URLError, e:
+        error = e.args[0]
+        raise Exception("%s" % error[1])
 
     return remote_project
 

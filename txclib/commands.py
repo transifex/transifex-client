@@ -62,7 +62,7 @@ def cmd_init(argv, path_to_tx):
     os.mkdir(os.path.join(path_to_tx,".tx"))
 
     # Handle the credentials through transifexrc
-    home = os.getenv('USERPROFILE') or os.getenv('HOME')
+    home = os.path.expanduser("~")
     txrc = os.path.join(home, ".transifexrc")
     config = ConfigParser.RawConfigParser()
 
@@ -168,12 +168,17 @@ def cmd_set(argv, path_to_tx):
                 " --local or --remote flags")
 
     elif options.remote:
-        parser.error("--remote flag is only supported with --auto.")
-        return
+        raise Exception("--remote flag is only supported with --auto.")
     # if we have --source, we set source
     elif options.is_source:
         resource = options.resource
-        resource_slug = resource.split('.')[1]
+        if not resource:
+            parser.error("You must specify a resource name with the"
+                " -r|--resource flag.")
+        try:
+            resource_slug = resource.split('.')[1]
+        except Exception,e:
+            parser.error("'%s' is not a valid resource slug." % resource)
         lang = options.slang
 
         if len(args) != 1:
@@ -206,8 +211,7 @@ def cmd_set(argv, path_to_tx):
         os.chdir(path_to_tx)
 
         if not os.path.exists(path_to_file):
-            utils.MSG("tx: File ( %s ) does not exist." % path_to_file)
-            return
+            raise Exception("tx: File ( %s ) does not exist." % path_to_file)
 
         _set_translation(path_to_tx, resource, lang, path_to_file)
         utils.MSG("Done.")
@@ -226,7 +230,6 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
         expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
         expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s$' % expr_re)
         expr_rec = re.compile(expr_re)
-
 
     # The path everything will be relative to
     curpath = os.curdir
@@ -259,6 +262,8 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
 "Could not find a source language file. Please run set_source_language\n"
 "manually and then re-run this command with the --no-source switch")
         if execute:
+            utils.MSG("Updating source for resource %s ( %s -> %s )." % (resource,
+                source_language, os.path.relpath(source_file, path_to_tx)))
             _set_source_file(path_to_tx, resource, source_language,
                 os.path.relpath(source_file, path_to_tx))
         else:
@@ -272,14 +277,16 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
 
     if execute:
         try:
+
             prj.config.get("%s" % resource, "source_file")
         except ConfigParser.NoSectionError:
-            utils.ERRMSG("No resource with slug \"%s\" was found. Run tx set --auto"
-                "--local to do the initial configuration." % resource)
-            return
+            raise Exception("No resource with slug \"%s\" was found.\nRun 'tx set --auto"
+                " --local -r %s \"expression\"' to do the initial configuration." % resource)
 
     # Now let's handle the translation files.
     if execute:
+        utils.MSG("Updating file expression for resource %s ( %s )." % (resource,
+            expression))
         prj.config.set("%s" % resource, "file_filter", expression)
     else:
         for (lang, f_path) in sorted(translation_files.items()):
@@ -295,12 +302,7 @@ def _auto_remote(path_to_tx, url):
     """
     Initialize a remote release/project/resource to the current directory.
     """
-    # How will this work:
-    # ==================
-    # parse url and see if it's valid
-    # get_item_details for json
-    # get down to resources
-    # for r in resources do set_resource()
+    utils.MSG("Auto configuring local project from remote URL...")
 
     type, vars = utils.parse_tx_url(url)
     prj = project.Project(path_to_tx)
@@ -308,20 +310,25 @@ def _auto_remote(path_to_tx, url):
 
 
     if type == 'project':
+        utils.MSG("Getting details for project %s" % vars['project'])
         proj_info = utils.get_project_details(vars['hostname'], username,
             password, vars['project'])
         resources = [ r['slug'] for r in proj_info['resources'] ]
+        utils.MSG("%s resources found. Configuring..." % len(resources))
     elif type == 'release':
+        utils.MSG("Getting details for release %s" % vars['release'])
         rel_info = utils.get_release_details(vars['hostname'], username,
             password, vars['project'], vars['release'])
         resources = [ r['slug'] for r in rel_info['resources'] ]
+        utils.MSG("%s resources found. Configuring..." % len(resources))
     elif type == 'resource':
+        utils.MSG("Getting details for resource %s" % vars['resource'])
         resources = [vars['resource']]
     else:
-        ERRMSG("Url '%s' is not recognized." % url)
-        return
+        raise("Url '%s' is not recognized." % url)
 
     for resource in resources:
+        utils.MSG("Configuring resource %s." % resource)
         res_info = utils.get_resource_details(vars['hostname'],
             username, password,
             vars['project'], resource)
@@ -374,8 +381,7 @@ def cmd_push(argv, path_to_tx):
     available_resources = prj.get_resource_list()
     for r in resources:
         if not r in available_resources:
-            utils.ERRMSG("Specified resource '%s' does not exist." % r)
-            return
+            raise Exception("Specified resource '%s' does not exist." % r)
 
     prj.push(force=force_creation, resources=resources, languages=languages,
         skip=skip, source=options.push_source)
@@ -424,8 +430,8 @@ def cmd_pull(argv, path_to_tx):
     available_resources = prj.get_resource_list()
     for r in resources:
         if not r in available_resources:
-            utils.ERRMSG("Specified resource '%s' does not exist." % r)
-            return
+            raise Exception("Specified resource '%s' does not exist." % r)
+
     prj.pull(languages, resources, options.overwrite, options.fetchall,
         options.force)
     prj.save()
@@ -437,26 +443,23 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
 
     proj, res = resource.split('.')
     if not proj or not res:
-        utils.ERRMSG("\"%s.%s\" is not a valid resource identifier. It should"
+        raise Exception("\"%s.%s\" is not a valid resource identifier. It should"
             " be in the following format project_slug.resource_slug." %
             (proj, res))
-        return
 
     # Chdir to the root dir
     os.chdir(path_to_tx)
 
     if not os.path.exists(path_to_file):
-        utils.MSG("tx: File ( %s ) does not exist." %
+        raise Exeption("tx: File ( %s ) does not exist." %
             os.path.join(path_to_tx, path_to_file))
-        return
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
     root_dir = os.path.abspath(path_to_tx)
 
     if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
-        utils.MSG("File must be under the project root directory.")
-        return
+        raise Exception("File must be under the project root directory.")
 
     utils.MSG("Setting source file for resource %s.%s ( %s -> %s )." % (
         proj, res, lang, path_to_file))
@@ -484,17 +487,16 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
     proj, res = resource.split('.')
     if not project or not resource:
-        utils.ERRMSG("\"%s.%s\" is not a valid resource identifier. It should"
+        raise Exception("\"%s\" is not a valid resource identifier. It should"
             " be in the following format project_slug.resource_slug." %
-            (proj,res))
+            resource)
 
     # Chdir to the root dir
     os.chdir(path_to_tx)
 
     if not os.path.exists(path_to_file):
-        utils.MSG("tx: File ( %s ) does not exist." %
+        raise Exception("tx: File ( %s ) does not exist." %
              os.path.join(path_to_tx, path_to_file))
-        return
 
 
     # instantiate the project.Project
@@ -502,8 +504,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
     root_dir = os.path.abspath(path_to_tx)
 
     if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
-        utils.MSG("File must be under the project root directory.")
-        return
+        raise Exception("File must be under the project root directory.")
 
     try:
         map_object = prj.config.get("%s.%s" % (proj, res), "source_file")
@@ -511,17 +512,14 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
         map_object = None
 
     if not map_object:
-        utils.MSG("tx: You should first run 'set --source' to map the source file.")
-        return
+        raise Exception("tx: You should first run 'set --source' to map the source file.")
 
     if lang ==  prj.config.get("%s.%s" % (proj, res), "source_lang"):
-        utils.MSG("tx: You cannot set translation file for the source language.")
-        utils.MSG("Source languages contain the strings which will be translated!")
-        return
+        raise Exception("tx: You cannot set translation file for the source language."
+            " Source languages contain the strings which will be translated!")
 
-
-    utils.MSG("Updating resource %s.%s ( %s -> %s )." % (
-        proj, res, lang, path_to_file))
+    utils.MSG("Updating translations for resource %s ( %s -> %s )." % (resource,
+        lang, path_to_file))
     path_to_file = os.path.relpath(path_to_file, root_dir)
     prj.config.set("%s.%s" % (proj, res), "trans.%s" % lang,
         path_to_file)
