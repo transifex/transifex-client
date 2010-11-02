@@ -18,7 +18,7 @@ adding code to this file you must take care of the following:
 import os
 import re, shutil
 import sys
-from optparse import OptionParser
+from optparse import OptionParser, OptionGroup
 import ConfigParser
 from json import loads as parse_json, dumps as compile_json
 
@@ -90,85 +90,90 @@ def cmd_init(argv, path_to_tx):
     prj.getset_host_credentials(transifex_host)
     prj.save()
 
-    # Get the project slug
-
-#    while (not hostname and not project_slug):
-#        project_url = raw_input("Please enter your tx project url here: ")
-#        hostname, project_slug = utils.parse_tx_url(project_url)
-#
-#    # Check the project existence
-#    project_info = project.get_project_info(hostname, username, passwd, project_slug)
-#    if not project_info:
-#        # Clean the old settings 
-#        # FIXME: take a backup
-#        rm_dir = os.path.join(path_to_tx, ".tx")
-#        shutil.rmtree(rm_dir)
-#        return
-
-    # Write the skeleton dictionary
-
     utils.MSG("Done.")
 
 def cmd_set(argv, path_to_tx):
     "Add local or remote files under transifex"
-    usage="usage: %prog [tx_options] set [options]"
+
+    class EpilogParser(OptionParser):
+       def format_epilog(self, formatter):
+           return self.epilog
+
+    usage="usage: %prog [tx_options] set [options] [args]"
     description="This command can be used to create a mapping between files"\
         " and projects either using local files or using files from a remote"\
         " Transifex server."
-    parser = OptionParser(usage=usage, description=description)
-    parser.add_option("--auto", action="store_true", dest="auto",
-        default=False, help="Used when you want to auto setup config file.")
-    parser.add_option("--local", action="store_true", dest="local",
-        default=False, help="Specifies that added file is in local directory.")
-    parser.add_option("--remote", action="store_true", dest="remote",
-        default=False, help="Used when adding remote files from Transifex.")
+    epilog="\nExamples:\n"\
+        " To set the source file:\n  $ tx set -r project.resource --source -l en <file>\n\n"\
+        " To set a single translation file:\n  $ tx set -r project.resource -l de <file>\n\n"\
+        " To automatically detect and assign translation files:\n"\
+        "  $ tx set --auto-local -r project.resource 'expr'\n\n"\
+        " To automatically detect and assign the source files and translations:\n"\
+        "  $ tx set --auto-local -r project.resource 'expr' --source-lang en\n\n"\
+        " To set a specific file as a source and auto detect translations:\n"\
+        "  $ tx set --auto-local -r project.resource 'expr' --source-lang en"\
+        " --source-file <file>\n\n"\
+        " To set a remote release/resource/project:\n"\
+        "  $ tx set --auto-remote <transifex-url>\n"
+    parser = EpilogParser(usage=usage, description=description, epilog=epilog)
+    parser.add_option("--auto-local", action="store_true", dest="local",
+        default=False, help="Used when auto configuring local project.")
+    parser.add_option("--auto-remote", action="store_true", dest="remote",
+        default=False, help="Used when adding remote files from Transifex"
+        " server.")
     parser.add_option("-r","--resource", action="store", dest="resource",
         default=None, help="Specify the slug of the resource that you're"
-            " setting up.")
-    parser.add_option("-S","--source", action="store_true", dest="is_source",
-        default=False, help="Specify that added file a source file.")
-
-    parser.add_option("--nosource", action="store_true", dest="nosource",
-        default=False, help="Specify that auto config shouldn't look for a"
-        " source file.")
-    parser.add_option("-s","--source-language", action="store", dest="slang",
-        default=None, help="Specify the source language of a resource.")
-    parser.add_option("-e","--execute", action="store_true", dest="execute",
-        default=False, help="Execute commands (Can be used with --auto --local)")
+            " setting up (This must be in the following format:"
+            " `project_slug.resource_slug`).")
+    parser.add_option("--source", action="store_true", dest="is_source",
+        default=False, help="Specify that added file a source file [doesn't"
+        " work with the --auto-* commands].")
     parser.add_option("-l","--language", action="store", dest="language",
         default=None, help="Specify which translations you want to pull"
-        " (defaults to all)")
+        " [doesn't work with the --auto-* commands].")
+    group = OptionGroup(parser, "Extended options", "These options can only be"
+        " used with the --auto-local command.")
+    group.add_option("-e","--regex", action="store_true", dest="regex",
+        default=False, help="Specify that expression is an extended regex"
+        " [requires --auto-local].")
+    group.add_option("-s","--source-language", action="store",
+        dest="source_language",
+        default=None, help="Specify the source language of a resource"
+        " [requires --auto-local].")
+    group.add_option("-f","--source-file", action="store", dest="source_file",
+        default=None, help="Specify the source file of a resource [requires"
+        " --auto-local].")
+    group.add_option("--execute", action="store_true", dest="execute",
+        default=False, help="Execute commands [requires --auto-local].")
+    parser.add_option_group(group)
+
     (options, args) = parser.parse_args(argv)
 
     # Implement options/args checks
     # TODO !!!!!!!
 
     # if --auto is true
-    if options.auto:
-        if options.local:
-            try:
-                expression = args[0]
-            except IndexError:
-                parser.error("Please specify an expression.")
-            if not options.resource:
-                parser.error("Please specify a resource")
-            if not options.slang:
-                parser.error("Please specify a source language.")
-
-            _auto_local(path_to_tx, options.resource, options.slang,
-                expression, options.execute, options.nosource)
-        elif options.remote:
-            try:
-                url = args[0]
-            except IndexError:
-                parser.error("Please specify an remote url")
-            _auto_remote(path_to_tx, url)
-        else:
-            parser.error("When you specify --auto, you also need one of the"
-                " --local or --remote flags")
-
+    if options.local:
+        try:
+            expression = args[0]
+        except IndexError:
+            parser.error("Please specify an expression.")
+        if not options.resource:
+            parser.error("Please specify a resource")
+        if not options.source_language:
+            parser.error("Please specify a source language.")
+        if not '<lang>' in expression:
+            parser.error("The expression you have provided is not valid.")
+        _auto_local(path_to_tx, options.resource,
+            source_language=options.source_language,
+            expression = expression, source_file=options.source_file,
+            execute=options.execute, nosource=False, regex=options.regex)
     elif options.remote:
-        raise Exception("--remote flag is only supported with --auto.")
+        try:
+            url = args[0]
+        except IndexError:
+            parser.error("Please specify an remote url")
+        _auto_remote(path_to_tx, url)
     # if we have --source, we set source
     elif options.is_source:
         resource = options.resource
@@ -218,7 +223,7 @@ def cmd_set(argv, path_to_tx):
 
     return
 
-def _auto_local(path_to_tx, resource, source_language, expression, execute=False,
+def _auto_local(path_to_tx, resource, source_language, expression, execute=False, source_file=None,
     nosource=False, regex=False):
     """
     Auto configure local project
@@ -229,7 +234,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
         expr_re = re.escape(expression)
         expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
         expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s$' % expr_re)
-        expr_rec = re.compile(expr_re)
+    expr_rec = re.compile(expr_re)
 
     # The path everything will be relative to
     curpath = os.curdir
@@ -240,7 +245,6 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
 
     # First, let's construct a dictionary of all matching files.
     # Note: Only the last matching file of a language will be stored.
-    source_file = None
     translation_files = {}
     for root, dirs, files in os.walk(curpath):
         for f in files:
@@ -249,7 +253,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
             if match:
                 lang = match.group('lang')
                 f_path = os.path.abspath(f_path)
-                if lang == source_language:
+                if lang == source_language and not source_file:
                     source_file = f_path
                 else:
                     translation_files[lang] = f_path
@@ -258,9 +262,9 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     # If source file search is enabled, go ahead and find it:
     if not nosource:
         if not source_file:
-            utils.ERRMSG(
-"Could not find a source language file. Please run set_source_language\n"
-"manually and then re-run this command with the --no-source switch")
+            raise Exception("Could not find a source language file. Please run"
+                " set --source manually and then re-run this command or provide"
+                " the source file with the -s flag.")
         if execute:
             utils.MSG("Updating source for resource %s ( %s -> %s )." % (resource,
                 source_language, os.path.relpath(source_file, path_to_tx)))
@@ -360,8 +364,8 @@ def cmd_push(argv, path_to_tx):
         default=None, help="Specify the resource for which you want to pull"
         " the translations (defaults to all)")
     parser.add_option("-f","--force", action="store_true", dest="force_creation",
-        default=False, help="Push source files along with translations. This"
-        " can create remote resources.")
+        default=False, help="Push source files without checking modification"
+        " times.")
     parser.add_option("--skip", action="store_true", dest="skip_errors",
         default=False, help="Don't stop on errors. Useful when pushing many"
         " files concurrently.")
@@ -446,6 +450,9 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
         raise Exception("\"%s.%s\" is not a valid resource identifier. It should"
             " be in the following format project_slug.resource_slug." %
             (proj, res))
+
+    if not lang:
+        raise Exception("You haven't specified a source language.")
 
     # Chdir to the root dir
     os.chdir(path_to_tx)
@@ -547,7 +554,7 @@ def cmd_status(argv, path_to_tx):
         utils.MSG("%s -> %s (%s of %s)" % (p, r, id+1, resources_num))
         utils.MSG("Translation Files:")
         slang = prj.get_resource_option(res, 'source_lang')
-        sfile = prj.get_resource_option(res, 'source_file')
+        sfile = prj.get_resource_option(res, 'source_file') or "N/A"
         utils.MSG(" - %s: %s (%s)" % (utils.color_text(slang, "RED"),
             sfile, utils.color_text("source", "YELLOW")))
         files = prj.get_resource_files(res)
