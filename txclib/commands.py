@@ -439,8 +439,8 @@ def cmd_pull(argv, path_to_tx):
         if not r in available_resources:
             raise Exception("Specified resource '%s' does not exist." % r)
 
-    prj.pull(languages, resources, options.overwrite, options.fetchall,
-        options.force)
+    prj.pull(languages=languages, resources=resources, overwrite=options.overwrite,
+        fetchall=options.fetchall, force=options.force)
     prj.save()
 
     utils.MSG("Done.")

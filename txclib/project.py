@@ -270,7 +270,18 @@ class Project():
                     MSG("New translations found for the following languages: %s" %
                         ', '.join(new_translations))
 
-            for lang in files.keys():
+            # Check if given language codes exist
+            if not languages:
+                languages = files.keys()
+            else:
+                f_langs = files.keys()
+                for l in languages:
+                    if l not in f_langs:
+                        languages.remove(l)
+                        ERRMSG("Warning: No mapping found for language code '%s'." %
+                            color_text(l,"RED"))
+
+            for lang in languages:
                 local_file = files[lang]
 
                 if languages and lang not in languages:
@@ -354,7 +365,7 @@ class Project():
             sfile = self.get_resource_option(resource, 'source_file')
             host = self.get_resource_host(resource)
 
-            MSG("Pushing translations for resource %s:" % resource_slug)
+            MSG("Pushing translations for resource %s:" % resource)
 
             if force and not no_interactive:
                 answer = raw_input("Warning: By using --force, the uploaded"
@@ -388,8 +399,19 @@ class Project():
                     else:
                         MSG(e)
 
+            # Check if given language codes exist
+            if not languages:
+                languages = files.keys()
+            else:
+                f_langs = files.keys()
+                for l in languages:
+                    if l not in f_langs:
+                        languages.remove(l)
+                        ERRMSG("Warning: No mapping found for language code '%s'." %
+                            color_text(l,"RED"))
+
             # Push translation files one by one
-            for lang in files.keys():
+            for lang in languages:
                 local_file = files[lang]
                 if languages and lang not in languages:
                     continue
