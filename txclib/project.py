@@ -219,9 +219,6 @@ class Project():
         fh.close()
         os.umask(mask)
 
-
-
-
     def get_full_path(self, relpath):
         if relpath[0] == "/":
             return relpath
@@ -276,6 +273,9 @@ class Project():
             for lang in files.keys():
                 local_file = files[lang]
 
+                if languages and lang not in languages:
+                    continue
+
                 if not force:
                     # Check remote timestamp for file and skip update if needed
                     r = self.do_url_request('resource_stats',
@@ -287,7 +287,7 @@ class Project():
                     stats = parse_json(r)
                     if stats.has_key(lang):
                         time_format = "%Y-%m-%d %H:%M:%S"
-             
+
                         try:
                             remote_time = time.mktime(datetime.datetime.strptime(stats[lang]['last_update'], time_format).utctimetuple())
                         except TypeError,e:
@@ -299,8 +299,6 @@ class Project():
                             MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
                             continue
 
-                if languages and lang not in languages:
-                    continue
                 if not overwrite:
                     local_file = ("%s.new" % local_file)
                 MSG(" -> %s: %s" % (color_text(lang,"RED"), local_file))
@@ -314,20 +312,6 @@ class Project():
                 fd = open(local_file, 'w')
                 fd.write(r)
                 fd.close()
-
-                # Fetch translation statistics from the server
-#                r = self.do_url_request('resource_stats',
-#                    project=self.get_project_slug(),
-#                    resource=resource['resource_slug'],
-#                    language=lang)
-#
-#                stats = parse_json(r)
-#
-#                for res in self.config['resources']:
-#                    if res['resource_slug'] == resource['resource_slug']:
-#                        res['translations'][lang].update({
-#                            'completed': stats[lang]['completed']})
-#
 
             if new_translations:
                 trans_dir = os.path.join(self.root, ".tx", resource)
@@ -353,7 +337,8 @@ class Project():
                     fd.close()
 
 
-    def push(self, source=False, force=False, resources=[], languages=[], skip=False):
+    def push(self, source=False, force=False, resources=[], languages=[],
+        skip=False, no_interactive=False):
         """
         Push all the resources
         """
@@ -370,6 +355,15 @@ class Project():
             host = self.get_resource_host(resource)
 
             MSG("Pushing translations for resource %s:" % resource_slug)
+
+            if force and not no_interactive:
+                answer = raw_input("Warning: By using --force, the uploaded"
+                    " files will overwrite remote translations, even if they"
+                    " are newer than your uploaded files.\nAre you sure you"
+                    " want to continue? [y/N] ")
+
+                if not answer in ["", 'Y', 'y', "yes", 'YES']:
+                    return
 
             if source:
                 # Push source file

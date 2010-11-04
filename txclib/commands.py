@@ -371,6 +371,8 @@ def cmd_push(argv, path_to_tx):
         " files concurrently.")
     parser.add_option("--source", action="store_true", dest="push_source",
         default=False, help="Force the pushing of the source file to the server")
+    parser.add_option("--no-interactive", action="store_true", dest="no_interactive",
+        default=False, help="Don't require user input when forcing a push.")
 
     (options, args) = parser.parse_args(argv)
 
@@ -388,7 +390,8 @@ def cmd_push(argv, path_to_tx):
             raise Exception("Specified resource '%s' does not exist." % r)
 
     prj.push(force=force_creation, resources=resources, languages=languages,
-        skip=skip, source=options.push_source)
+        skip=skip, source=options.push_source,
+        no_interactive=options.no_interactive)
     utils.MSG("Done.")
 
 def cmd_pull(argv, path_to_tx):
