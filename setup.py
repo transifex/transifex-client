@@ -8,7 +8,7 @@ from codecs import BOM
 from setuptools import setup, find_packages
 from setuptools.command.build_py import build_py as _build_py
 
-VERSION = '0.2'
+VERSION = '0.2.2'
 
 readme_file = open(u'README')
 long_description = readme_file.read()
