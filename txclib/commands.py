@@ -184,10 +184,13 @@ def cmd_set(argv, path_to_tx):
             resource_slug = resource.split('.')[1]
         except Exception,e:
             parser.error("'%s' is not a valid resource slug." % resource)
-        lang = options.slang
+
+        lang = options.language
+        if not lang:
+            parser.error("Please specify a source language.")
 
         if len(args) != 1:
-            parser.error("Please specify a file")
+            parser.error("Please specify a file.")
 
         if not utils.valid_slug(resource_slug):
             parser.error("Invalid characters in resource slug. Valid characters"
@@ -197,7 +200,6 @@ def cmd_set(argv, path_to_tx):
         # Calculate relative path
         path_to_file = os.path.relpath(file, path_to_tx)
         _set_source_file(path_to_tx, resource, options.language, path_to_file)
-        utils.MSG("Done.")
 
     else:
         resource = options.resource
@@ -219,7 +221,8 @@ def cmd_set(argv, path_to_tx):
             raise Exception("tx: File ( %s ) does not exist." % path_to_file)
 
         _set_translation(path_to_tx, resource, lang, path_to_file)
-        utils.MSG("Done.")
+
+    utils.MSG("Done.")
 
     return
 
@@ -308,6 +311,7 @@ def _auto_remote(path_to_tx, url):
     """
     utils.MSG("Auto configuring local project from remote URL...")
 
+
     type, vars = utils.parse_tx_url(url)
     prj = project.Project(path_to_tx)
     username, password = prj.getset_host_credentials(vars['hostname'])
@@ -333,14 +337,22 @@ def _auto_remote(path_to_tx, url):
 
     for resource in resources:
         utils.MSG("Configuring resource %s." % resource)
+
         res_info = utils.get_resource_details(vars['hostname'],
             username, password,
             vars['project'], resource)
+        try:
+            source_lang = res_info['source_language']['code']
+            i18n_type = res_info['i18n_type']
+        except KeyError:
+            raise Exception("Remote server seems to be running an unsupported version"
+                " of Transifex. Either update your server software of fallback"
+                " to a previous version of transifex-client.")
         prj.set_remote_resource(
             resource='.'.join([vars['project'], resource]),
             host = vars['hostname'],
-            source_lang = res_info['source_language']['code'],
-            i18n_type = res_info['i18n_type'])
+            source_lang = source_lang,
+            i18n_type = i18n_type)
 
     prj.save()
 

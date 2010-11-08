@@ -329,7 +329,8 @@ class Project():
                 if not os.path.exists(trans_dir):
                     os.mkdir(trans_dir)
 
-                MSG("Pulling new translations for source file %s" % sfile)
+                MSG("Pulling translations for resource %s (source: %s)" %
+                (resource, sfile))
                 for lang in new_translations:
                     local_file = os.path.join(self.root,
                         re.sub('<lang>', lang, file_filter))
