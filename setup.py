@@ -8,7 +8,7 @@ from codecs import BOM
 from setuptools import setup, find_packages
 from setuptools.command.build_py import build_py as _build_py
 
-VERSION = '0.2.2'
+from txclib import get_version
 
 readme_file = open(u'README')
 long_description = readme_file.read()
@@ -21,11 +21,11 @@ package_data = {
     '': ['LICENSE', 'README'],
 }
 
-scripts = ['tx'] 
+scripts = ['tx']
 
 setup(
     name="transifex-client",
-    version=VERSION,
+    version=get_version(),
     scripts=scripts,
     description="A command line interface for Transifex",
     long_description=long_description,

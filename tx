@@ -6,6 +6,7 @@ import os
 import sys
 
 from txclib import utils
+from txclib import get_version
 
 reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
 
@@ -29,8 +30,6 @@ except KeyboardInterrupt:
 # This sets the encoding for the strings which are created with f.read()
 sys.setdefaultencoding('utf-8')
 
-VERSION="tx v0.1"
-
 def main(argv):
     """
     Here we parse the flags (short, long) and we instantiate the classes.
@@ -43,7 +42,7 @@ def main(argv):
 		" just want help with a specific command issue `%prog help"\
 		" command`"
 
-    parser = OptionParser(usage=usage, version=VERSION, description=description)
+    parser = OptionParser(usage=usage, version=get_version(), description=description)
     parser.disable_interspersed_args()
     parser.add_option("-q", "--quiet", 
         action="store_true", dest="verbose", default=False,
