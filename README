@@ -16,7 +16,7 @@ You can install the latest version of transifex-client running
 You can also install the `in-development version`_ of transifex-client with
 ``pip install transifex-client==dev`` or ``easy_install transifex-client==dev``.
 
-.. _in-development version: http://bitbucket.org/indifex/transifex-client/get/tip.gz#egg=transifex-client-dev
+.. _in-development version: http://code.indifex.com/transifex-client/get/tip.gz#egg=transifex-client-dev
 
 
 Releasing
