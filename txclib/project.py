@@ -121,8 +121,6 @@ class Project():
             'res': r_slug, 'extension': FILE_EXTENSIONS[i18n_type]})
         if host != self.config.get('main', 'host'):
             self.config.set(resource, 'host', host)
-        # NOW WHAT?
-        #self.config.set(resource,'source_file', ???)
 
     def get_resource_host(self, resource):
         """
@@ -378,6 +376,12 @@ class Project():
                     return
 
             if source:
+                if sfile == None:
+                    ERRMSG("You don't seem to have a proper source file"
+                        " mapping for resource %s. Try without the --source"
+                        " option or set a source file first and then try again." %
+                        resource)
+                    continue
                 # Push source file
                 try:
                     MSG("Pushing source file (%s)" % sfile)
@@ -399,6 +403,19 @@ class Project():
                         raise e
                     else:
                         MSG(e)
+            else:
+                try:
+                    self.do_url_request('resource_details', host=host,
+                        project=project_slug, resource=resource_slug)
+                except Exception, e:
+                    try:
+                        code = e.code
+                    except:
+                        raise e
+                    if e.code == 404:
+                        ERRMSG("Resource %s doesn't exist on the server. Use the"
+                            " --source option to create it." % resource)
+                        continue
 
             # Check if given language codes exist
             if not languages:
@@ -514,7 +531,7 @@ class Project():
             fh = urllib2.urlopen(req)
         except urllib2.HTTPError, e:
             if e.code in [401, 403, 404]:
-                raise Exception(e)
+                raise e
             else:
                 # For other requests, we should print the message as well
                 raise Exception("Remote server replied: %s" % e.read())
