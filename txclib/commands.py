@@ -35,6 +35,12 @@ def cmd_init(argv, path_to_tx):
         " all files under it in transifex. If no path is provided, the"\
         " current working dir will be used."
     parser = OptionParser(usage=usage, description=description)
+    parser.add_option("--host", action="store", dest="host",
+        default=None, help="Specify a default Transifex host.")
+    parser.add_option("--user", action="store", dest="user",
+        default=None, help="Specify username for Transifex server.")
+    parser.add_option("--pass", action="store", dest="password",
+        default=None, help="Specify password for Transifex server.")
     (options, args) = parser.parse_args(argv)
 
     if len(args) > 1:
@@ -67,11 +73,10 @@ def cmd_init(argv, path_to_tx):
     config = ConfigParser.RawConfigParser()
 
     default_transifex = "http://www.transifex.net"
-    transifex_host = raw_input("Transifex instance [%s]: " % default_transifex)
+    transifex_host = options.host or raw_input("Transifex instance [%s]: " % default_transifex)
 
     if not transifex_host:
         transifex_host = default_transifex
-
 
     config_file = os.path.join(path_to_tx, ".tx", "config")
     if not os.path.exists(config_file):
@@ -87,7 +92,8 @@ def cmd_init(argv, path_to_tx):
         fh.close()
 
     prj = project.Project(path_to_tx)
-    prj.getset_host_credentials(transifex_host)
+    prj.getset_host_credentials(transifex_host, user=options.user,
+        password=options.password)
     prj.save()
 
     utils.MSG("Done.")

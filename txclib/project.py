@@ -79,7 +79,7 @@ class Project():
         """
         pass
 
-    def getset_host_credentials(self, host):
+    def getset_host_credentials(self, host, user=None, password=None):
         """
         Read .transifexrc and report user,pass for a specific host else ask the
         user for input.
@@ -89,10 +89,10 @@ class Project():
             passwd = self.txrc.get(host, 'password')
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             MSG("No entry found for host %s. Creating..." % host)
-            username = raw_input("Please enter your transifex username: ")
+            username = user or raw_input("Please enter your transifex username: ")
             while (not username):
                 username = raw_input("Please enter your transifex username: ")
-            passwd = ''
+            passwd = password
             while (not passwd):
                 passwd = getpass.getpass()
 
