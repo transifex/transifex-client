@@ -20,9 +20,9 @@ import re, shutil
 import sys
 from optparse import OptionParser, OptionGroup
 import ConfigParser
-from json import loads as parse_json, dumps as compile_json
 
 from txclib import utils, project
+from txclib.utils import parse_json, compile_json
 
 def cmd_init(argv, path_to_tx):
     "Initialize a new transifex project."

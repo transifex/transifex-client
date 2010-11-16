@@ -23,6 +23,12 @@ package_data = {
 
 scripts = ['tx']
 
+install_reqires = []
+try:
+    import json
+except ImportError:
+    install_requires.append('simplejson')
+
 setup(
     name="transifex-client",
     version=get_version(),
@@ -37,8 +43,7 @@ setup(
     ],
     setup_requires = [
     ],
-    install_requires = [
-    ],
+    install_requires = install_requires,
     data_files=[
     ],
     zip_safe=False,
