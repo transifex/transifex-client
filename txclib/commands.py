@@ -22,7 +22,7 @@ from optparse import OptionParser, OptionGroup
 import ConfigParser
 
 from txclib import utils, project
-from txclib.utils import parse_json, compile_json
+from txclib.utils import parse_json, compile_json, relpath
 
 def cmd_init(argv, path_to_tx):
     "Initialize a new transifex project."
@@ -204,7 +204,7 @@ def cmd_set(argv, path_to_tx):
 
         file = args[0]
         # Calculate relative path
-        path_to_file = os.path.relpath(file, path_to_tx)
+        path_to_file = relpath(file, path_to_tx)
         _set_source_file(path_to_tx, resource, options.language, path_to_file)
 
     else:
@@ -219,7 +219,7 @@ def cmd_set(argv, path_to_tx):
             parser.error("Please specify a file")
 
         # Calculate relative path
-        path_to_file = os.path.relpath(args[0], path_to_tx)
+        path_to_file = relpath(args[0], path_to_tx)
         # Chdir to the root dir
         os.chdir(path_to_tx)
 
@@ -276,14 +276,14 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
                 " the source file with the -s flag.")
         if execute:
             utils.MSG("Updating source for resource %s ( %s -> %s )." % (resource,
-                source_language, os.path.relpath(source_file, path_to_tx)))
+                source_language, relpath(source_file, path_to_tx)))
             _set_source_file(path_to_tx, resource, source_language,
-                os.path.relpath(source_file, path_to_tx))
+                relpath(source_file, path_to_tx))
         else:
             utils.MSG('\ntx set --source -r %(res)s -l %(lang)s %(file)s\n' % {
                 'res': resource,
                 'lang': source_language,
-                'file': os.path.relpath(source_file, curpath)})
+                'file': relpath(source_file, curpath)})
 
     prj = project.Project(path_to_tx)
     root_dir = os.path.abspath(path_to_tx)
@@ -306,7 +306,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
             utils.MSG('tx set -r %(res)s -l %(lang)s %(file)s' % {
                 'res': resource,
                 'lang': lang,
-                'file': os.path.relpath(f_path, curpath)})
+                'file': relpath(f_path, curpath)})
 
     prj.save()
     utils.MSG("Done.")
@@ -492,7 +492,7 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     utils.MSG("Setting source file for resource %s.%s ( %s -> %s )." % (
         proj, res, lang, path_to_file))
 
-    path_to_file = os.path.relpath(path_to_file, root_dir)
+    path_to_file = relpath(path_to_file, root_dir)
 
     prj = project.Project(path_to_tx)
 
@@ -548,7 +548,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
     utils.MSG("Updating translations for resource %s ( %s -> %s )." % (resource,
         lang, path_to_file))
-    path_to_file = os.path.relpath(path_to_file, root_dir)
+    path_to_file = relpath(path_to_file, root_dir)
     prj.config.set("%s.%s" % (proj, res), "trans.%s" % lang,
         path_to_file)
 
