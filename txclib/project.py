@@ -16,7 +16,7 @@ class ProjectNotInit(Exception):
     pass
 
 
-class Project():
+class Project(object):
     """
     Represents an association between the local and remote project instances.
     """
