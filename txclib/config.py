@@ -2,11 +2,8 @@ import ConfigParser
 
 class OrderedRawConfigParser( ConfigParser.RawConfigParser ):
     """
-    Overload standart Class ConfigParser.RawConfigParser
+    Overload standard Class ConfigParser.RawConfigParser
     """
-    def __init__(self, defaults = None, dict_type = dict):
-        ConfigParser.RawConfigParser.__init__(self, defaults = None, dict_type=dict)
-
     def write(self, fp):
         """Write an .ini-format representation of the configuration state."""
         if self._defaults:
