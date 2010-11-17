@@ -55,7 +55,7 @@ def main(argv):
         dest="trace", default=False,
         help="print full traceback on exceptions")
     parser.add_option("--disable-colors", action="store_true",
-        dest="color_disable", default=False,
+        dest="color_disable", default=(os.name == 'nt'),
         help="print full traceback on exceptions")
 
     (options, args) = parser.parse_args()
