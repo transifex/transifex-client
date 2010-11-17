@@ -151,16 +151,16 @@ class Project(object):
 
             expr_re = re.escape(file_filter)
             expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
-            expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s$' % expr_re)
+            expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*?%s$' % expr_re)
             expr_rec = re.compile(expr_re)
             for root, dirs, files in os.walk(self.root):
                 for f in files:
-                    f_path = os.path.join(root, f)
+                    f_path = os.path.join(root, f).replace(os.path.sep, '/')
                     match = expr_rec.match(f_path)
                     if match:
                         lang = match.group('lang')
                         if lang != source_lang:
-                            f_path = os.path.relpath(f_path, self.root)
+                            f_path = relpath(f_path, self.root)
                             tr_files.update({lang: f_path})
 
             for (name, value) in self.config.items(resource):
