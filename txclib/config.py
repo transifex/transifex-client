@@ -20,3 +20,6 @@ class OrderedRawConfigParser( ConfigParser.RawConfigParser ):
                         (key, str( self._sections[section][ key ]
                         ).replace('\n', '\n\t')))
             fp.write("\n")
+
+    optionxform = str
+
