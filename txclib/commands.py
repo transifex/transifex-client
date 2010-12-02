@@ -290,7 +290,6 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
 
     if execute:
         try:
-
             prj.config.get("%s" % resource, "source_file")
         except ConfigParser.NoSectionError:
             raise Exception("No resource with slug \"%s\" was found.\nRun 'tx set --auto"
@@ -501,6 +500,8 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
         prj.config.get("%s.%s" % (proj, res), "source_file")
     except ConfigParser.NoSectionError:
         prj.config.add_section("%s.%s" % (proj, res))
+    except ConfigParser.NoOptionError:
+        pass
     finally:
         prj.config.set("%s.%s" % (proj, res), "source_file",
            path_to_file)
@@ -538,6 +539,8 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
         map_object = prj.config.get("%s.%s" % (proj, res), "source_file")
     except ConfigParser.NoSectionError:
         map_object = None
+    except ConfigParser.NoOptionError:
+        pass
 
     if not map_object:
         raise Exception("tx: You should first run 'set --source' to map the source file.")
