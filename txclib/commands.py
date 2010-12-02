@@ -478,7 +478,7 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     os.chdir(path_to_tx)
 
     if not os.path.exists(path_to_file):
-        raise Exeption("tx: File ( %s ) does not exist." %
+        raise Exception("tx: File ( %s ) does not exist." %
             os.path.join(path_to_tx, path_to_file))
 
     # instantiate the project.Project
