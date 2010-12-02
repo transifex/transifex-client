@@ -174,7 +174,8 @@ def exec_command(command, *args, **kwargs):
 
 def mkdir_p(path):
     try:
-        os.makedirs(path)
+        if path:
+            os.makedirs(path)
     except OSError, exc: # Python >2.5
         if exc.errno == errno.EEXIST:
             pass
