@@ -293,7 +293,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
             prj.config.get("%s" % resource, "source_file")
         except ConfigParser.NoSectionError:
             raise Exception("No resource with slug \"%s\" was found.\nRun 'tx set --auto"
-                " --local -r %s \"expression\"' to do the initial configuration." % resource)
+                "-local -r %s \"expression\"' to do the initial configuration." % resource)
 
     # Now let's handle the translation files.
     if execute:
