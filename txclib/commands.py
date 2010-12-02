@@ -242,7 +242,8 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
         # Force expr to be a valid regex expr (escaped) but keep <lang> intact
         expr_re = re.escape(expression)
         expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
-        expr_re = re.sub(r"<lang>", '(?P<lang>[^/]+)', '.*%s$' % expr_re)
+        expr_re = re.sub(r"%s?<lang>" % os.sep, '%(sep)s(?P<lang>[^%(sep)s]+)'
+            % { 'sep': os.sep}, '.*%s$' % expr_re)
     expr_rec = re.compile(expr_re)
 
     # The path everything will be relative to
@@ -308,7 +309,6 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
                 'file': relpath(f_path, curpath)})
 
     prj.save()
-    utils.MSG("Done.")
 
 def _auto_remote(path_to_tx, url):
     """
