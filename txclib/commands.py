@@ -326,26 +326,26 @@ def _auto_remote(path_to_tx, url):
         utils.MSG("Getting details for project %s" % vars['project'])
         proj_info = utils.get_project_details(vars['hostname'], username,
             password, vars['project'])
-        resources = [ r['slug'] for r in proj_info['resources'] ]
+        resources = [ '.'.join([vars['project'], r['slug']]) for r in proj_info['resources'] ]
         utils.MSG("%s resources found. Configuring..." % len(resources))
     elif type == 'release':
         utils.MSG("Getting details for release %s" % vars['release'])
         rel_info = utils.get_release_details(vars['hostname'], username,
             password, vars['project'], vars['release'])
-        resources = [ r['slug'] for r in rel_info['resources'] ]
+        resources = [ '.'.join([r['project_slug'], r['slug']]) for r in rel_info['resources'] ]
         utils.MSG("%s resources found. Configuring..." % len(resources))
     elif type == 'resource':
         utils.MSG("Getting details for resource %s" % vars['resource'])
-        resources = [vars['resource']]
+        resources = [ '.'.join([vars['project'], vars['resource']]) ]
     else:
         raise("Url '%s' is not recognized." % url)
 
     for resource in resources:
         utils.MSG("Configuring resource %s." % resource)
-
+        proj, res = resource.split('.')
         res_info = utils.get_resource_details(vars['hostname'],
             username, password,
-            vars['project'], resource)
+            proj, res)
         try:
             source_lang = res_info['source_language']['code']
             i18n_type = res_info['i18n_type']
@@ -354,7 +354,7 @@ def _auto_remote(path_to_tx, url):
                 " of Transifex. Either update your server software of fallback"
                 " to a previous version of transifex-client.")
         prj.set_remote_resource(
-            resource='.'.join([vars['project'], resource]),
+            resource=resource,
             host = vars['hostname'],
             source_lang = source_lang,
             i18n_type = i18n_type)
