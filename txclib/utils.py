@@ -35,6 +35,7 @@ def find_dot_tx(path = os.path.curdir, previous = None):
     This process is functioning recursively from the current directory to each 
     one of the ancestors dirs.
     """
+    path = os.path.abspath(path)
     if path == previous:
         return None
     joined = os.path.join(path, ".tx")

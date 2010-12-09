@@ -323,15 +323,18 @@ class Project(object):
                 fd.close()
 
             if new_translations:
-                trans_dir = os.path.join(self.root, ".tx", resource)
-                if not os.path.exists(trans_dir):
-                    os.mkdir(trans_dir)
-
                 MSG("Pulling translations for resource %s (source: %s)" %
                 (resource, sfile))
                 for lang in new_translations:
-                    local_file = os.path.join(self.root,
-                        re.sub('<lang>', lang, file_filter))
+                    if file_filter:
+                        local_file = relpath(os.path.join(self.root,
+                            re.sub('<lang>', lang, file_filter)), os.curdir)
+                    else:
+                        trans_dir = os.path.join(self.root, ".tx", resource)
+                        if not os.path.exists(trans_dir):
+                            os.mkdir(trans_dir)
+                        local_file = relpath(os.path.join(trans_dir, '%s_translation' %
+                            lang, os.curdir))
 
                     MSG(" -> %s: %s" % (color_text(lang, "RED"), local_file))
                     r = self.do_url_request('pull_file',
