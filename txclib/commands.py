@@ -316,11 +316,9 @@ def _auto_remote(path_to_tx, url):
     """
     utils.MSG("Auto configuring local project from remote URL...")
 
-
     type, vars = utils.parse_tx_url(url)
     prj = project.Project(path_to_tx)
     username, password = prj.getset_host_credentials(vars['hostname'])
-
 
     if type == 'project':
         utils.MSG("Getting details for project %s" % vars['project'])
@@ -332,7 +330,8 @@ def _auto_remote(path_to_tx, url):
         utils.MSG("Getting details for release %s" % vars['release'])
         rel_info = utils.get_release_details(vars['hostname'], username,
             password, vars['project'], vars['release'])
-        resources = [ '.'.join([r['project_slug'], r['slug']]) for r in rel_info['resources'] ]
+        resources = [ '.'.join([r['project_slug'] if r.has_key('project_slug')
+            else vars['project'], r['slug']]) for r in rel_info['resources'] ]
         utils.MSG("%s resources found. Configuring..." % len(resources))
     elif type == 'resource':
         utils.MSG("Getting details for resource %s" % vars['resource'])
