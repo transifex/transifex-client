@@ -385,8 +385,11 @@ def cmd_push(argv, path_to_tx):
     parser.add_option("--skip", action="store_true", dest="skip_errors",
         default=False, help="Don't stop on errors. Useful when pushing many"
         " files concurrently.")
-    parser.add_option("--source", action="store_true", dest="push_source",
-        default=False, help="Force the pushing of the source file to the server")
+    parser.add_option("-s", "--source", action="store_true", dest="push_source",
+        default=False, help="Push the source file to the server.")
+
+    parser.add_option("-t", "--translations", action="store_true", dest="push_translations",
+        default=False, help="Push the translation files to the server")
     parser.add_option("--no-interactive", action="store_true", dest="no_interactive",
         default=False, help="Don't require user input when forcing a push.")
 
@@ -405,9 +408,15 @@ def cmd_push(argv, path_to_tx):
         if not r in available_resources:
             raise Exception("Specified resource '%s' does not exist." % r)
 
+    if not (options.push_source or options.push_translations):
+        parser.error("You need to specify at least on of the -s|--source,"
+            " -t|--translations flags with the push command.")
+
     prj.push(force=force_creation, resources=resources, languages=languages,
         skip=skip, source=options.push_source,
+        translations=options.push_translations,
         no_interactive=options.no_interactive)
+
     utils.MSG("Done.")
 
 def cmd_pull(argv, path_to_tx):

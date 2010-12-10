@@ -350,7 +350,7 @@ class Project(object):
                     fd.close()
 
 
-    def push(self, source=False, force=False, resources=[], languages=[],
+    def push(self, source=False, translations=False, force=False, resources=[], languages=[],
         skip=False, no_interactive=False):
         """
         Push all the resources
@@ -420,65 +420,66 @@ class Project(object):
                             " --source option to create it." % resource)
                         continue
 
-            # Check if given language codes exist
-            if not languages:
-                languages = files.keys()
-            else:
-                f_langs = files.keys()
-                for l in languages:
-                    if l not in f_langs:
-                        languages.remove(l)
-                        ERRMSG("Warning: No mapping found for language code '%s'." %
-                            color_text(l,"RED"))
+            if translations:
+                # Check if given language codes exist
+                if not languages:
+                    languages = files.keys()
+                else:
+                    f_langs = files.keys()
+                    for l in languages:
+                        if l not in f_langs:
+                            languages.remove(l)
+                            ERRMSG("Warning: No mapping found for language code '%s'." %
+                                color_text(l,"RED"))
 
-            # Push translation files one by one
-            for lang in languages:
-                local_file = files[lang]
-                if languages and lang not in languages:
-                    continue
+                # Push translation files one by one
+                for lang in languages:
+                    local_file = files[lang]
+                    if languages and lang not in languages:
+                        continue
 
-                if not force:
+                    if not force:
+                        try:
+                            r = self.do_url_request('resource_stats',
+                                host=host,
+                                project=project_slug,
+                                resource=resource_slug,
+                                language=lang)
+
+                            # Check remote timestamp for file and skip update if needed
+                            stats = parse_json(r)
+                            time_format = "%Y-%m-%d %H:%M:%S"
+                            remote_time = time.mktime(datetime.datetime.strptime(stats[lang]['last_update'], time_format).utctimetuple())
+                        except Exception, e:
+                            remote_time = None
+                        local_time = time.mktime(time.gmtime(os.path.getmtime(local_file)))
+
+                        if remote_time and remote_time > local_time:
+                            MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
+                            continue
+
+                    MSG("Pushing '%s' translations (file: %s)" % (color_text(lang, "RED"), local_file))
                     try:
-                        r = self.do_url_request('resource_stats',
+                        r = self.do_url_request('push_file', host=host, multipart=True,
+                            files=[( "%s;%s" % (resource_slug, lang),
+                            self.get_full_path(local_file))],
+                            method="POST",
+                            project=project_slug)
+                        r = parse_json(r)
+                        uuid = r['files'][0]['uuid']
+                        self.do_url_request('extract_translation',
                             host=host,
+                            data=compile_json({"uuid":uuid}),
+                            encoding='application/json',
+                            method="PUT",
                             project=project_slug,
                             resource=resource_slug,
                             language=lang)
-
-                        # Check remote timestamp for file and skip update if needed
-                        stats = parse_json(r)
-                        time_format = "%Y-%m-%d %H:%M:%S"
-                        remote_time = time.mktime(datetime.datetime.strptime(stats[lang]['last_update'], time_format).utctimetuple())
                     except Exception, e:
-                        remote_time = None
-                    local_time = time.mktime(time.gmtime(os.path.getmtime(local_file)))
-
-                    if remote_time and remote_time > local_time:
-                        MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
-                        continue
-
-                MSG("Pushing '%s' translations (file: %s)" % (color_text(lang, "RED"), local_file))
-                try:
-                    r = self.do_url_request('push_file', host=host, multipart=True,
-                        files=[( "%s;%s" % (resource_slug, lang),
-                        self.get_full_path(local_file))],
-                        method="POST",
-                        project=project_slug)
-                    r = parse_json(r)
-                    uuid = r['files'][0]['uuid']
-                    self.do_url_request('extract_translation',
-                        host=host,
-                        data=compile_json({"uuid":uuid}),
-                        encoding='application/json',
-                        method="PUT",
-                        project=project_slug,
-                        resource=resource_slug,
-                        language=lang)
-                except Exception, e:
-                    if not skip:
-                        raise e
-                    else:
-                        ERRMSG(e)
+                        if not skip:
+                            raise e
+                        else:
+                            ERRMSG(e)
 
 
     def do_url_request(self, api_call, host=None, multipart=False, data=None,
