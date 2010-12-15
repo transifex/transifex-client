@@ -248,7 +248,9 @@ class Project(object):
             MSG("Pulling translations for resource %s (source: %s)" %
                 (resource, sfile))
 
+            pull_languages = []
             new_translations = []
+
             if fetchall:
                 timestamp = time.time()
                 raw = self.do_url_request('resource_details',
@@ -270,19 +272,20 @@ class Project(object):
 
             # Check if given language codes exist
             if not languages:
-                languages = files.keys()
+                pull_languages = files.keys()
             else:
+                pull_languages.extend(languages)
                 f_langs = files.keys()
                 for l in languages:
                     if l not in f_langs:
-                        languages.remove(l)
+                        pull_languages.remove(l)
                         ERRMSG("Warning: No mapping found for language code '%s'." %
                             color_text(l,"RED"))
 
-            for lang in languages:
+            for lang in pull_languages:
                 local_file = files[lang]
 
-                if languages and lang not in languages:
+                if languages and lang not in pull_languages:
                     continue
 
                 if not force:
