@@ -242,8 +242,9 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
         # Force expr to be a valid regex expr (escaped) but keep <lang> intact
         expr_re = re.escape(expression)
         expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
-        expr_re = re.sub(r"%s?<lang>" % os.sep, '%(sep)s(?P<lang>[^%(sep)s]+)'
+        expr_re = re.sub(r"%s?<lang>" % os.sep, '%(sep)s([^%(sep)s]+)'
             % { 'sep': os.sep}, '.*%s$' % expr_re)
+    print expr_re
     expr_rec = re.compile(expr_re)
 
     # The path everything will be relative to
@@ -261,7 +262,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
             f_path = os.path.join(root, f)
             match = expr_rec.match(f_path)
             if match:
-                lang = match.group('lang')
+                lang = match.group(1)
                 f_path = os.path.abspath(f_path)
                 if lang == source_language and not source_file:
                     source_file = f_path
