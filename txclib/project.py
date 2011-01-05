@@ -306,8 +306,7 @@ class Project(object):
                             remote_time = None
                         local_time = time.mktime(time.gmtime(os.path.getmtime(local_file)))
 
-
-                        if remote_time and remote_time < local_time:
+                        if not remote_time or remote_time and remote_time < local_time:
                             MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
                             continue
 
