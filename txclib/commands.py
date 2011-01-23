@@ -577,10 +577,13 @@ def cmd_status(argv, path_to_tx):
         default=[], help="Specify resources")
 
     (options, args) = parser.parse_args(argv)
+    resources = options.resources.split(',') if options.resources else []
 
     prj = project.Project(path_to_tx)
-
-    resources = prj.get_resource_list()
+    available_resources = prj.get_resource_list()
+    for r in resources:
+        if not r in available_resources:
+            raise Exception("Specified resource '%s' does not exist." % r)
     resources_num = len(resources)
     for id, res in enumerate(resources):
         p, r = res.split('.')
