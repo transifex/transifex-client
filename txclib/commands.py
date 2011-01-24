@@ -584,6 +584,8 @@ def cmd_status(argv, path_to_tx):
     for r in resources:
         if not r in available_resources:
             raise Exception("Specified resource '%s' does not exist." % r)
+    if not resources:
+        resources = available_resources
     resources_num = len(resources)
     for id, res in enumerate(resources):
         p, r = res.split('.')
