@@ -505,10 +505,6 @@ class Project(object):
         kwargs['hostname'] = hostname
         url = API_URLS[api_call] % kwargs
 
-        password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        password_manager.add_password(None, hostname, username, passwd)
-        auth_handler = urllib2.HTTPBasicAuthHandler(password_manager)
-
         opener = None
         headers = None
         req = None
@@ -523,8 +519,6 @@ class Project(object):
             urllib2.install_opener(opener)
             req = RequestWithMethod(url=url, data=data, method=method)
         else:
-            opener = urllib2.build_opener(auth_handler)
-            urllib2.install_opener(opener)
             req = RequestWithMethod(url=url, data=data, method=method)
             if encoding:
                 req.add_header("Content-Type",encoding)
