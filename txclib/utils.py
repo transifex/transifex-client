@@ -64,78 +64,36 @@ def parse_tx_url(url):
 
     raise Exception("tx: Malformed url given!")
 
-def get_release_details(hostname, username, passwd, project_slug, release_slug):
-    """
-    Get remote release info through the API
-    """
-    url = API_URLS['release_details'] % {'hostname': hostname,
-        'project': project_slug, 'release': release_slug}
-    opener = get_opener(hostname, username, passwd)
-    urllib2.install_opener(opener)
-    req = urllib2.Request(url=url)
-    try:
-        fh = urllib2.urlopen(req)
-        raw = fh.read()
-        fh.close()
-        remote_project = parse_json(raw)
-    except urllib2.HTTPError:
-        raise Exception("tx: The given release does not exist.")
-
-    return remote_project
-
-def get_resource_details(hostname, username, passwd, project_slug, resource_slug):
-    """
-    Get remote resource info through the API
-    """
-    url = API_URLS['resource_details'] % {'hostname': hostname,
-        'project': project_slug, 'resource': resource_slug}
-    opener = get_opener(hostname, username, passwd)
-    urllib2.install_opener(opener)
-    req = urllib2.Request(url=url)
-    try:
-        fh = urllib2.urlopen(req)
-        raw = fh.read()
-        fh.close()
-        remote_project = parse_json(raw)
-    except urllib2.HTTPError:
-        raise Exception("tx: The given resource does not exist.")
-
-    return remote_project
-
-def get_project_details(hostname, username, passwd, project_slug):
+def get_details(api_call, username, password, *args, **kwargs):
     """
     Get the tx project info through the API.
 
     This function can also be used to check the existence of a project.
     """
-    url = API_URLS['project_details'] % {'hostname':hostname, 'project':project_slug}
-    opener = get_opener(hostname, username, passwd)
-    urllib2.install_opener(opener)
+    import base64
+    url = API_URLS[api_call] % (kwargs)
+
     req = urllib2.Request(url=url)
+    base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
+    authheader = "Basic %s" % base64string
+    req.add_header("Authorization", authheader)
+
     try:
         fh = urllib2.urlopen(req)
         raw = fh.read()
         fh.close()
         remote_project = parse_json(raw)
-    except urllib2.HTTPError:
-        raise Exception("tx: The given project does not exist.")
+    except urllib2.HTTPError, e:
+        if e.code in [401, 403, 404]:
+            raise e
+        else:
+            # For other requests, we should print the message as well
+            raise Exception("Remote server replied: %s" % e.read())
     except urllib2.URLError, e:
         error = e.args[0]
-        raise Exception("%s" % error[1])
+        raise Exception("Remote server replied: %s" % error[1])
 
     return remote_project
-
-
-def get_opener(host, username, passwd):
-    """
-    Return an auth opener to use with the urlopen requests.
-    """
-    password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-    password_manager.add_password(None, host, username,passwd)
-    auth_handler = urllib2.HTTPBasicAuthHandler(password_manager)
-    opener = urllib2.build_opener(auth_handler)
-    return opener
-
 
 def valid_slug(slug):
     """

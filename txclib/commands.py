@@ -323,14 +323,16 @@ def _auto_remote(path_to_tx, url):
 
     if type == 'project':
         utils.MSG("Getting details for project %s" % vars['project'])
-        proj_info = utils.get_project_details(vars['hostname'], username,
-            password, vars['project'])
+        proj_info = utils.get_details('project_details',
+            username, password,
+            hostname = vars['hostname'], project = vars['project'])
         resources = [ '.'.join([vars['project'], r['slug']]) for r in proj_info['resources'] ]
         utils.MSG("%s resources found. Configuring..." % len(resources))
     elif type == 'release':
         utils.MSG("Getting details for release %s" % vars['release'])
-        rel_info = utils.get_release_details(vars['hostname'], username,
-            password, vars['project'], vars['release'])
+        rel_info = utils.get_details('release_details',
+            username, password, hostname = vars['hostname'],
+            project = vars['project'], release = vars['release'])
         resources = [ '.'.join([r['project_slug'] if r.has_key('project_slug')
             else vars['project'], r['slug']]) for r in rel_info['resources'] ]
         utils.MSG("%s resources found. Configuring..." % len(resources))
@@ -343,9 +345,9 @@ def _auto_remote(path_to_tx, url):
     for resource in resources:
         utils.MSG("Configuring resource %s." % resource)
         proj, res = resource.split('.')
-        res_info = utils.get_resource_details(vars['hostname'],
-            username, password,
-            proj, res)
+        res_info = utils.get_details('resource_details',
+             username, password, hostname = vars['hostname'],
+             project = vars['project'], resource=res)
         try:
             source_lang = res_info['source_language']['code']
             i18n_type = res_info['i18n_type']
@@ -360,7 +362,6 @@ def _auto_remote(path_to_tx, url):
             i18n_type = i18n_type)
 
     prj.save()
-
 
 def cmd_push(argv, path_to_tx):
     "Push local files to remote server"
