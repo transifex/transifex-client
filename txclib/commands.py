@@ -21,8 +21,10 @@ import sys
 from optparse import OptionParser, OptionGroup
 import ConfigParser
 
+
 from txclib import utils, project
 from txclib.utils import parse_json, compile_json, relpath
+from txclib.config import OrderedRawConfigParser
 
 def cmd_init(argv, path_to_tx):
     "Initialize a new transifex project."
@@ -70,7 +72,7 @@ def cmd_init(argv, path_to_tx):
     # Handle the credentials through transifexrc
     home = os.path.expanduser("~")
     txrc = os.path.join(home, ".transifexrc")
-    config = ConfigParser.RawConfigParser()
+    config = OrderedRawConfigParser()
 
     default_transifex = "http://www.transifex.net"
     transifex_host = options.host or raw_input("Transifex instance [%s]: " % default_transifex)
@@ -82,7 +84,7 @@ def cmd_init(argv, path_to_tx):
     if not os.path.exists(config_file):
         # The path to the config file (.tx/config)
         utils.MSG("Creating skeleton...")
-        config = ConfigParser.RawConfigParser()
+        config = OrderedRawConfigParser()
         config.add_section('main')
         config.set('main', 'host', transifex_host)
         # Touch the file if it doesn't exist

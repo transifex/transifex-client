@@ -1,11 +1,12 @@
+# -*- coding: utf-8 -*-
 import base64
 import copy
 import getpass
 import os
 import re
 import urllib2
-import ConfigParser
 import datetime, time
+import ConfigParser
 
 from txclib.web import *
 from txclib.utils import *
@@ -60,7 +61,7 @@ class Project(object):
             open(self.txrc_file, 'w').close()
             os.umask(mask)
 
-        self.txrc = ConfigParser.RawConfigParser()
+        self.txrc = OrderedRawConfigParser()
         try:
             self.txrc.read(self.txrc_file)
         except Exception, err:
