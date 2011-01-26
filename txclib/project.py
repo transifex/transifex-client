@@ -149,6 +149,7 @@ class Project(object):
             except ConfigParser.NoOptionError:
                 file_filter = "$^"
             source_lang = self.config.get(resource, "source_lang")
+            source_file = self.get_resource_option(resource, 'source_file') or None
 
             expr_re = re.escape(file_filter)
             expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
@@ -225,7 +226,7 @@ class Project(object):
             return os.path.join(self.root, relpath)
 
     def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
-        force=False):
+        fetchsource=False, force=False):
         """
         Pull all translations file from transifex server
         """
@@ -246,9 +247,6 @@ class Project(object):
                 file_filter = None
 
             # Pull source file
-            MSG("Pulling translations for resource %s (source: %s)" %
-                (resource, sfile))
-
             pull_languages = []
             new_translations = []
 
@@ -271,23 +269,33 @@ class Project(object):
                     MSG("New translations found for the following languages: %s" %
                         ', '.join(new_translations))
 
-            # Check if given language codes exist
             if not languages:
-                pull_languages = files.keys()
+                pull_languages.extend(files.keys())
             else:
                 pull_languages.extend(languages)
                 f_langs = files.keys()
                 for l in languages:
                     if l not in f_langs:
                         pull_languages.remove(l)
-                        ERRMSG("Warning: No mapping found for language code '%s'." %
-                            color_text(l,"RED"))
+                        new_translations.append(l)
+
+            if fetchsource:
+                if sfile and slang not in pull_languages:
+                    pull_languages.append(slang)
+                else:
+                    new_translations.append(slang)
+
+            if pull_languages:
+                MSG("Pulling translations for resource %s (source: %s)" %
+                    (resource, sfile))
 
             for lang in pull_languages:
-                local_file = files[lang]
-
                 if languages and lang not in pull_languages:
                     continue
+                if lang != slang:
+                    local_file = files[lang]
+                else:
+                    local_file = sfile
 
                 if not force:
                     # Check remote timestamp for file and skip update if needed
@@ -326,7 +334,7 @@ class Project(object):
                 fd.close()
 
             if new_translations:
-                MSG("Pulling translations for resource %s (source: %s)" %
+                MSG("Pulling new translations for resource %s (source: %s)" %
                 (resource, sfile))
                 for lang in new_translations:
                     if file_filter:

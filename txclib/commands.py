@@ -442,6 +442,9 @@ def cmd_pull(argv, path_to_tx):
     parser.add_option("-a","--all", action="store_true", dest="fetchall",
         default=False, help="Fetch all translation files from server (even new"
         " ones)")
+    parser.add_option("-s","--source", action="store_true", dest="fetchsource",
+        default=False, help="Force the fetching of the source file (default:"
+        " False)")
     parser.add_option("-f","--force", action="store_true", dest="force",
         default=False, help="Force download of translations files.")
     parser.add_option("--disable-overwrite", action="store_false",
@@ -468,7 +471,8 @@ def cmd_pull(argv, path_to_tx):
             raise Exception("Specified resource '%s' does not exist." % r)
 
     prj.pull(languages=languages, resources=resources, overwrite=options.overwrite,
-        fetchall=options.fetchall, force=options.force)
+        fetchall=options.fetchall, fetchsource=options.fetchsource,
+        force=options.force)
     prj.save()
 
     utils.MSG("Done.")
