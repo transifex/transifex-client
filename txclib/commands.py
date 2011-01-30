@@ -377,10 +377,10 @@ def cmd_push(argv, path_to_tx):
         " Transifex but you can filter this per resource or/and language."
     parser = OptionParser(usage=usage, description=description)
     parser.add_option("-l","--language", action="store", dest="languages",
-        default=None, help="Specify which translations you want to pull"
+        default=None, help="Specify which translations you want to push"
         " (defaults to all)")
     parser.add_option("-r","--resource", action="store", dest="resources",
-        default=None, help="Specify the resource for which you want to pull"
+        default=None, help="Specify the resource for which you want to push"
         " the translations (defaults to all)")
     parser.add_option("-f","--force", action="store_true", dest="force_creation",
         default=False, help="Push source files without checking modification"
