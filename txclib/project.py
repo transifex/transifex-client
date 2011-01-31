@@ -282,7 +282,7 @@ class Project(object):
             if fetchsource:
                 if sfile and slang not in pull_languages:
                     pull_languages.append(slang)
-                else:
+                elif slang not in new_translations:
                     new_translations.append(slang)
 
             if pull_languages:
