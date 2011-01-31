@@ -313,7 +313,7 @@ class Project(object):
                             remote_time = time.mktime(datetime.datetime.strptime(stats[lang]['last_update'], time_format).utctimetuple())
                         except TypeError,e:
                             remote_time = None
-                        local_time = time.mktime(time.gmtime(os.path.getmtime(local_file)))
+                        local_time = time.mktime(time.gmtime(os.path.getmtime(self.get_full_path(local_file))))
 
                         if not remote_time or remote_time and remote_time < local_time:
                             MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
