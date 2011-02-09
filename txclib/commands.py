@@ -74,7 +74,7 @@ def cmd_init(argv, path_to_tx):
     txrc = os.path.join(home, ".transifexrc")
     config = OrderedRawConfigParser()
 
-    default_transifex = "http://www.transifex.net"
+    default_transifex = "https://www.transifex.net"
     transifex_host = options.host or raw_input("Transifex instance [%s]: " % default_transifex)
 
     if not transifex_host:
