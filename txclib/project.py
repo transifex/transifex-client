@@ -151,7 +151,7 @@ class Project(object):
             source_lang = self.config.get(resource, "source_lang")
             source_file = self.get_resource_option(resource, 'source_file') or None
 
-            expr_re = re.escape(file_filter)
+            expr_re = re.escape(os.path.join(self.root,file_filter))
             expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
             expr_re = re.sub(r"<lang>", '([^/]+)', '.*?%s$' % expr_re)
             expr_rec = re.compile(expr_re)
@@ -499,7 +499,6 @@ class Project(object):
         Issues a url request.
         """
         # Read the credentials from the config file (.transifexrc)
-        
         try:
             username = self.txrc.get(host, 'username')
             passwd = self.txrc.get(host, 'password')

@@ -141,9 +141,6 @@ def cmd_set(argv, path_to_tx):
         " [doesn't work with the --auto-* commands].")
     group = OptionGroup(parser, "Extended options", "These options can only be"
         " used with the --auto-local command.")
-    group.add_option("-e","--regex", action="store_true", dest="regex",
-        default=False, help="Specify that expression is an extended regex"
-        " [requires --auto-local].")
     group.add_option("-s","--source-language", action="store",
         dest="source_language",
         default=None, help="Specify the source language of a resource"
@@ -175,7 +172,7 @@ def cmd_set(argv, path_to_tx):
         _auto_local(path_to_tx, options.resource,
             source_language=options.source_language,
             expression = expression, source_file=options.source_file,
-            execute=options.execute, nosource=False, regex=options.regex)
+            execute=options.execute, nosource=False, regex=False)
     elif options.remote:
         try:
             url = args[0]
@@ -239,17 +236,18 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     """
     Auto configure local project
     """
-    expr_re = '.*%s.*' %  expression
-    if not regex:
-        # Force expr to be a valid regex expr (escaped) but keep <lang> intact
-        expr_re = re.escape(expression)
-        expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
-        expr_re = re.sub(r"%s?<lang>" % os.sep, '%(sep)s([^%(sep)s]+)'
-            % { 'sep': os.sep}, '.*%s$' % expr_re)
-    expr_rec = re.compile(expr_re)
 
     # The path everything will be relative to
-    curpath = os.curdir
+    curpath = os.path.abspath(os.curdir)
+
+    expr_re = '%s' % expression
+    if not regex:
+        # Force expr to be a valid regex expr (escaped) but keep <lang> intact
+        expr_re = re.escape(os.path.join(curpath, expression))
+        expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
+        expr_re = re.sub(r"%s?<lang>" % os.sep, '%(sep)s([^%(sep)s]+)'
+            % { 'sep': os.sep}, '^%s$' % expr_re)
+    expr_rec = re.compile(expr_re)
 
     if not execute:
         utils.MSG("Only printing the commands which will be run if the "
@@ -260,7 +258,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     translation_files = {}
     for root, dirs, files in os.walk(curpath):
         for f in files:
-            f_path = os.path.join(root, f)
+            f_path = os.path.abspath(os.path.join(root, f))
             match = expr_rec.match(f_path)
             if match:
                 lang = match.group(1)
@@ -302,7 +300,10 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     if execute:
         utils.MSG("Updating file expression for resource %s ( %s )." % (resource,
             expression))
-        prj.config.set("%s" % resource, "file_filter", expression)
+        # Eval file_filter relative to root dir
+        file_filter = relpath(os.path.join(curpath, expression),
+            path_to_tx)
+        prj.config.set("%s" % resource, "file_filter", file_filter)
     else:
         for (lang, f_path) in sorted(translation_files.items()):
             utils.MSG('tx set -r %(res)s -l %(lang)s %(file)s' % {
