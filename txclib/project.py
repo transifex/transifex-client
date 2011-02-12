@@ -115,7 +115,7 @@ class Project(object):
             self.config.add_section(resource)
 
         p_slug, r_slug = resource.split('.')
-        file_filter = re.sub("<sep>", r"%s" % os.sep, file_filter)
+        file_filter = file_filter.replace("<sep>", r"%s" % os.sep)
 
         self.config.set(resource, 'source_lang', source_lang)
         self.config.set(resource, 'file_filter', file_filter % {'proj': p_slug,
