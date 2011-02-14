@@ -368,6 +368,7 @@ class Project(object):
             resource_list = self.get_resource_list()
 
         for resource in resource_list:
+            push_languages = []
             project_slug, resource_slug = resource.split('.')
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
@@ -430,20 +431,19 @@ class Project(object):
             if translations:
                 # Check if given language codes exist
                 if not languages:
-                    languages = files.keys()
+                    push_languages = files.keys()
                 else:
+                    push_languages = list(languages)
                     f_langs = files.keys()
-                    for l in languages:
+                    for l in push_languages:
                         if l not in f_langs:
-                            languages.remove(l)
+                            push_languages.remove(l)
                             ERRMSG("Warning: No mapping found for language code '%s'." %
                                 color_text(l,"RED"))
 
                 # Push translation files one by one
-                for lang in languages:
+                for lang in push_languages:
                     local_file = files[lang]
-                    if languages and lang not in languages:
-                        continue
 
                     if not force:
                         try:
