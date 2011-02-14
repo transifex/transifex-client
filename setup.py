@@ -10,7 +10,7 @@ from setuptools.command.build_py import build_py as _build_py
 
 from txclib import get_version
 
-readme_file = open(u'README')
+readme_file = open(u'README.rst')
 long_description = readme_file.read()
 readme_file.close()
 if long_description.startswith(BOM):
@@ -18,7 +18,7 @@ if long_description.startswith(BOM):
 long_description = long_description.decode('utf-8')
 
 package_data = {
-    '': ['LICENSE', 'README'],
+    '': ['LICENSE', 'README.rst'],
 }
 
 scripts = ['tx']
