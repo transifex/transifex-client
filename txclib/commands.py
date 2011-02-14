@@ -240,13 +240,8 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     # The path everything will be relative to
     curpath = os.path.abspath(os.curdir)
 
-    expr_re = '%s' % expression
-    if not regex:
-        # Force expr to be a valid regex expr (escaped) but keep <lang> intact
-        expr_re = re.escape(os.path.join(curpath, expression))
-        expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
-        expr_re = re.sub(r"%s?<lang>" % os.sep, '%(sep)s([^%(sep)s]+)'
-            % { 'sep': os.sep}, '^%s$' % expr_re)
+    # Force expr to be a valid regex expr (escaped) but keep <lang> intact
+    expr_re = utils.regex_from_filefilter(expression, curpath)
     expr_rec = re.compile(expr_re)
 
     if not execute:

@@ -115,7 +115,7 @@ class Project(object):
             self.config.add_section(resource)
 
         p_slug, r_slug = resource.split('.')
-        file_filter = file_filter.replace("<sep>", r"%s" % os.sep)
+        file_filter = file_filter.replace("<sep>", r"%s" % os.path.sep)
 
         self.config.set(resource, 'source_lang', source_lang)
         self.config.set(resource, 'file_filter', file_filter % {'proj': p_slug,
@@ -150,14 +150,11 @@ class Project(object):
                 file_filter = "$^"
             source_lang = self.config.get(resource, "source_lang")
             source_file = self.get_resource_option(resource, 'source_file') or None
-
-            expr_re = re.escape(os.path.join(self.root,file_filter))
-            expr_re = re.sub(r"\\<lang\\>", '<lang>', expr_re)
-            expr_re = re.sub(r"<lang>", '([^/]+)', '.*?%s$' % expr_re)
+            expr_re = regex_from_filefilter(file_filter, self.root)
             expr_rec = re.compile(expr_re)
             for root, dirs, files in os.walk(self.root):
                 for f in files:
-                    f_path = os.path.join(root, f).replace(os.path.sep, '/')
+                    f_path = os.path.abspath(os.path.join(root, f))
                     match = expr_rec.match(f_path)
                     if match:
                         lang = match.group(1)
@@ -339,7 +336,7 @@ class Project(object):
                 for lang in new_translations:
                     if file_filter:
                         local_file = relpath(os.path.join(self.root,
-                            re.sub('<lang>', lang, file_filter)), os.curdir)
+                            file_filter.replace('<lang>', lang)), os.curdir)
                     else:
                         trans_dir = os.path.join(self.root, ".tx", resource)
                         if not os.path.exists(trans_dir):
@@ -359,7 +356,6 @@ class Project(object):
                     fd = open(local_file, 'w')
                     fd.write(r)
                     fd.close()
-
 
     def push(self, source=False, translations=False, force=False, resources=[], languages=[],
         skip=False, no_interactive=False):

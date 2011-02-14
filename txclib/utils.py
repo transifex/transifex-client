@@ -45,6 +45,21 @@ def find_dot_tx(path = os.path.curdir, previous = None):
         return find_dot_tx(os.path.dirname(path), path)
 
 
+#################################################
+# Parse file filter expressions and create regex
+
+def regex_from_filefilter(file_filter, root_path = os.path.curdir):
+    """
+    Create proper regex from <lang> expression
+    """
+    # Force expr to be a valid regex expr (escaped) but keep <lang> intact
+    expr_re = re.escape(os.path.join(root_path, file_filter))
+    expr_re = expr_re.replace("\\<lang\\>", '<lang>').replace(
+        '<lang>', '([^%(sep)s]+)' % { 'sep': re.escape(os.path.sep)})
+
+    return "^%s$" % expr_re
+
+
 TX_URLS = {
     'resource': '(?P<hostname>https?://(\w|\.|:)+)/projects/p/(?P<project>(\w|-)+)/resource/(?P<resource>(\w|-)+)/?$',
     'release': '(?P<hostname>https?://(\w|\.|:)+)/projects/p/(?P<project>(\w|-)+)/r/(?P<release>(\w|-)+)/?$',
