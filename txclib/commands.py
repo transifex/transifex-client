@@ -344,7 +344,7 @@ def _auto_remote(path_to_tx, url):
         proj, res = resource.split('.')
         res_info = utils.get_details('resource_details',
              username, password, hostname = vars['hostname'],
-             project = vars['project'], resource=res)
+             project = proj, resource=res)
         try:
             source_lang = res_info['source_language']['code']
             i18n_type = res_info['i18n_type']
