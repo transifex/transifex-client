@@ -169,6 +169,9 @@ def cmd_set(argv, path_to_tx):
             parser.error("Please specify a source language.")
         if not '<lang>' in expression:
             parser.error("The expression you have provided is not valid.")
+        if not utils.valid_slug(options.resource):
+            parser.error("Invalid resource slug. The format is <project_slug>"\
+                ".<resource_slug> and the valid characters include [_-\w].")
         _auto_local(path_to_tx, options.resource,
             source_language=options.source_language,
             expression = expression, source_file=options.source_file,
@@ -185,10 +188,6 @@ def cmd_set(argv, path_to_tx):
         if not resource:
             parser.error("You must specify a resource name with the"
                 " -r|--resource flag.")
-        try:
-            resource_slug = resource.split('.')[1]
-        except Exception,e:
-            parser.error("'%s' is not a valid resource slug." % resource)
 
         lang = options.language
         if not lang:
@@ -197,9 +196,10 @@ def cmd_set(argv, path_to_tx):
         if len(args) != 1:
             parser.error("Please specify a file.")
 
-        if not utils.valid_slug(resource_slug):
-            parser.error("Invalid characters in resource slug. Valid characters"
-                " include [_-\w].")
+        import ipdb; ipdb.set_trace()
+        if not utils.valid_slug(resource):
+            parser.error("Invalid resource slug. The format is <project_slug>"\
+                ".<resource_slug> and the valid characters include [_-\w].")
 
         file = args[0]
         # Calculate relative path
@@ -221,6 +221,10 @@ def cmd_set(argv, path_to_tx):
         path_to_file = relpath(args[0], path_to_tx)
         # Chdir to the root dir
         os.chdir(path_to_tx)
+
+        if not utils.valid_slug(resource):
+            parser.error("Invalid resource slug. The format is <project_slug>"\
+                ".<resource_slug> and the valid characters include [_-\w].")
 
         if not os.path.exists(path_to_file):
             raise Exception("tx: File ( %s ) does not exist." % path_to_file)

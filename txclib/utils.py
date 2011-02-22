@@ -116,9 +116,14 @@ def valid_slug(slug):
 
     Valid chars include [-_\w]
     """
-    if re.match("^[A-Za-z0-9_-]*$", slug):
-        return True
-    return False
+    try:
+        a, b = slug.split('.')
+    except ValueError:
+        return False
+    else:
+        if re.match("^[A-Za-z0-9_-]*$", a) and re.match("^[A-Za-z0-9_-]*$", b):
+            return True
+        return False
 
 
 def discover_commands():
