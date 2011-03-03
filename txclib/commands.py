@@ -196,7 +196,6 @@ def cmd_set(argv, path_to_tx):
         if len(args) != 1:
             parser.error("Please specify a file.")
 
-        import ipdb; ipdb.set_trace()
         if not utils.valid_slug(resource):
             parser.error("Invalid resource slug. The format is <project_slug>"\
                 ".<resource_slug> and the valid characters include [_-\w].")
