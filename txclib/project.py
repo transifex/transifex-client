@@ -165,6 +165,16 @@ class Project(object):
             for (name, value) in self.config.items(resource):
                 if name.startswith("trans."):
                     lang = name.split('.')[1]
+                    # delete language which has same file
+                    if value in tr_files.values():
+                        keys = [k for k, v in tr_files.iteritems() if v == value]
+                        if len(keys) == 1:
+                            del tr_files[keys[0]]
+                        else:
+                            raise Exception("Your configuration seems wrong."\
+                                " You have multiple languages pointing to"\
+                                " the same file.")
+                    # Add language with correct file
                     tr_files.update({lang:value})
 
             return tr_files

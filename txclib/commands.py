@@ -549,16 +549,6 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
     if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
         raise Exception("File must be under the project root directory.")
 
-    try:
-        map_object = prj.config.get("%s.%s" % (proj, res), "source_file")
-    except ConfigParser.NoSectionError:
-        map_object = None
-    except ConfigParser.NoOptionError:
-        pass
-
-    if not map_object:
-        raise Exception("tx: You should first run 'set --source' to map the source file.")
-
     if lang ==  prj.config.get("%s.%s" % (proj, res), "source_lang"):
         raise Exception("tx: You cannot set translation file for the source language."
             " Source languages contain the strings which will be translated!")
