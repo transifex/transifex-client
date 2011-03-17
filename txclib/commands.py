@@ -225,9 +225,6 @@ def cmd_set(argv, path_to_tx):
             parser.error("Invalid resource slug. The format is <project_slug>"\
                 ".<resource_slug> and the valid characters include [_-\w].")
 
-        if not os.path.exists(path_to_file):
-            raise Exception("tx: File ( %s ) does not exist." % path_to_file)
-
         _set_translation(path_to_tx, resource, lang, path_to_file)
 
     utils.MSG("Done.")
@@ -537,10 +534,9 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
     # Chdir to the root dir
     os.chdir(path_to_tx)
 
+    # Warn the user if the file doesn't exist
     if not os.path.exists(path_to_file):
-        raise Exception("tx: File ( %s ) does not exist." %
-             os.path.join(path_to_tx, path_to_file))
-
+        utils.MSG("Warning: File '%s' doesn't exist." % path_to_file)
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
