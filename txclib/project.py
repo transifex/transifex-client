@@ -11,7 +11,7 @@ import ConfigParser
 from txclib.web import *
 from txclib.utils import *
 from txclib.urls import API_URLS
-from txclib.config import OrderedRawConfigParser
+from txclib.config import OrderedRawConfigParser, Flipdict
 
 class ProjectNotInit(Exception):
     pass
@@ -132,6 +132,39 @@ class Project(object):
             return self.config.get(resource, 'host')
         return self.config.get('main', 'host')
 
+    def get_resource_lang_mapping(self, resource):
+        """
+        Get language mappings for a specific resource.
+        """
+        try:
+            lang_map = Flipdict()
+            args = self.config.get("main", "lang_map")
+            for arg in args.replace(' ', '').split(','):
+                k,v = arg.split(":")
+                lang_map.update({k:v})
+        except ConfigParser.NoOptionError:
+            lang_map = {}
+        except (ValueError, KeyError):
+            raise Exception("Your lang map configuration is not correct.")
+
+        if self.config.has_section(resource):
+            try:
+                res_lang_map = Flipdict()
+                args = self.config.get(resource, "lang_map")
+                for arg in args.replace(' ', '').split(','):
+                    k,v = arg.split(":")
+                    res_lang_map.update({k:v})
+            except ConfigParser.NoOptionError:
+                res_lang_map = {}
+            except (ValueError, KeyError):
+                raise Exception("Your lang map configuration is not correct.")
+
+        # merge the lang maps and return result
+        lang_map.update(res_lang_map)
+
+        return lang_map
+
+
     def get_resource_files(self, resource):
         """
         Get a dict for all files assigned to a resource. First we calculate the
@@ -160,7 +193,8 @@ class Project(object):
                         lang = match.group(1)
                         if lang != source_lang:
                             f_path = relpath(f_path, self.root)
-                            tr_files.update({lang: f_path})
+                            if f_path != source_file:
+                                tr_files.update({lang: f_path})
 
             for (name, value) in self.config.items(resource):
                 if name.startswith("trans."):
@@ -250,6 +284,7 @@ class Project(object):
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_resource_option(resource, 'source_file')
+            lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
             try:
                 file_filter = self.config.get(resource, 'file_filter')
@@ -282,12 +317,14 @@ class Project(object):
             if not languages:
                 pull_languages.extend(files.keys())
             else:
-                pull_languages.extend(languages)
                 f_langs = files.keys()
                 for l in languages:
                     if l not in f_langs:
-                        pull_languages.remove(l)
                         new_translations.append(l)
+                    else:
+                        if l in lang_map.keys():
+                            l = lang_map[l]
+                        pull_languages.append(l)
 
             if fetchsource:
                 if sfile and slang not in pull_languages:
@@ -300,10 +337,14 @@ class Project(object):
                     (resource, sfile))
 
             for lang in pull_languages:
+
+                local_lang = lang
+                remote_lang = lang_map.flip[lang] if lang in lang_map.values() else lang
+
                 if languages and lang not in pull_languages:
                     continue
                 if lang != slang:
-                    local_file = files[lang]
+                    local_file = files[lang] or files[lang_map[lang]]
                 else:
                     local_file = sfile
 
@@ -314,34 +355,40 @@ class Project(object):
                             host=host,
                             project=project_slug,
                             resource=resource_slug,
-                            language=lang)
+                            language=remote_lang)
 
                         stats = parse_json(r)
                     except Exception,e:
                         stats = {}
 
-                    if stats.has_key(lang):
+                    if stats.has_key(remote_lang):
                         time_format = "%Y-%m-%d %H:%M:%S"
 
                         try:
-                            remote_time = time.mktime(datetime.datetime(*time.strptime(stats[lang]['last_update'], time_format)[0:5]).utctimetuple())
+                            remote_time = time.mktime(
+                                datetime.datetime(
+                                    *time.strptime(
+                                        stats[remote_lang]['last_update'],
+                                        time_format)[0:5]
+                                ).utctimetuple()
+                            )
                         except (KeyError,TypeError), e:
                             remote_time = None
                         local_time = time.mktime(time.gmtime(os.path.getmtime(self.get_full_path(local_file))))
 
                         if not remote_time or remote_time and remote_time < local_time:
-                            MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
+                            MSG("Skipping '%s' translation (file: %s)." % (color_text(remote_lang, "RED"), local_file))
                             continue
 
                 if not overwrite:
                     local_file = ("%s.new" % local_file)
-                MSG(" -> %s: %s" % (color_text(lang,"RED"), local_file))
+                MSG(" -> %s: %s" % (color_text(remote_lang,"RED"), local_file))
                 try:
                     r = self.do_url_request('pull_file',
                         host=host,
                         project=project_slug,
                         resource=resource_slug,
-                        language=lang)
+                        language=remote_lang)
                 except Exception,e:
                     if not skip:
                         raise e
@@ -358,22 +405,24 @@ class Project(object):
                 MSG("Pulling new translations for resource %s (source: %s)" %
                 (resource, sfile))
                 for lang in new_translations:
+                    local_lang = lang_map[lang] if lang in lang_map.keys() else lang
+                    remote_lang = lang
                     if file_filter:
                         local_file = relpath(os.path.join(self.root,
-                            file_filter.replace('<lang>', lang)), os.curdir)
+                            file_filter.replace('<lang>', local_lang)), os.curdir)
                     else:
                         trans_dir = os.path.join(self.root, ".tx", resource)
                         if not os.path.exists(trans_dir):
                             os.mkdir(trans_dir)
                         local_file = relpath(os.path.join(trans_dir, '%s_translation' %
-                            lang, os.curdir))
+                            local_lang, os.curdir))
 
-                    MSG(" -> %s: %s" % (color_text(lang, "RED"), local_file))
+                    MSG(" -> %s: %s" % (color_text(remote_lang, "RED"), local_file))
                     r = self.do_url_request('pull_file',
                         host=host,
                         project=project_slug,
                         resource=resource_slug,
-                        language=lang)
+                        language=remote_lang)
 
                     base_dir = os.path.split(local_file)[0]
                     mkdir_p(base_dir)
@@ -397,6 +446,7 @@ class Project(object):
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_resource_option(resource, 'source_file')
+            lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
 
             MSG("Pushing translations for resource %s:" % resource)
@@ -457,17 +507,22 @@ class Project(object):
                 if not languages:
                     push_languages = files.keys()
                 else:
-                    push_languages = list(languages)
+                    push_languages = []
                     f_langs = files.keys()
-                    for l in push_languages:
+                    for l in languages:
+                        if l in lang_map.keys():
+                            l = lang_map[l]
+                        push_languages.append(l)
                         if l not in f_langs:
-                            push_languages.remove(l)
                             ERRMSG("Warning: No mapping found for language code '%s'." %
                                 color_text(l,"RED"))
 
                 # Push translation files one by one
                 for lang in push_languages:
-                    local_file = files[lang]
+                    local_lang = lang
+                    remote_lang = lang_map.flip[lang] if lang in lang_map.values() else lang
+
+                    local_file = files[local_lang]
 
                     if not force:
                         try:
@@ -475,12 +530,17 @@ class Project(object):
                                 host=host,
                                 project=project_slug,
                                 resource=resource_slug,
-                                language=lang)
+                                language=remote_lang)
 
                             # Check remote timestamp for file and skip update if needed
                             stats = parse_json(r)
                             time_format = "%Y-%m-%d %H:%M:%S"
-                            remote_time = time.mktime(datetime.datetime(*time.strptime(stats[lang]['last_update'], time_format)[0:5]).utctimetuple())
+                            remote_time = time.mktime(
+                                datetime.datetime(
+                                    *time.strptime(
+                                        stats[remote_lang]['last_update'], time_format)[0:5]
+                                ).utctimetuple()
+                            )
                         except Exception, e:
                             remote_time = None
                         local_time = time.mktime(time.gmtime(os.path.getmtime(self.get_full_path(local_file))))
@@ -489,10 +549,10 @@ class Project(object):
                             MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
                             continue
 
-                    MSG("Pushing '%s' translations (file: %s)" % (color_text(lang, "RED"), local_file))
+                    MSG("Pushing '%s' translations (file: %s)" % (color_text(remote_lang, "RED"), local_file))
                     try:
                         r = self.do_url_request('push_file', host=host, multipart=True,
-                            files=[( "%s;%s" % (resource_slug, lang),
+                            files=[( "%s;%s" % (resource_slug, remote_lang),
                             self.get_full_path(local_file))],
                             method="POST",
                             project=project_slug)
@@ -505,7 +565,7 @@ class Project(object):
                             method="PUT",
                             project=project_slug,
                             resource=resource_slug,
-                            language=lang)
+                            language=remote_lang)
                     except Exception, e:
                         if not skip:
                             raise e

@@ -611,13 +611,17 @@ def cmd_status(argv, path_to_tx):
         utils.MSG("Translation Files:")
         slang = prj.get_resource_option(res, 'source_lang')
         sfile = prj.get_resource_option(res, 'source_file') or "N/A"
+        lang_map = prj.get_resource_lang_mapping(res)
         utils.MSG(" - %s: %s (%s)" % (utils.color_text(slang, "RED"),
             sfile, utils.color_text("source", "YELLOW")))
         files = prj.get_resource_files(res)
         fkeys = files.keys()
         fkeys.sort()
         for lang in fkeys:
-            utils.MSG(" - %s: %s" % (utils.color_text(lang, "RED"),
+            local_lang = lang
+            if lang in lang_map.values():
+                local_lang = lang_map.flip[lang]
+            utils.MSG(" - %s: %s" % (utils.color_text(local_lang, "RED"),
                 files[lang]))
 
         utils.MSG("")
