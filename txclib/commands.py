@@ -443,6 +443,9 @@ def cmd_pull(argv, path_to_tx):
         " False)")
     parser.add_option("-f","--force", action="store_true", dest="force",
         default=False, help="Force download of translations files.")
+    parser.add_option("--skip", action="store_true", dest="skip_errors",
+        default=False, help="Don't stop on errors. Useful when pushing many"
+        " files concurrently.")
     parser.add_option("--disable-overwrite", action="store_false",
         dest="overwrite", default=True,
         help="By default transifex will fetch new translations files and"\
@@ -457,6 +460,7 @@ def cmd_pull(argv, path_to_tx):
 
     languages = options.languages.split(',') if options.languages else []
     resources = options.resources.split(',') if options.resources else []
+    skip = options.skip_errors
 
     os.chdir(path_to_tx)
     # instantiate the project.Project
@@ -468,8 +472,7 @@ def cmd_pull(argv, path_to_tx):
 
     prj.pull(languages=languages, resources=resources, overwrite=options.overwrite,
         fetchall=options.fetchall, fetchsource=options.fetchsource,
-        force=options.force)
-    prj.save()
+        force=options.force, skip=skip)
 
     utils.MSG("Done.")
 

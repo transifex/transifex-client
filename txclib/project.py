@@ -233,7 +233,7 @@ class Project(object):
             return os.path.join(self.root, relpath)
 
     def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
-        fetchsource=False, force=False):
+        fetchsource=False, force=False, skip=False):
         """
         Pull all translations file from transifex server
         """
@@ -306,13 +306,17 @@ class Project(object):
 
                 if not force:
                     # Check remote timestamp for file and skip update if needed
-                    r = self.do_url_request('resource_stats',
-                        host=host,
-                        project=project_slug,
-                        resource=resource_slug,
-                        language=lang)
+                    try:
+                        r = self.do_url_request('resource_stats',
+                            host=host,
+                            project=project_slug,
+                            resource=resource_slug,
+                            language=lang)
 
-                    stats = parse_json(r)
+                        stats = parse_json(r)
+                    except Exception,e:
+                        stats = {}
+
                     if stats.has_key(lang):
                         time_format = "%Y-%m-%d %H:%M:%S"
 
@@ -329,11 +333,18 @@ class Project(object):
                 if not overwrite:
                     local_file = ("%s.new" % local_file)
                 MSG(" -> %s: %s" % (color_text(lang,"RED"), local_file))
-                r = self.do_url_request('pull_file',
-                    host=host,
-                    project=project_slug,
-                    resource=resource_slug,
-                    language=lang)
+                try:
+                    r = self.do_url_request('pull_file',
+                        host=host,
+                        project=project_slug,
+                        resource=resource_slug,
+                        language=lang)
+                except Exception,e:
+                    if not skip:
+                        raise e
+                    else:
+                        ERRMSG(e)
+                        continue
                 base_dir = os.path.split(local_file)[0]
                 mkdir_p(base_dir)
                 fd = open(local_file, 'w')
