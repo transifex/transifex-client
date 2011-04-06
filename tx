@@ -72,7 +72,7 @@ def main(argv):
     cmd = args[0]
     try:
         utils.exec_command(cmd, args[1:], path_to_tx)
-    except KeyError:
+    except utils.UnknownCommandError:
         utils.ERRMSG("tx: Command %s not found" % cmd)
     except SystemExit:
         sys.exit()

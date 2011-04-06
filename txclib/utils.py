@@ -144,12 +144,19 @@ def discover_commands():
 
     return command_table
 
+class UnknownCommandError(Exception):
+	pass
+
 def exec_command(command, *args, **kwargs):
     """
     Execute given command
     """
     commands = discover_commands()
-    commands[command](*args,**kwargs)
+    try:
+        cmd_fn = commands[command]
+    except KeyError:
+        raise UnknownCommandError
+    cmd_fn(*args,**kwargs)
 
 def mkdir_p(path):
     try:
