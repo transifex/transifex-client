@@ -322,7 +322,7 @@ class Project(object):
 
                         try:
                             remote_time = time.mktime(datetime.datetime.strptime(stats[lang]['last_update'], time_format).utctimetuple())
-                        except TypeError,e:
+                        except (KeyError,TypeError), e:
                             remote_time = None
                         local_time = time.mktime(time.gmtime(os.path.getmtime(self.get_full_path(local_file))))
 
