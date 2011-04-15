@@ -324,7 +324,7 @@ class Project(object):
                         time_format = "%Y-%m-%d %H:%M:%S"
 
                         try:
-                            remote_time = time.mktime(datetime.datetime.strptime(stats[lang]['last_update'], time_format).utctimetuple())
+                            remote_time = time.mktime(datetime.datetime(*time.strptime(stats[lang]['last_update'], time_format)[0:5]).utctimetuple())
                         except (KeyError,TypeError), e:
                             remote_time = None
                         local_time = time.mktime(time.gmtime(os.path.getmtime(self.get_full_path(local_file))))
@@ -480,7 +480,7 @@ class Project(object):
                             # Check remote timestamp for file and skip update if needed
                             stats = parse_json(r)
                             time_format = "%Y-%m-%d %H:%M:%S"
-                            remote_time = time.mktime(datetime.datetime.strptime(stats[lang]['last_update'], time_format).utctimetuple())
+                            remote_time = time.mktime(datetime.datetime(*time.strptime(stats[lang]['last_update'], time_format)[0:5]).utctimetuple())
                         except Exception, e:
                             remote_time = None
                         local_time = time.mktime(time.gmtime(os.path.getmtime(self.get_full_path(local_file))))
