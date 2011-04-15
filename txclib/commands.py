@@ -330,8 +330,12 @@ def _auto_remote(path_to_tx, url):
         rel_info = utils.get_details('release_details',
             username, password, hostname = vars['hostname'],
             project = vars['project'], release = vars['release'])
-        resources = [ '.'.join([r['project_slug'] if r.has_key('project_slug')
-            else vars['project'], r['slug']]) for r in rel_info['resources'] ]
+        resources = []
+        for r in rel_info['resources']:
+            if r.has_key('project_slug'):
+                resources.append(r['project_slug'])
+            else:
+                resources.append('.'.join(vars['project'], r['slug']))           
         utils.MSG("%s resources found. Configuring..." % len(resources))
     elif type == 'resource':
         utils.MSG("Getting details for resource %s" % vars['resource'])
