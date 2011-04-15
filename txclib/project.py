@@ -167,7 +167,10 @@ class Project(object):
                     lang = name.split('.')[1]
                     # delete language which has same file
                     if value in tr_files.values():
-                        keys = [k for k, v in tr_files.iteritems() if v == value]
+                        keys = []
+                        for k, v in tr_files.iteritems():
+                            if v == value:
+                                keys.append(k)
                         if len(keys) == 1:
                             del tr_files[keys[0]]
                         else:

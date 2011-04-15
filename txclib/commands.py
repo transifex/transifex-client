@@ -531,11 +531,12 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
 
     # FIXME: Check also if the path to source file already exists.
     try:
-        prj.config.get("%s.%s" % (proj, res), "source_file")
-    except ConfigParser.NoSectionError:
-        prj.config.add_section("%s.%s" % (proj, res))
-    except ConfigParser.NoOptionError:
-        pass
+        try:
+            prj.config.get("%s.%s" % (proj, res), "source_file")
+        except ConfigParser.NoSectionError:
+            prj.config.add_section("%s.%s" % (proj, res))
+        except ConfigParser.NoOptionError:
+            pass
     finally:
         prj.config.set("%s.%s" % (proj, res), "source_file",
            path_to_file)
