@@ -400,8 +400,16 @@ def cmd_push(argv, path_to_tx):
 
     force_creation = options.force_creation
 
-    languages = options.languages.split(',') if options.languages else []
-    resources = options.resources.split(',') if options.resources else []
+    if options.languages:
+        languages = options.languages.split(',') 
+    else:
+        languages = []
+
+    if options.resources:
+        resources = options.resources.split(',')
+    else:
+        resources = []
+    
     skip = options.skip_errors
 
     # instantiate the project.Project
@@ -462,8 +470,16 @@ def cmd_pull(argv, path_to_tx):
         parser.error("You can't user a language filter along with the"\
             " -a|--all option")
 
-    languages = options.languages.split(',') if options.languages else []
-    resources = options.resources.split(',') if options.resources else []
+    if options.languages:
+        languages = options.languages.split(',') 
+    else:
+        languages = []
+
+    if options.resources:
+        resources = options.resources.split(',')
+    else:
+        resources = []
+
     skip = options.skip_errors
 
     os.chdir(path_to_tx)
@@ -575,7 +591,10 @@ def cmd_status(argv, path_to_tx):
         default=[], help="Specify resources")
 
     (options, args) = parser.parse_args(argv)
-    resources = options.resources.split(',') if options.resources else []
+    if options.resources:
+        resources = options.resources.split(',')
+    else:
+        resources = []
 
     prj = project.Project(path_to_tx)
     available_resources = prj.get_resource_list()
