@@ -531,7 +531,7 @@ class Project(object):
 
         # Create the Url
         kwargs['hostname'] = hostname
-        url = API_URLS[api_call] % kwargs
+        url = (API_URLS[api_call] % kwargs).encode('UTF-8')
 
         opener = None
         headers = None

@@ -32,7 +32,7 @@ def find_dot_tx(path = os.path.curdir, previous = None):
     Return the path where .tx folder is found.
 
     The 'path' should be a DIRECTORY.
-    This process is functioning recursively from the current directory to each 
+    This process is functioning recursively from the current directory to each
     one of the ancestors dirs.
     """
     path = os.path.abspath(path)
@@ -86,7 +86,7 @@ def get_details(api_call, username, password, *args, **kwargs):
     This function can also be used to check the existence of a project.
     """
     import base64
-    url = API_URLS[api_call] % (kwargs)
+    url = (API_URLS[api_call] % (kwargs)).encode('UTF-8')
 
     req = urllib2.Request(url=url)
     base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
@@ -202,7 +202,7 @@ if not hasattr(os.path, 'relpath'):
     if os.path is sys.modules.get('ntpath'):
         def relpath(path, start=os.path.curdir):
             """Return a relative version of a path"""
-        
+
             if not path:
                 raise ValueError("no path specified")
             start_list = os.path.abspath(start).split(os.path.sep)
@@ -222,26 +222,26 @@ if not hasattr(os.path, 'relpath'):
                     break
             else:
                 i += 1
-        
+
             rel_list = [os.path.pardir] * (len(start_list)-i) + path_list[i:]
             if not rel_list:
                 return os.path.curdir
             return os.path.join(*rel_list)
-    
+
     else:
         # default to posixpath definition
         def relpath(path, start=os.path.curdir):
             """Return a relative version of a path"""
-        
+
             if not path:
                 raise ValueError("no path specified")
-        
+
             start_list = os.path.abspath(start).split(os.path.sep)
             path_list = os.path.abspath(path).split(os.path.sep)
-        
+
             # Work out how much of the filepath is shared by start and path.
             i = len(os.path.commonprefix([start_list, path_list]))
-        
+
             rel_list = [os.path.pardir] * (len(start_list)-i) + path_list[i:]
             if not rel_list:
                 return os.path.curdir
