@@ -3,7 +3,11 @@
  Transifex Command-Line Tool
 =============================
 
-Check the full documentation at http://help.transifex.net/user-guide/client/client-0.4.html
+The Transifex Command-line Client is a command line tool that enables you to easily manage your translations within a project without the need of an elaborate UI system.
+
+You can use the command line client to easily create new resources, map locale files to translations and synchronize your Transifex project with your local repository and vice verca. Translators and localization managers can also use it to handle large volumes of translation files easily and without much hassle.
+
+Check the full documentation at http://help.transifex.net/user-guide/client/
 
 
 Installing
@@ -16,25 +20,3 @@ You can also install the `in-development version`_ of transifex-client with
 
 .. _in-development version: http://code.indifex.com/transifex-client/get/tip.gz#egg=transifex-client-dev
 
-
-Releasing
-=========
-
-To create a new release:
-
-1. Update local rep and update the version in ``setup.py``::
-
-    $ hg pull -u
-    $ vim setup.py
-
-2. Test::
-
-    $ python setup.py clean sdist
-    $ cd dist
-    $ tar zxf ...
-    $ cd transifex-client
-    ...test
-
-3. Package and upload on PyPI::
-
-    $ python setup.py clean sdist bdist_egg upload
