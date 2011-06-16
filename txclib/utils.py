@@ -12,6 +12,8 @@ from urls import API_URLS
 FILE_EXTENSIONS = {
     'PO': 'po',
     'QT': 'ts',
+    'INI': 'ini',
+    'PROPERTIES': 'properties',
 }
 
 def MSG(msg, verbose=1):
