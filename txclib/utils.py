@@ -14,6 +14,8 @@ FILE_EXTENSIONS = {
     'QT': 'ts',
     'INI': 'ini',
     'PROPERTIES': 'properties',
+    'ANDROID': 'xml',
+    'XHTML': 'xhtml',
 }
 
 def MSG(msg, verbose=1):
