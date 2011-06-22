@@ -16,6 +16,7 @@ FILE_EXTENSIONS = {
     'PROPERTIES': 'properties',
     'ANDROID': 'xml',
     'XHTML': 'xhtml',
+    'HTML': 'html',
 }
 
 def MSG(msg, verbose=1):
