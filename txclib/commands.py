@@ -335,7 +335,7 @@ def _auto_remote(path_to_tx, url):
             if r.has_key('project_slug'):
                 resources.append(r['project_slug'])
             else:
-                resources.append('.'.join(vars['project'], r['slug']))           
+                resources.append('.'.join(vars['project'], r['slug']))
         utils.MSG("%s resources found. Configuring..." % len(resources))
     elif type == 'resource':
         utils.MSG("Getting details for resource %s" % vars['resource'])
@@ -401,7 +401,7 @@ def cmd_push(argv, path_to_tx):
     force_creation = options.force_creation
 
     if options.languages:
-        languages = options.languages.split(',') 
+        languages = options.languages.split(',')
     else:
         languages = []
 
@@ -409,7 +409,7 @@ def cmd_push(argv, path_to_tx):
         resources = options.resources.split(',')
     else:
         resources = []
-    
+
     skip = options.skip_errors
 
     # instantiate the project.Project
@@ -471,7 +471,7 @@ def cmd_pull(argv, path_to_tx):
             " -a|--all option")
 
     if options.languages:
-        languages = options.languages.split(',') 
+        languages = options.languages.split(',')
     else:
         languages = []
 
