@@ -339,7 +339,10 @@ class Project(object):
             for lang in pull_languages:
 
                 local_lang = lang
-                remote_lang = lang_map.flip[lang] if lang in lang_map.values() else lang
+                if lang in lang_map.values():
+                    remote_lang = lang_map.flip[lang]
+                else:
+                    remote_lang = lang
 
                 if languages and lang not in pull_languages:
                     continue
@@ -405,7 +408,10 @@ class Project(object):
                 MSG("Pulling new translations for resource %s (source: %s)" %
                 (resource, sfile))
                 for lang in new_translations:
-                    local_lang = lang_map[lang] if lang in lang_map.keys() else lang
+                    if lang in lang_map.keys():
+                        local_lang = lang_map[lang]
+                    else:
+                        local_lang = lang
                     remote_lang = lang
                     if file_filter:
                         local_file = relpath(os.path.join(self.root,
@@ -520,7 +526,10 @@ class Project(object):
                 # Push translation files one by one
                 for lang in push_languages:
                     local_lang = lang
-                    remote_lang = lang_map.flip[lang] if lang in lang_map.values() else lang
+                    if lang in lang_map.values():
+                        remote_lang = lang_map.flip[lang]
+                    else:
+                        remote_lang = lang
 
                     local_file = files[local_lang]
 
