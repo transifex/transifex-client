@@ -279,6 +279,7 @@ class Project(object):
         else:
             resource_list = self.get_resource_list()
 
+        import ipdb; ipdb.set_trace();
         for resource in resource_list:
             project_slug, resource_slug = resource.split('.')
             files = self.get_resource_files(resource)
@@ -307,7 +308,7 @@ class Project(object):
 
                 for l in langs:
                     if not l['code'] in files.keys() and\
-                      not l['code'] == slang:
+                      not l['code'] == slang and not l['code'] in lang_map:
                         new_translations.append(l['code'])
 
                 if new_translations:
