@@ -279,7 +279,6 @@ class Project(object):
         else:
             resource_list = self.get_resource_list()
 
-        import ipdb; ipdb.set_trace();
         for resource in resource_list:
             project_slug, resource_slug = resource.split('.')
             files = self.get_resource_files(resource)
