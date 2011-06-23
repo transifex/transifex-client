@@ -285,6 +285,12 @@ class Project(object):
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_resource_option(resource, 'source_file')
             lang_map = self.get_resource_lang_mapping(resource)
+
+            # remove mapped lanaguages from local file listing
+            for l in lang_map.flip:
+                if l in files:
+                    del files[l]
+
             host = self.get_resource_host(resource)
             try:
                 file_filter = self.config.get(resource, 'file_filter')
@@ -306,9 +312,11 @@ class Project(object):
                 langs = details['available_languages']
 
                 for l in langs:
-                    if not l['code'] in files.keys() and\
-                      not l['code'] == slang and not l['code'] in lang_map:
-                        new_translations.append(l['code'])
+                    code = l['code']
+                    if not code in files.keys() and\
+                      not code == slang and\
+                      not (code in lang_map and lang_map[code] in files.keys()):
+                        new_translations.append(code)
 
                 if new_translations:
                     MSG("New translations found for the following languages: %s" %
@@ -319,7 +327,7 @@ class Project(object):
             else:
                 f_langs = files.keys()
                 for l in languages:
-                    if l not in f_langs:
+                    if l not in f_langs and not (l in lang_map and lang_map[l] in f_langs):
                         new_translations.append(l)
                     else:
                         if l in lang_map.keys():
