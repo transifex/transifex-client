@@ -136,26 +136,26 @@ class Project(object):
         """
         Get language mappings for a specific resource.
         """
+        lang_map = Flipdict()
         try:
-            lang_map = Flipdict()
             args = self.config.get("main", "lang_map")
             for arg in args.replace(' ', '').split(','):
                 k,v = arg.split(":")
                 lang_map.update({k:v})
         except ConfigParser.NoOptionError:
-            lang_map = {}
+            pass
         except (ValueError, KeyError):
             raise Exception("Your lang map configuration is not correct.")
 
         if self.config.has_section(resource):
+            res_lang_map = Flipdict()
             try:
-                res_lang_map = Flipdict()
                 args = self.config.get(resource, "lang_map")
                 for arg in args.replace(' ', '').split(','):
                     k,v = arg.split(":")
                     res_lang_map.update({k:v})
             except ConfigParser.NoOptionError:
-                res_lang_map = {}
+                pass
             except (ValueError, KeyError):
                 raise Exception("Your lang map configuration is not correct.")
 
