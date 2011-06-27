@@ -66,9 +66,9 @@ def regex_from_filefilter(file_filter, root_path = os.path.curdir):
 
 
 TX_URLS = {
-    'resource': '(?P<hostname>https?://(\w|\.|:)+)/projects/p/(?P<project>(\w|-)+)/resource/(?P<resource>(\w|-)+)/?$',
-    'release': '(?P<hostname>https?://(\w|\.|:)+)/projects/p/(?P<project>(\w|-)+)/r/(?P<release>(\w|-)+)/?$',
-    'project': '(?P<hostname>https?://(\w|\.|:)+)/projects/p/(?P<project>(\w|-)+)/?$',
+    'resource': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/resource/(?P<resource>(\w|-)+)/?$',
+    'release': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/r/(?P<release>(\w|-)+)/?$',
+    'project': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/?$',
 }
 
 def parse_tx_url(url):
