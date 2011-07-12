@@ -615,7 +615,6 @@ class Project(object):
                                 language, resource_slug, project_slug
                             ))
                     except Exception, e:
-                        import ipdb; ipdb.set_trace();
                         MSG(
                             "ERROR: Unable to delete translation %s.%s.%s" % (
                                 project_slug, resource_slug, language
