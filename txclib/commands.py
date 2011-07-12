@@ -664,3 +664,52 @@ def cmd_help(argv, path_to_tx):
         utils.MSG("  %-15s\t%s" % (key, fns[key].func_doc))
 
     utils.MSG("\nFor more information run %s command --help" % sys.argv[0])
+
+def cmd_delete(argv, path_to_tx):
+    "Delete an accessible resource or translation in a remote server."
+
+    class EpilogParser(OptionParser):
+       def format_epilog(self, formatter):
+           return self.epilog
+
+    usage="usage: %prog [tx_options] delete OPTION [OPTIONS]"
+    description="This command deletes either a resource (if no language has been specified)"
+    " or specific translations for a resource in the remote server."
+    epilog="\nExamples:\n"\
+        " To delete a translation:\n  $ tx delete -r project.resource -l <lang_code>\n\n"\
+        " To delete a resource:\n  $ tx delete -r project.resource\n"
+    parser = EpilogParser(usage=usage, description=description, epilog=epilog)
+    parser.add_option(
+        "-r", "--resource", action="store", dest="resources", default=None,
+        help="Specify the resource you want to delete (defaults to all)"
+    )
+    parser.add_option("-l","--language", action="store", dest="languages",
+        default=None, help="Specify the translation you want to delete")
+    parser.add_option(
+        "--skip", action="store_true", dest="skip_errors", default=False,
+        help="Don't stop on errors."
+    )
+
+    (options, args) = parser.parse_args(argv)
+
+    if options.languages:
+        languages = options.languages.split(',')
+    else:
+        languages = []
+
+    if options.resources:
+        resources = options.resources.split(',')
+    else:
+        resources = []
+
+    skip = options.skip_errors
+
+    prj = project.Project(path_to_tx)
+    available_resources = prj.get_resource_list()
+    hostname = prj.get_resource_host('')
+    for r in resources:
+        if not r in available_resources:
+            raise Exception("Specified resource '%s' does not exist." % r)
+    prj.delete(resources, languages, skip)
+    utils.MSG("Done.")
+

@@ -589,6 +589,55 @@ class Project(object):
                         else:
                             ERRMSG(e)
 
+    def delete(self, resources=[], languages=[], skip=False):
+        """Delete translations."""
+        if not resources:
+            resources = self.get_resource_list()
+        for resource in resources:
+            delete_languages = []
+            files = self.get_resource_files(resource)
+            project_slug, resource_slug = resource.split('.')
+            lang_map = self.get_resource_lang_mapping(resource)
+            host = self.get_resource_host(resource)
+
+
+            if languages:
+                MSG("Deleting translations for resource %s:" % resource)
+                for language in languages:
+                    try:
+                        r = self.do_url_request(
+                            'delete_translation', host=host,
+                            project=project_slug, resource=resource_slug,
+                            language=language, method="DELETE"
+                        )
+                        MSG(
+                            "Deleted language %s from resource %s in project %s." % (
+                                language, resource_slug, project_slug
+                            ))
+                    except Exception, e:
+                        import ipdb; ipdb.set_trace();
+                        MSG(
+                            "ERROR: Unable to delete translation %s.%s.%s" % (
+                                project_slug, resource_slug, language
+                            ))
+                        if not skip:
+                            raise
+            else:
+                try:
+                    r = self.do_url_request(
+                        'resource_details', host=host, project=project_slug,
+                        resource=resource_slug, method="DELETE"
+                    )
+                    MSG("Deleted resource %s in project %s." % (
+                            resource_slug, project_slug
+                    ))
+                except Exception, e:
+                    MSG(
+                        "ERROR: Unable to delete resource %s.%s" % (
+                            project_slug, resource_slug
+                        ))
+                    if not skip:
+                        raise
 
     def do_url_request(self, api_call, host=None, multipart=False, data=None,
                        files=[], encoding=None, method="GET", **kwargs):
