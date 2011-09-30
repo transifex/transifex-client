@@ -25,6 +25,7 @@ import ConfigParser
 from txclib import utils, project
 from txclib.utils import parse_json, compile_json, relpath
 from txclib.config import OrderedRawConfigParser
+from txclib.exceptions import UnInitializedError
 
 def cmd_init(argv, path_to_tx):
     "Initialize a new transifex project."
@@ -218,8 +219,12 @@ def cmd_set(argv, path_to_tx):
 
         # Calculate relative path
         path_to_file = relpath(args[0], path_to_tx)
-        # Chdir to the root dir
-        os.chdir(path_to_tx)
+
+        try:
+            _go_to_dir(path_to_tx)
+        except UnInitializedError, e:
+            utils.ERRMSG(e)
+            return
 
         if not utils.valid_slug(resource):
             parser.error("Invalid resource slug. The format is <project_slug>"\
@@ -482,7 +487,12 @@ def cmd_pull(argv, path_to_tx):
 
     skip = options.skip_errors
 
-    os.chdir(path_to_tx)
+    try:
+        _go_to_dir(path_to_tx)
+    except UnInitializedError, e:
+        utils.ERRMSG(e)
+        return
+
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
     available_resources = prj.get_resource_list()
@@ -508,8 +518,11 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     if not lang:
         raise Exception("You haven't specified a source language.")
 
-    # Chdir to the root dir
-    os.chdir(path_to_tx)
+    try:
+        _go_to_dir(path_to_tx)
+    except UnInitializedError, e:
+        utils.ERRMSG(e)
+        return
 
     if not os.path.exists(path_to_file):
         raise Exception("tx: File ( %s ) does not exist." %
@@ -555,8 +568,11 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
             " be in the following format project_slug.resource_slug." %
             resource)
 
-    # Chdir to the root dir
-    os.chdir(path_to_tx)
+    try:
+        _go_to_dir(path_to_tx)
+    except UnInitializedError, e:
+        utils.ERRMSG(e)
+        return
 
     # Warn the user if the file doesn't exist
     if not os.path.exists(path_to_file):
@@ -713,3 +729,19 @@ def cmd_delete(argv, path_to_tx):
     prj.delete(resources, languages, skip)
     utils.MSG("Done.")
 
+
+def _go_to_dir(path):
+    """Change the current working directory to the directory specified as
+    argument.
+
+    Args:
+        path: The path to chdor to.
+    Raises:
+        UnInitializedError, in case the directory has not been initialized.
+    """
+    if path is None:
+        raise UnInitializedError(
+            "Directory has not been initialzied. "
+            "Did you forget to run 'tx init' first?"
+        )
+    os.chdir(path)
