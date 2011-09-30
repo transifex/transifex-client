@@ -385,11 +385,12 @@ class Project(object):
                             )
                         except (KeyError,TypeError), e:
                             remote_time = None
-                        local_time = time.mktime(time.gmtime(os.path.getmtime(self.get_full_path(local_file))))
 
-                        if not remote_time or remote_time and remote_time < local_time:
-                            MSG("Skipping '%s' translation (file: %s)." % (color_text(remote_lang, "RED"), local_file))
-                            continue
+                        local_time = self._get_time_of_local_file(self.get_full_path(local_file))
+                        if local_time is not None:
+                            if not remote_time or remote_time and remote_time < local_time:
+                                MSG("Skipping '%s' translation (file: %s)." % (color_text(remote_lang, "RED"), local_file))
+                                continue
 
                 if not overwrite:
                     local_file = ("%s.new" % local_file)
@@ -560,11 +561,12 @@ class Project(object):
                             )
                         except Exception, e:
                             remote_time = None
-                        local_time = time.mktime(time.gmtime(os.path.getmtime(self.get_full_path(local_file))))
 
-                        if remote_time and remote_time > local_time:
-                            MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
-                            continue
+                        local_time = self._get_time_of_local_file(self.get_full_path(local_file))
+                        if local_time is not None:
+                            if remote_time and remote_time > local_time:
+                                MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
+                                continue
 
                     MSG("Pushing '%s' translations (file: %s)" % (color_text(remote_lang, "RED"), local_file))
                     try:
@@ -696,3 +698,14 @@ class Project(object):
         fh.close()
         return raw
 
+    def _get_time_of_local_file(self, path):
+        """Get the modified time of the path_.
+
+        Args:
+            path: The path we want the mtime for.
+        Returns:
+            The time as a timestamp or None, if the file does not exist
+        """
+        if not os.path.exists(path):
+            return None
+        local_time = time.mktime(time.gmtime(os.path.getmtime(path)))
