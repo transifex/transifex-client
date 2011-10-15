@@ -669,7 +669,7 @@ class Project(object):
             for info,filename in files:
                 data = { "resource" : info.split(';')[0],
                          "language" : info.split(';')[1],
-                         "uploaded_file" :  open(filename,'rb') }
+                         "uploaded_file" :  open(filename,'r') }
 
             urllib2.install_opener(opener)
             req = RequestWithMethod(url=url, data=data, method=method)
