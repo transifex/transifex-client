@@ -409,7 +409,7 @@ class Project(object):
                         continue
                 base_dir = os.path.split(local_file)[0]
                 mkdir_p(base_dir)
-                fd = open(local_file, 'w')
+                fd = open(local_file, 'wb')
                 fd.write(r)
                 fd.close()
 
@@ -441,7 +441,7 @@ class Project(object):
 
                     base_dir = os.path.split(local_file)[0]
                     mkdir_p(base_dir)
-                    fd = open(local_file, 'w')
+                    fd = open(local_file, 'wb')
                     fd.write(r)
                     fd.close()
 
@@ -669,7 +669,7 @@ class Project(object):
             for info,filename in files:
                 data = { "resource" : info.split(';')[0],
                          "language" : info.split(';')[1],
-                         "uploaded_file" :  open(filename,'r') }
+                         "uploaded_file" :  open(filename,'rb') }
 
             urllib2.install_opener(opener)
             req = RequestWithMethod(url=url, data=data, method=method)
