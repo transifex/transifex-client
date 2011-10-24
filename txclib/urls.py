@@ -9,7 +9,7 @@ API_URLS = {
     'pull_file': '%(hostname)s/api/project/%(project)s/resource/%(resource)s/%(language)s/file/',
     'extract_translation': '%(hostname)s/api/project/%(project)s/resource/%(resource)s/%(language)s/',
     'extract_source': '%(hostname)s/api/project/%(project)s/files/',  #'%(hostname)s/api/project/%(project)s/files/',
-    'resource_stats': '%(hostname)s/api/project/%(project)s/resource/%(resource)s/stats/%(language)s/',
+    'resource_stats': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/stats/',
     'delete_translation': '%(hostname)s/api/project/%(project)s/resource/%(resource)s/%(language)s/file/',
 }
 

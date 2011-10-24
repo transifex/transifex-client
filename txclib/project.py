@@ -227,7 +227,7 @@ class Project(object):
 
         if self.config.has_section(resource):
             if self.config.has_option(resource, option):
-                return self.config.get(resource,option)
+                return self.config.get(resource, option)
         return None
 
     def get_resource_list(self, project=None):
@@ -280,18 +280,28 @@ class Project(object):
             resource_list = self.get_resource_list()
 
         for resource in resource_list:
+            self.resource = resource
             project_slug, resource_slug = resource.split('.')
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_resource_option(resource, 'source_file')
             lang_map = self.get_resource_lang_mapping(resource)
+            host = self.get_resource_host(resource)
+
+            try:
+                r = self.do_url_request(
+                    'resource_stats', host=host, project=project_slug,
+                    resource=resource_slug
+                )
+                stats = parse_json(r)
+            except Exception,e:
+                stats = {}
 
             # remove mapped lanaguages from local file listing
             for l in lang_map.flip:
                 if l in files:
                     del files[l]
 
-            host = self.get_resource_host(resource)
             try:
                 file_filter = self.config.get(resource, 'file_filter')
             except ConfigParser.NoOptionError:
@@ -316,7 +326,8 @@ class Project(object):
                     if not code in files.keys() and\
                       not code == slang and\
                       not (code in lang_map and lang_map[code] in files.keys()):
-                        new_translations.append(code)
+                        if self._should_add_translation(l['code'], stats, force):
+                            new_translations.append(code)
 
                 if new_translations:
                     MSG("New translations found for the following languages: %s" %
@@ -328,7 +339,8 @@ class Project(object):
                 f_langs = files.keys()
                 for l in languages:
                     if l not in f_langs and not (l in lang_map and lang_map[l] in f_langs):
-                        new_translations.append(l)
+                        if self._should_add_translation(l['code'], stats, force):
+                            new_translations.append(l)
                     else:
                         if l in lang_map.keys():
                             l = lang_map[l]
@@ -345,13 +357,11 @@ class Project(object):
                     (resource, sfile))
 
             for lang in pull_languages:
-
                 local_lang = lang
                 if lang in lang_map.values():
                     remote_lang = lang_map.flip[lang]
                 else:
                     remote_lang = lang
-
                 if languages and lang not in pull_languages:
                     continue
                 if lang != slang:
@@ -359,38 +369,16 @@ class Project(object):
                 else:
                     local_file = sfile
 
-                if not force:
-                    # Check remote timestamp for file and skip update if needed
-                    try:
-                        r = self.do_url_request('resource_stats',
-                            host=host,
-                            project=project_slug,
-                            resource=resource_slug,
-                            language=remote_lang)
-
-                        stats = parse_json(r)
-                    except Exception,e:
-                        stats = {}
-
-                    if stats.has_key(remote_lang):
-                        time_format = "%Y-%m-%d %H:%M:%S"
-
-                        try:
-                            remote_time = time.mktime(
-                                datetime.datetime(
-                                    *time.strptime(
-                                        stats[remote_lang]['last_update'],
-                                        time_format)[0:5]
-                                ).utctimetuple()
-                            )
-                        except (KeyError,TypeError), e:
-                            remote_time = None
-
-                        local_time = self._get_time_of_local_file(self.get_full_path(local_file))
-                        if local_time is not None:
-                            if not remote_time or remote_time and remote_time < local_time:
-                                MSG("Skipping '%s' translation (file: %s)." % (color_text(remote_lang, "RED"), local_file))
-                                continue
+                kwargs = {
+                    'lang': remote_lang,
+                    'stats': stats,
+                    'local_file': local_file,
+                    'force': force,
+                }
+                if not self._should_update_translation(**kwargs):
+                    msg = "Skipping '%s' translation (file: %s)."
+                    MSG(msg % (color_text(remote_lang, "RED"), local_file))
+                    continue
 
                 if not overwrite:
                     local_file = ("%s.new" % local_file)
@@ -698,6 +686,78 @@ class Project(object):
         fh.close()
         return raw
 
+
+    def _should_update_translation(self, lang, stats, local_file, force=False):
+        """Whether a translation should be udpated from Transifex.
+
+        We use the following criteria for that:
+        - If user requested to force the download.
+        - If the local file is older than the Transifex's file.
+        - If the user requested a x% completion.
+
+        Args:
+            lang: The language code to check.
+            stats: The (global) statistics object.
+            local_file: The local translation file.
+            force: A boolean flag.
+        Returns:
+            True or False.
+        """
+        return self._should_download(lang, stats, local_file, force)
+
+    def _should_add_translation(self, lang, stats, force=False):
+        """Whether a translation should be added from Transifex.
+
+        We use the following criteria for that:
+        - If user requested to force the download.
+        - If the user requested a x% completion.
+
+        Args:
+            lang: The language code to check.
+            stats: The (global) statistics object.
+            force: A boolean flag.
+        Returns:
+            True or False.
+        """
+        return self._should_download(lang, stats, None, force)
+
+    def _should_download(self, lang, stats, local_file=None, force=False):
+        """Return whether a translation should be downloaded.
+
+        If local_file is None, skip the timestamps check (the file does
+        not exist locally).
+        """
+        if force:
+            return True
+        try:
+            lang_stats = stats[lang]
+        except KeyError, e:
+            # TODO log messages
+            return False
+
+        if local_file is not None:
+            remote_update = self._extract_updated(lang_stats)
+            if not self._remote_is_newer(remote_update, local_file):
+                return False
+
+        return self._satisfies_min_translated(lang_stats)
+
+    def _generate_timestamp(self, update_datetime):
+        """Generate a UNIX timestamp from the argument.
+
+        Args:
+            update_datetime: The datetime in the format used by Transifex.
+        Returns:
+            A float, representing the timestamp that corresponds to the
+            argument.
+        """
+        time_format = "%Y-%m-%d %H:%M:%S"
+        return time.mktime(
+            datetime.datetime(
+                *time.strptime(update_datetime, time_format)[0:5]
+            ).utctimetuple()
+        )
+
     def _get_time_of_local_file(self, path):
         """Get the modified time of the path_.
 
@@ -708,4 +768,66 @@ class Project(object):
         """
         if not os.path.exists(path):
             return None
-        local_time = time.mktime(time.gmtime(os.path.getmtime(path)))
+        return time.mktime(time.gmtime(os.path.getmtime(path)))
+
+    def _satisfies_min_translated(self, stats):
+        """Check whether a translation fulfills the filter used for
+        minimum translated percentage.
+
+        Args:
+            perc: The current translation percentage.
+        Returns:
+            True or False
+        """
+        cur = self._extract_completed(stats)
+        minimum_percent = int(
+            self.get_resource_option(self.resource, 'minimum') or 0
+        )
+        return cur >= minimum_percent
+
+    def _remote_is_newer(self, remote_updated, local_file):
+        """Check whether the remote translation is newer that the local file.
+
+        Args:
+            remote_updated: The date and time the translation was last
+                updated remotely.
+            local_file: The local file.
+        Returns:
+            True or False.
+        """
+        if remote_time is None:
+            return False
+        remote_time = self._generate_timestamp(remote_update)
+        local_time = self._get_time_of_local_file(
+            self.get_full_path(local_file)
+        )
+        if local_time is not None and remote_time < local_time:
+            return False
+
+    @classmethod
+    def _extract_completed(cls, stats):
+        """Extract the information for the translated percentage from the stats.
+
+        Args:
+            stats: The stats object for a language as returned by Transifex.
+        Returns:
+            The percentage of translation as integer.
+        """
+        try:
+            return int(stats['completed'][:-1])
+        except KeyError, e:
+            return 0
+
+    @classmethod
+    def _extract_updated(cls, stats):
+        """Extract the  information for the last update of a translation.
+
+        Args:
+            stats: The stats object for a language as returned by Transifex.
+        Returns:
+            The last update field.
+        """
+        try:
+            return stats['last_update']
+        except KeyError, e:
+            return None
