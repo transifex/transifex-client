@@ -241,7 +241,7 @@ class Project(object):
         for r in self.config.sections():
             if r == 'main':
                 continue
-            p_slug, r_slug = r.split('.')
+            p_slug, r_slug = r.split('.', 1)
             if project and p_slug != project:
                 continue
             resource_list.append(r)
