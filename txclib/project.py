@@ -780,8 +780,14 @@ class Project(object):
             True or False
         """
         cur = self._extract_completed(stats)
+        option_name = 'minimum_perc'
+        global_minimum = int(
+            self.get_resource_option('main', option_name) or 0
+        )
         minimum_percent = int(
-            self.get_resource_option(self.resource, 'minimum') or 0
+            self.get_resource_option(
+                self.resource, option_name
+            ) or minimum_percent
         )
         return cur >= minimum_percent
 
