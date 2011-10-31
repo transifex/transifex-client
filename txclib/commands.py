@@ -468,8 +468,8 @@ def cmd_pull(argv, path_to_tx):
         help="By default transifex will fetch new translations files and"\
             " replace existing ones. Use this flag if you want to disable"\
             " this feature")
-    parser.add_option("--min-translated", action="store", type="int",
-        dest="minimum", default=0,
+    parser.add_option("--minimum-perc", action="store", type="int",
+        dest="minimum_perc", default=0,
         help="Specify the minimum acceptable percentage of a translation "
              "for downloading.")
 
