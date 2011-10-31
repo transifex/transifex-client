@@ -471,7 +471,7 @@ def cmd_pull(argv, path_to_tx):
     parser.add_option("--minimum-perc", action="store", type="int",
         dest="minimum_perc", default=0,
         help="Specify the minimum acceptable percentage of a translation "
-             "for downloading.")
+             "in order to download it.")
 
     (options, args) = parser.parse_args(argv)
 
