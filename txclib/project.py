@@ -459,6 +459,17 @@ class Project(object):
 
             MSG("Pushing translations for resource %s:" % resource)
 
+            try:
+                r = self.do_url_request(
+                    'resource_stats', host=host, project=project_slug,
+                    resource=resource_slug
+                )
+                logger.debug("Statistics response is %s" % r)
+                stats = parse_json(r)
+            except Exception,e:
+                logger.debug("Empty statistics.")
+                stats = {}
+
             if force and not no_interactive:
                 answer = raw_input("Warning: By using --force, the uploaded"
                     " files will overwrite remote translations, even if they"
@@ -495,7 +506,7 @@ class Project(object):
                     if not skip:
                         raise e
                     else:
-                        MSG(e)
+                        ERRMSG(e)
             else:
                 try:
                     self.do_url_request('resource_details', host=host,
@@ -535,31 +546,16 @@ class Project(object):
 
                     local_file = files[local_lang]
 
-                    if not force:
-                        try:
-                            r = self.do_url_request('resource_stats',
-                                host=host,
-                                project=project_slug,
-                                resource=resource_slug,
-                                language=remote_lang)
-
-                            # Check remote timestamp for file and skip update if needed
-                            stats = parse_json(r)
-                            time_format = "%Y-%m-%d %H:%M:%S"
-                            remote_time = time.mktime(
-                                datetime.datetime(
-                                    *time.strptime(
-                                        stats[remote_lang]['last_update'], time_format)[0:5]
-                                ).utctimetuple()
-                            )
-                        except Exception, e:
-                            remote_time = None
-
-                        local_time = self._get_time_of_local_file(self.get_full_path(local_file))
-                        if local_time is not None:
-                            if remote_time and remote_time > local_time:
-                                MSG("Skipping '%s' translation (file: %s)." % (color_text(lang, "RED"), local_file))
-                                continue
+                    kwargs = {
+                        'lang': remote_lang,
+                        'stats': stats,
+                        'local_file': local_file,
+                        'force': force,
+                    }
+                    if not self._should_push_translation(**kwargs):
+                        msg = "Skipping '%s' translation (file: %s)."
+                        MSG(msg % (color_text(lang, "RED"), local_file))
+                        continue
 
                     MSG("Pushing '%s' translations (file: %s)" % (color_text(remote_lang, "RED"), local_file))
                     try:
@@ -746,6 +742,31 @@ class Project(object):
                 return False
 
         return self._satisfies_min_translated(lang_stats)
+
+    def _should_push_translation(self, lang, stats, local_file, force=False):
+        """Return whether a local translation file should be
+        pushed to Trasnifex.
+
+        Args:
+            lang: The language code to check.
+            stats: The (global) statistics object.
+            local_file: The local translation file.
+            force: A boolean flag.
+        Returns:
+            True or False.
+        """
+        if force:
+            return True
+        try:
+            lang_stats = stats[lang]
+        except KeyError, e:
+            return True
+        if local_file is not None:
+            remote_update = self._extract_updated(lang_stats)
+            if self._remote_is_newer(remote_update, local_file):
+                msg  = "Remote translation is newer than local file for lang %s"
+                return False
+        return True
 
     def _generate_timestamp(self, update_datetime):
         """Generate a UNIX timestamp from the argument.
