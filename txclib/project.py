@@ -22,10 +22,14 @@ class Project(object):
     Represents an association between the local and remote project instances.
     """
 
-    def __init__(self, path_to_tx=None):
+    def __init__(self, path_to_tx=None, init=True):
         """
         Initialize the Project attributes.
         """
+        if init:
+            self._init(path_to_tx)
+
+    def _init(self, path_to_tx=None):
         # The path to the root of the project, where .tx lives!
         self.root = path_to_tx or find_dot_tx()
         if not self.root:
