@@ -96,8 +96,8 @@ class TestProjectMinimumPercent(unittest.TestCase):
             self.assertTrue(self.p._satisfies_min_translated({'completed': '80%'}))
             self.assertTrue(self.p._satisfies_min_translated({'completed': '90%'}))
 
-        def test_no_option(self):
-            """"Test the case there is nothing defined."""
+    def test_no_option(self):
+        """"Test the case there is nothing defined."""
         results = itertools.cycle([None, None ])
         def side_effect(*args):
             return results.next()
