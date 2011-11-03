@@ -425,7 +425,7 @@ def cmd_push(argv, path_to_tx):
             raise Exception("Specified resource '%s' does not exist." % r)
 
     if not (options.push_source or options.push_translations):
-        parser.error("You need to specify at least on of the -s|--source,"
+        parser.error("You need to specify at least one of the -s|--source,"
             " -t|--translations flags with the push command.")
 
     prj.push(force=force_creation, resources=resources, languages=languages,

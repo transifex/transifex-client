@@ -6,6 +6,7 @@ except ImportError:
 import urllib2 # This should go and instead use do_url_request everywhere
 
 from urls import API_URLS
+from txclib.log import logger
 
 # This is a mapping between i18n types supported on Transifex and related file
 # extensions of the translation files.
@@ -25,13 +26,13 @@ def MSG(msg, verbose=1):
     STDOUT logging function
     """
     if verbose:
-        sys.stdout.write('%s\n' % msg)
+        logger.info('%s' % msg)
 
 def ERRMSG(msg, verbosity=1):
     """
     STDERR logging function
     """
-    sys.stderr.write('%s\n' % msg)
+    logger.error('%s' % msg)
 
 def find_dot_tx(path = os.path.curdir, previous = None):
     """

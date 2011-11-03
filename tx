@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from optparse import OptionParser
+from optparse import OptionParser, OptionValueError
 import os
 import sys
 
 from txclib import utils
 from txclib import get_version
+from txclib.log import set_level
 
 reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
 
@@ -31,6 +32,18 @@ except KeyboardInterrupt:
 # This sets the encoding for the strings which are created with f.read()
 sys.setdefaultencoding('utf-8')
 
+
+def set_log_level(option, opt, value, parser):
+    """Set the log level.
+
+    Callback called from optparse.
+    """
+    try:
+        set_level(value)
+    except Exception, e:
+        raise OptionValueError("Error setting the log level: %s" % e)
+
+
 def main(argv):
     """
     Here we parse the flags (short, long) and we instantiate the classes.
@@ -45,7 +58,7 @@ def main(argv):
 
     parser = OptionParser(usage=usage, version=get_version(), description=description)
     parser.disable_interspersed_args()
-    parser.add_option("-q", "--quiet", 
+    parser.add_option("-q", "--quiet",
         action="store_true", dest="verbose", default=False,
         help="don't print status messages to stdout")
     parser.add_option("-r", "--root", action="store",
@@ -54,6 +67,11 @@ def main(argv):
     parser.add_option("--traceback", action="store_true",
         dest="trace", default=False,
         help="print full traceback on exceptions")
+    parser.add_option("--log-level", action="callback", type="string",
+        callback=set_log_level, default="INFO",
+        help=("specify the log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
+              " for the messages printed")
+    )
     parser.add_option("--disable-colors", action="store_true",
         dest="color_disable", default=(os.name == 'nt'),
         help="print full traceback on exceptions")
@@ -68,7 +86,7 @@ def main(argv):
     # find .tx
     path_to_tx = options.root_dir or utils.find_dot_tx()
 
-   
+
     cmd = args[0]
     try:
         utils.exec_command(cmd, args[1:], path_to_tx)
@@ -81,7 +99,7 @@ def main(argv):
         if options.trace:
             traceback.print_exc()
         else:
-            formatted_lines = traceback.format_exc().splitlines()    
+            formatted_lines = traceback.format_exc().splitlines()
             utils.ERRMSG(formatted_lines[-1])
         sys.exit(1)
 

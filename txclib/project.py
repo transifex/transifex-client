@@ -12,6 +12,8 @@ from txclib.web import *
 from txclib.utils import *
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict
+from txclib.log import logger
+
 
 class ProjectNotInit(Exception):
     pass
@@ -32,6 +34,7 @@ class Project(object):
     def _init(self, path_to_tx=None):
         # The path to the root of the project, where .tx lives!
         self.root = path_to_tx or find_dot_tx()
+        logger.debug("Path to tx is %s." % self.root)
         if not self.root:
             MSG("Cannot find any .tx directory!")
             MSG("Run 'tx init' to initialize your project first!")
@@ -39,6 +42,7 @@ class Project(object):
 
         # The path to the config file (.tx/config)
         self.config_file = os.path.join(self.root, ".tx", "config")
+        logger.debug("Config file is %s" % self.config_file)
         # Touch the file if it doesn't exist
         if not os.path.exists(self.config_file):
             MSG("Cannot find the config file (.tx/config)!")
@@ -58,6 +62,7 @@ class Project(object):
 
         home = os.path.expanduser("~")
         self.txrc_file = os.path.join(home, ".transifexrc")
+        logger.debug(".transifexrc file is at %s" % home)
         if not os.path.exists(self.txrc_file):
             MSG("No configuration file found.")
             # Writing global configuration file
@@ -283,8 +288,10 @@ class Project(object):
             resource_list = resources
         else:
             resource_list = self.get_resource_list()
+        logger.debug("Operating on resources: %s" % resource_list)
 
         for resource in resource_list:
+            logger.debug("Handling resource %s" % resource)
             self.resource = resource
             project_slug, resource_slug = resource.split('.')
             files = self.get_resource_files(resource)
@@ -292,14 +299,18 @@ class Project(object):
             sfile = self.get_resource_option(resource, 'source_file')
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
+            logger.debug("Language mapping is: %s" % lang_map)
+            logger.debug("Using host %s" % host)
 
             try:
                 r = self.do_url_request(
                     'resource_stats', host=host, project=project_slug,
                     resource=resource_slug
                 )
+                logger.debug("Statistics response is %s" % r)
                 stats = parse_json(r)
             except Exception,e:
+                logger.debug("Empty statistics.")
                 stats = {}
 
             # remove mapped lanaguages from local file listing
@@ -322,9 +333,10 @@ class Project(object):
                     host=host,
                     project=project_slug,
                     resource=resource_slug)
-
+                logger.debug("Details of resource are: %s" % raw)
                 details = parse_json(raw)
                 langs = details['available_languages']
+                logger.debug("Available languages are: %s" % langs)
 
                 for l in langs:
                     code = l['code']
@@ -358,6 +370,7 @@ class Project(object):
                     new_translations.append(slang)
 
             if pull_languages:
+                logger.debug("Pulling languages for: %s" % pull_languages)
                 MSG("Pulling translations for resource %s (source: %s)" %
                     (resource, sfile))
 
@@ -368,11 +381,13 @@ class Project(object):
                 else:
                     remote_lang = lang
                 if languages and lang not in pull_languages:
+                    logger.debug("Skipping language %s" % lang)
                     continue
                 if lang != slang:
                     local_file = files[lang] or files[lang_map[lang]]
                 else:
                     local_file = sfile
+                logger.debug("Using file %s" % local_file)
 
                 kwargs = {
                     'lang': remote_lang,
@@ -456,6 +471,8 @@ class Project(object):
             sfile = self.get_resource_option(resource, 'source_file')
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
+            logger.debug("Language mapping is: %s" % lang_map)
+            logger.debug("Using host %s" % host)
 
             MSG("Pushing translations for resource %s:" % resource)
 
@@ -494,6 +511,7 @@ class Project(object):
                             self.get_full_path(sfile))],
                             method="POST",
                             project=project_slug)
+                    logger.debug("Response was %s" % r)
                     r = parse_json(r)
                     uuid = r['files'][0]['uuid']
                     self.do_url_request('extract_source',
@@ -535,6 +553,7 @@ class Project(object):
                         if l not in f_langs:
                             ERRMSG("Warning: No mapping found for language code '%s'." %
                                 color_text(l,"RED"))
+                logger.debug("Languages to push are %s" % push_languages)
 
                 # Push translation files one by one
                 for lang in push_languages:
@@ -565,6 +584,7 @@ class Project(object):
                             method="POST",
                             project=project_slug)
                         r = parse_json(r)
+                        logger.debug("Response was %s" % r)
                         uuid = r['files'][0]['uuid']
                         self.do_url_request('extract_translation',
                             host=host,
@@ -731,15 +751,18 @@ class Project(object):
         not exist locally).
         """
         if force:
+            logger.debug("Downloading translation due -f")
             return True
         try:
             lang_stats = stats[lang]
         except KeyError, e:
+            logger.debug("No lang %s in statistics" % lang)
             return True
 
         if local_file is not None:
             remote_update = self._extract_updated(lang_stats)
             if not self._remote_is_newer(remote_update, local_file):
+                logger.debug("Local is newer than remote for lang %s" % lang)
                 return False
 
         return self._satisfies_min_translated(lang_stats)
@@ -762,15 +785,18 @@ class Project(object):
             True or False.
         """
         if force:
+            logger.debug("Push translation due to -f.")
             return True
         try:
             lang_stats = stats[lang]
         except KeyError, e:
+            logger.debug("Language %s does not exist in Transifex." % lang)
             return True
         if local_file is not None:
             remote_update = self._extract_updated(lang_stats)
             if self._remote_is_newer(remote_update, local_file):
                 msg  = "Remote translation is newer than local file for lang %s"
+                logger.debug(msg % lang)
                 return False
         return True
 
@@ -838,10 +864,14 @@ class Project(object):
             True or False.
         """
         if remote_updated is None:
+            logger.debug("No remote time")
             return False
         remote_time = self._generate_timestamp(remote_updated)
         local_time = self._get_time_of_local_file(
             self.get_full_path(local_file)
+        )
+        logger.debug(
+            "Remote time is %s and local %s" % (remote_updated, local_time)
         )
         if local_time is not None and remote_time < local_time:
             return False
