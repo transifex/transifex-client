@@ -274,10 +274,11 @@ class Project(object):
             return os.path.join(self.root, relpath)
 
     def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
-        fetchsource=False, force=False, skip=False):
+        fetchsource=False, force=False, skip=False, minimum_perc=0):
         """
         Pull all translations file from transifex server
         """
+        self.minimum_perc = minimum_perc
         if resources:
             resource_list = resources
         else:
@@ -785,14 +786,18 @@ class Project(object):
         """
         cur = self._extract_completed(stats)
         option_name = 'minimum_perc'
-        global_minimum = int(
-            self.get_resource_option('main', option_name) or 0
-        )
-        minimum_percent = int(
-            self.get_resource_option(
-                self.resource, option_name
-            ) or minimum_percent
-        )
+        if self.minimum_perc is not None:
+            minimum_percent = self.minimum_perc
+        else:
+            global_minimum = int(
+                self.get_resource_option('main', option_name) or 0
+            )
+            resource_minimum = int(
+                self.get_resource_option(
+                    self.resource, option_name
+                ) or global_minimum
+            )
+            minimum_percent = resource_minimum
         return cur >= minimum_percent
 
     def _remote_is_newer(self, remote_updated, local_file):

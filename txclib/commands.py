@@ -490,6 +490,7 @@ def cmd_pull(argv, path_to_tx):
         resources = []
 
     skip = options.skip_errors
+    minimum_perc = options.minimum_perc or None
 
     try:
         _go_to_dir(path_to_tx)
@@ -506,7 +507,7 @@ def cmd_pull(argv, path_to_tx):
 
     prj.pull(languages=languages, resources=resources, overwrite=options.overwrite,
         fetchall=options.fetchall, fetchsource=options.fetchsource,
-        force=options.force, skip=skip)
+        force=options.force, skip=skip, minimum_perc=minimum_perc)
 
     utils.MSG("Done.")
 
