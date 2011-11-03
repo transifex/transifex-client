@@ -344,7 +344,7 @@ class Project(object):
                 f_langs = files.keys()
                 for l in languages:
                     if l not in f_langs and not (l in lang_map and lang_map[l] in f_langs):
-                        if self._should_add_translation(l['code'], stats, force):
+                        if self._should_add_translation(l, stats, force):
                             new_translations.append(l)
                     else:
                         if l in lang_map.keys():
@@ -693,6 +693,7 @@ class Project(object):
 
         We use the following criteria for that:
         - If user requested to force the download.
+        - If language exists in Transifex.
         - If the local file is older than the Transifex's file.
         - If the user requested a x% completion.
 
@@ -711,6 +712,7 @@ class Project(object):
 
         We use the following criteria for that:
         - If user requested to force the download.
+        - If language exists in Transifex.
         - If the user requested a x% completion.
 
         Args:
@@ -733,8 +735,7 @@ class Project(object):
         try:
             lang_stats = stats[lang]
         except KeyError, e:
-            # TODO log messages
-            return False
+            return True
 
         if local_file is not None:
             remote_update = self._extract_updated(lang_stats)
@@ -746,6 +747,11 @@ class Project(object):
     def _should_push_translation(self, lang, stats, local_file, force=False):
         """Return whether a local translation file should be
         pushed to Trasnifex.
+
+        We use the following criteria for that:
+        - If user requested to force the upload.
+        - If language exists in Transifex.
+        - If local file is younger than the remote file.
 
         Args:
             lang: The language code to check.
@@ -839,6 +845,7 @@ class Project(object):
         )
         if local_time is not None and remote_time < local_time:
             return False
+        return True
 
     @classmethod
     def _extract_completed(cls, stats):
