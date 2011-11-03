@@ -328,24 +328,9 @@ class Project(object):
             new_translations = []
 
             if fetchall:
-                timestamp = time.time()
-                raw = self.do_url_request('resource_details',
-                    host=host,
-                    project=project_slug,
-                    resource=resource_slug)
-                logger.debug("Details of resource are: %s" % raw)
-                details = parse_json(raw)
-                langs = details['available_languages']
-                logger.debug("Available languages are: %s" % langs)
-
-                for l in langs:
-                    code = l['code']
-                    if not code in files.keys() and\
-                      not code == slang and\
-                      not (code in lang_map and lang_map[code] in files.keys()):
-                        if self._should_add_translation(l['code'], stats, force):
-                            new_translations.append(code)
-
+                new_translations = self._new_translations_to_add(
+                    files, slang, lang_map, stats, force
+                )
                 if new_translations:
                     MSG("New translations found for the following languages: %s" %
                         ', '.join(new_translations))
@@ -904,3 +889,32 @@ class Project(object):
             return stats['last_update']
         except KeyError, e:
             return None
+
+    def _new_translations_to_add(self, files, slang, lang_map,
+                                 stats, force=False):
+        """Return a list of translations which are new to the
+        local installation.
+        """
+        new_translations = []
+        timestamp = time.time()
+        raw = self.do_url_request(
+            'resource_details', host=self.host,
+            project=self.project_slug, resource=self.resource_slug
+        )
+        logger.debug("Details of resource are: %s" % raw)
+        details = parse_json(raw)
+        langs = details['available_languages']
+        logger.debug("Available languages are: %s" % langs)
+
+        for l in langs:
+            code = l['code']
+            code_exists = code in files.keys()
+            code_is_source = code == slang
+            mapped_code_exists = (
+                code in lang_map and lang_map[code] in files.keys()
+            )
+            if code_exists or code_is_source or mapped_code_exists:
+                continue
+            if self._should_add_translation(l['code'], stats, force):
+                new_translations.append(code)
+        return new_translations

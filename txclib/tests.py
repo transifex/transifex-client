@@ -3,6 +3,7 @@
 from __future__ import with_statement
 import unittest
 import itertools
+import json
 from mock import patch
 from txclib.project import Project
 
@@ -246,3 +247,66 @@ class TestProjectFilters(unittest.TestCase):
                         self.assertTrue(
                             should_push(lang, self.stats, local_file)
                         )
+
+
+class TestProjectPull(unittest.TestCase):
+    """Test bits & pieces of the pull method."""
+
+    def setUp(self):
+        super(TestProjectPull, self).setUp()
+        self.p = Project(init=False)
+        self.p.minimum_perc = None
+        self.p.resource = "resource"
+        self.p.host = 'foo'
+        self.p.project_slug = 'foo'
+        self.p.resource_slug = 'foo'
+        self.stats = {
+            'en': {
+                'completed': '100%', 'last_update': '2011-11-01 15:00:00',
+            }, 'el': {
+                'completed': '60%', 'last_update': '2011-11-01 15:00:00',
+            }, 'pt': {
+                'completed': '70%', 'last_update': '2011-11-01 15:00:00',
+            },
+        }
+        self.langs = self.stats.keys()
+        self.files = dict(zip(self.langs, itertools.repeat(None)))
+        self.details = {'available_languages': []}
+        for lang in self.langs:
+            self.details['available_languages'].append({'code': lang})
+        self.slang = 'en'
+        self.lang_map = {}
+
+    def test_new_translations(self):
+        """Test finding new transaltions to add."""
+        with patch.object(self.p, 'do_url_request') as resource_mock:
+            resource_mock.return_value = json.dumps(self.details)
+            files_keys = self.langs
+            new_trans = self.p._new_translations_to_add
+            for force in [True, False]:
+                res = new_trans(
+                    self.files, self.slang, self.lang_map, self.stats, force
+                )
+                self.assertEquals(res, [])
+
+            with patch.object(self.p, '_should_add_translation') as filter_mock:
+                filter_mock.return_value = True
+                for force in [True, False]:
+                    res = new_trans(
+                        {'el': None}, self.slang, self.lang_map, self.stats, force
+                    )
+                    self.assertEquals(res, ['pt'])
+                for force in [True, False]:
+                    res = new_trans(
+                        {}, self.slang, self.lang_map, self.stats, force
+                    )
+                    self.assertEquals(res, ['el', 'pt'])
+
+                files = {}
+                files['pt_PT'] = None
+                lang_map = {'pt': 'pt_PT'}
+                for force in [True, False]:
+                    res = new_trans(
+                        files, self.slang, lang_map, self.stats, force
+                    )
+                    self.assertEquals(res, ['el'])
