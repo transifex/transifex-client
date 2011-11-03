@@ -810,9 +810,9 @@ class Project(object):
         Returns:
             True or False.
         """
-        if remote_time is None:
+        if remote_updated is None:
             return False
-        remote_time = self._generate_timestamp(remote_update)
+        remote_time = self._generate_timestamp(remote_updated)
         local_time = self._get_time_of_local_file(
             self.get_full_path(local_file)
         )
