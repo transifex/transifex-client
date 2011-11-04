@@ -20,6 +20,9 @@ _logger.addHandler(_error_handler)
 _msg_handler = logging.StreamHandler(sys.stdout)
 _msg_handler.setLevel(logging.DEBUG)
 _msg_handler.setFormatter(_formatter)
+_msg_filter = logging.Filter()
+_msg_filter.filter = lambda r: r.levelno < logging.WARNING
+_msg_handler.addFilter(_msg_filter)
 _logger.addHandler(_msg_handler)
 
 logger = _logger
