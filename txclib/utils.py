@@ -20,6 +20,16 @@ FILE_EXTENSIONS = {
     'XHTML': 'xhtml',
     'HTML': 'html',
     'DESKTOP': 'desktop',
+    'STRINGS': 'strings',
+    'XLIFF': 'xlf',
+    'DTD': 'dtd',
+    'PHP': 'php',
+    'YML': 'yml',
+    'RESX': 'resx',
+    'SRT': 'srt',
+    'SUB': 'sub',
+    'SBV': 'sbv',
+    'MIF': 'mif',
 }
 
 
