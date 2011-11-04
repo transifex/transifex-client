@@ -885,11 +885,12 @@ class Project(object):
 
         selected_resources = []
         for resource in resources:
+            found = False
             for full_name in configured_resources:
                 if fnmatch.fnmatch(full_name, resource):
                     selected_resources.append(full_name)
-                    break
-            else:
+                    found = True
+            if not found:
                 msg = "Specified resource '%s' does not exist."
                 raise Exception(msg % resource)
         logger.debug("Operating on resources: %s" % selected_resources)

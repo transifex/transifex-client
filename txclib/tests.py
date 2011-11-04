@@ -48,9 +48,9 @@ class TestProject(unittest.TestCase):
                 [],
             ]
 
-            for arg in cmd_args:
+            for i, arg in enumerate(cmd_args):
                 resources = [arg]
-                p.get_chosen_resources(resources)
+                self.assertEqual(p.get_chosen_resources(resources), results[i])
 
             # wrong argument
             resources = ['*trasnifex*', ]
