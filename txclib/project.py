@@ -302,16 +302,9 @@ class Project(object):
             logger.debug("Language mapping is: %s" % lang_map)
             logger.debug("Using host %s" % host)
 
-            try:
-                r = self.do_url_request(
-                    'resource_stats', host=host, project=project_slug,
-                    resource=resource_slug
-                )
-                logger.debug("Statistics response is %s" % r)
-                stats = parse_json(r)
-            except Exception,e:
-                logger.debug("Empty statistics.")
-                stats = {}
+            stats = self._get_stats_for_resource(
+                host, project_slug, resource_slug
+            )
 
             # remove mapped lanaguages from local file listing
             for l in lang_map.flip:
@@ -461,16 +454,9 @@ class Project(object):
 
             MSG("Pushing translations for resource %s:" % resource)
 
-            try:
-                r = self.do_url_request(
-                    'resource_stats', host=host, project=project_slug,
-                    resource=resource_slug
-                )
-                logger.debug("Statistics response is %s" % r)
-                stats = parse_json(r)
-            except Exception,e:
-                logger.debug("Empty statistics.")
-                stats = {}
+            stats = self._get_stats_for_resource(
+                host, project_slug, resource_slug
+            )
 
             if force and not no_interactive:
                 answer = raw_input("Warning: By using --force, the uploaded"
@@ -918,3 +904,17 @@ class Project(object):
             if self._should_add_translation(l['code'], stats, force):
                 new_translations.append(code)
         return new_translations
+
+    def _get_stats_for_resource(self, host, project_slug, resource_slug):
+        """Get the statistics information for a resource."""
+        try:
+            r = self.do_url_request(
+                'resource_stats', host=host, project=project_slug,
+                resource=resource_slug
+            )
+            logger.debug("Statistics response is %s" % r)
+            stats = parse_json(r)
+        except Exception,e:
+            logger.debug("Empty statistics: %s" % e)
+            stats = {}
+        return stats

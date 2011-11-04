@@ -141,7 +141,7 @@ class TestProjectFilters(unittest.TestCase):
                     self.assertTrue(should_add(lang, self.stats, force))
 
             # unknown language
-            self.assertTrue(should_add('es', self.stats))
+            self.assertFalse(should_add('es', self.stats))
 
     def test_update_translation(self):
         """Test filters for updating a translation.
@@ -160,7 +160,7 @@ class TestProjectFilters(unittest.TestCase):
             local_file = 'foo'
 
             # unknown language
-            self.assertTrue(should_update('es', self.stats, local_file))
+            self.assertFalse(should_update('es', self.stats, local_file))
 
             # no local file
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
