@@ -27,6 +27,7 @@ from txclib.utils import parse_json, compile_json, relpath
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 
+
 def cmd_init(argv, path_to_tx):
     "Initialize a new transifex project."
 
@@ -100,6 +101,7 @@ def cmd_init(argv, path_to_tx):
     prj.save()
 
     utils.MSG("Done.")
+
 
 def cmd_set(argv, path_to_tx):
     "Add local or remote files under transifex"
@@ -236,6 +238,7 @@ def cmd_set(argv, path_to_tx):
 
     return
 
+
 def _auto_local(path_to_tx, resource, source_language, expression, execute=False, source_file=None,
     nosource=False, regex=False):
     """
@@ -313,6 +316,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
 
     prj.save()
 
+
 def _auto_remote(path_to_tx, url):
     """
     Initialize a remote release/project/resource to the current directory.
@@ -368,6 +372,7 @@ def _auto_remote(path_to_tx, url):
             i18n_type = i18n_type)
 
     prj.save()
+
 
 def cmd_push(argv, path_to_tx):
     "Push local files to remote server"
@@ -434,6 +439,7 @@ def cmd_push(argv, path_to_tx):
         no_interactive=options.no_interactive)
 
     utils.MSG("Done.")
+
 
 def cmd_pull(argv, path_to_tx):
     "Pull files from remote server to local repository"
@@ -510,6 +516,7 @@ def cmd_pull(argv, path_to_tx):
         force=options.force, skip=skip, minimum_perc=minimum_perc)
 
     utils.MSG("Done.")
+
 
 def _set_source_file(path_to_tx, resource, lang, path_to_file):
     """Reusable method to set source file."""
@@ -602,6 +609,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
     prj.save()
 
+
 def cmd_status(argv, path_to_tx):
     "Print status of current project"
 
@@ -647,6 +655,7 @@ def cmd_status(argv, path_to_tx):
 
         utils.MSG("")
 
+
 def cmd_help(argv, path_to_tx):
     "List all available commands"
 
@@ -685,6 +694,7 @@ def cmd_help(argv, path_to_tx):
         utils.MSG("  %-15s\t%s" % (key, fns[key].func_doc))
 
     utils.MSG("\nFor more information run %s command --help" % sys.argv[0])
+
 
 def cmd_delete(argv, path_to_tx):
     "Delete an accessible resource or translation in a remote server."

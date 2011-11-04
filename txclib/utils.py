@@ -8,6 +8,7 @@ import urllib2 # This should go and instead use do_url_request everywhere
 from urls import API_URLS
 from txclib.log import logger
 
+
 # This is a mapping between i18n types supported on Transifex and related file
 # extensions of the translation files.
 FILE_EXTENSIONS = {
@@ -21,6 +22,7 @@ FILE_EXTENSIONS = {
     'DESKTOP': 'desktop',
 }
 
+
 def MSG(msg, verbose=1):
     """
     STDOUT logging function
@@ -28,11 +30,13 @@ def MSG(msg, verbose=1):
     if verbose:
         logger.info('%s' % msg)
 
+
 def ERRMSG(msg, verbosity=1):
     """
     STDERR logging function
     """
     logger.error('%s' % msg)
+
 
 def find_dot_tx(path = os.path.curdir, previous = None):
     """
@@ -73,6 +77,7 @@ TX_URLS = {
     'project': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/?$',
 }
 
+
 def parse_tx_url(url):
     """
     Try to match given url to any of the valid url patterns specified in
@@ -85,6 +90,7 @@ def parse_tx_url(url):
             return type, m.groupdict()
 
     raise Exception("tx: Malformed url given!")
+
 
 def get_details(api_call, username, password, *args, **kwargs):
     """
@@ -116,6 +122,7 @@ def get_details(api_call, username, password, *args, **kwargs):
         raise Exception("Remote server replied: %s" % error[1])
 
     return remote_project
+
 
 def valid_slug(slug):
     """
@@ -151,8 +158,10 @@ def discover_commands():
 
     return command_table
 
+
 class UnknownCommandError(Exception):
 	pass
+
 
 def exec_command(command, *args, **kwargs):
     """
@@ -164,6 +173,7 @@ def exec_command(command, *args, **kwargs):
     except KeyError:
         raise UnknownCommandError
     cmd_fn(*args,**kwargs)
+
 
 def mkdir_p(path):
     try:
@@ -185,6 +195,7 @@ COLORS = [
 ]
 
 DISABLE_COLORS = False
+
 
 def color_text(text, color_name, bold=False):
     """

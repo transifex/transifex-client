@@ -1,5 +1,6 @@
 import ConfigParser
 
+
 class OrderedRawConfigParser( ConfigParser.RawConfigParser ):
     """
     Overload standard Class ConfigParser.RawConfigParser
@@ -26,9 +27,10 @@ class OrderedRawConfigParser( ConfigParser.RawConfigParser ):
 
 _NOTFOUND = object()
 
+
 class Flipdict(dict):
     """An injective (one-to-one) python dict.  Ensures that each key maps
-    to a unique value, and each value maps back to that same key. 
+    to a unique value, and each value maps back to that same key.
 
     Code mostly taken from here:
     http://code.activestate.com/recipes/576968-flipdict-python-dict-that-also-maintains-a-one-to-/
