@@ -867,16 +867,16 @@ class Project(object):
         langs = stats.keys()
         logger.debug("Available languages are: %s" % langs)
 
-        for code in langs:
-            code_exists = code in files.keys()
-            code_is_source = code == slang
-            mapped_code_exists = (
-                code in lang_map and lang_map[code] in files.keys()
+        for lang in langs:
+            lang_exists = lang in files.keys()
+            lang_is_source = lang == slang
+            mapped_lang_exists = (
+                lang in lang_map and lang_map[lang] in files.keys()
             )
-            if code_exists or code_is_source or mapped_code_exists:
+            if lang_exists or lang_is_source or mapped_lang_exists:
                 continue
-            if self._should_add_translation(l['code'], stats, force):
-                new_translations.append(code)
+            if self._should_add_translation(lang, stats, force):
+                new_translations.append(lang)
         return new_translations
 
     def _get_stats_for_resource(self):
