@@ -10,16 +10,16 @@ import logging
 _logger = logging.getLogger('txclib')
 _logger.setLevel(logging.INFO)
 
+_formatter = logging.Formatter('%(message)s')
+
 _error_handler = logging.StreamHandler(sys.stderr)
 _error_handler.setLevel(logging.WARNING)
-_error_formatter = logging.Formatter('%(levelname)s: %(message)s')
-_error_handler.setFormatter(_error_formatter)
+_error_handler.setFormatter(_formatter)
 _logger.addHandler(_error_handler)
 
 _msg_handler = logging.StreamHandler(sys.stdout)
 _msg_handler.setLevel(logging.DEBUG)
-_msg_formatter = logging.Formatter('%(message)s')
-_msg_handler.setFormatter(_msg_formatter)
+_msg_handler.setFormatter(_formatter)
 _logger.addHandler(_msg_handler)
 
 logger = _logger
