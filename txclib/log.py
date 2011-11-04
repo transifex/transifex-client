@@ -25,7 +25,7 @@ _logger.addHandler(_msg_handler)
 logger = _logger
 
 
-def set_level(level):
+def set_log_level(level):
     """Set the level for the logger.
 
     Args:

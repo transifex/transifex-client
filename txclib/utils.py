@@ -27,8 +27,7 @@ def MSG(msg, verbose=1):
     """
     STDOUT logging function
     """
-    if verbose:
-        logger.info('%s' % msg)
+    logger.info('%s' % msg)
 
 
 def ERRMSG(msg, verbosity=1):

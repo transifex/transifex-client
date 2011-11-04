@@ -7,7 +7,7 @@ import sys
 
 from txclib import utils
 from txclib import get_version
-from txclib.log import set_level
+from txclib.log import set_log_level
 
 reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
 
@@ -33,17 +33,6 @@ except KeyboardInterrupt:
 sys.setdefaultencoding('utf-8')
 
 
-def set_log_level(option, opt, value, parser):
-    """Set the log level.
-
-    Callback called from optparse.
-    """
-    try:
-        set_level(value)
-    except Exception, e:
-        raise OptionValueError("Error setting the log level: %s" % e)
-
-
 def main(argv):
     """
     Here we parse the flags (short, long) and we instantiate the classes.
@@ -56,22 +45,24 @@ def main(argv):
 		" just want help with a specific command issue `%prog help"\
 		" command`"
 
-    parser = OptionParser(usage=usage, version=get_version(), description=description)
+    parser = OptionParser(
+        usage=usage, version=get_version(), description=description
+    )
     parser.disable_interspersed_args()
-    parser.add_option("-q", "--quiet",
-        action="store_true", dest="verbose", default=False,
-        help="don't print status messages to stdout")
+    parser.add_option(
+        "-d", "--debug", action="store_true", dest="debug",
+        default=False, help=("enable debug messages")
+    )
+    parser.add_option(
+        "-q", "--quiet", action="store_true", dest="quiet",
+        default=False, help="don't print status messages to stdout"
+    )
     parser.add_option("-r", "--root", action="store",
         dest="root_dir", type="string", default=None,
         help="change root directory (default is cwd)")
     parser.add_option("--traceback", action="store_true",
         dest="trace", default=False,
         help="print full traceback on exceptions")
-    parser.add_option("--log-level", action="callback", type="string",
-        callback=set_log_level, default="INFO",
-        help=("specify the log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
-              " for the messages printed")
-    )
     parser.add_option("--disable-colors", action="store_true",
         dest="color_disable", default=(os.name == 'nt'),
         help="print full traceback on exceptions")
@@ -82,6 +73,12 @@ def main(argv):
         parser.error("No command was given")
 
     utils.DISABLE_COLORS = options.color_disable
+
+    # set log level
+    if options.quiet:
+        set_log_level('WARNING')
+    elif options.debug:
+        set_log_level('DEBUG')
 
     # find .tx
     path_to_tx = options.root_dir or utils.find_dot_tx()
