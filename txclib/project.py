@@ -564,38 +564,27 @@ class Project(object):
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
 
+            self.url_info = {
+                'host': host,
+                'project': project_slug,
+                'resource': resource_slug
+            }
+            logger.debug("URL data are: %s" % self.url_info)
 
-            if languages:
-                MSG("Deleting translations for resource %s:" % resource)
-                for language in languages:
-                    try:
-                        r = self.do_url_request(
-                            'delete_translation', host=host,
-                            project=project_slug, resource=resource_slug,
-                            language=language, method="DELETE"
-                        )
-                        MSG(
-                            "Deleted language %s from resource %s in project %s." % (
-                                language, resource_slug, project_slug
-                            ))
-                    except Exception, e:
-                        MSG(
-                            "ERROR: Unable to delete translation %s.%s.%s" % (
-                                project_slug, resource_slug, language
-                            ))
-                        if not skip:
-                            raise
-            else:
+            MSG("Deleting translations for resource %s:" % resource)
+            if not languages:
+                logger.warning("No languages specified.")
+                return
+            for language in languages:
                 try:
-                    r = self.do_url_request('resource_details', method="DELETE")
-                    MSG("Deleted resource %s in project %s." % (
-                            resource_slug, project_slug
-                    ))
+                    self.do_url_request(
+                        'delete_translation', language=language, method="DELETE"
+                    )
+                    msg = "Deleted language %s from resource %s in project %s."
+                    MSG(msg % (language, resource_slug, project_slug))
                 except Exception, e:
-                    MSG(
-                        "ERROR: Unable to delete resource %s.%s" % (
-                            project_slug, resource_slug
-                        ))
+                    msg = "ERROR: Unable to delete translation %s.%s.%s"
+                    MSG(msg % (project_slug, resource_slug, language))
                     if not skip:
                         raise
 
