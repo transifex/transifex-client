@@ -856,7 +856,7 @@ class Project(object):
             self.get_full_path(local_file)
         )
         logger.debug(
-            "Remote time is %s and local %s" % (remote_updated, local_time)
+            "Remote time is %s and local %s" % (remote_time, local_time)
         )
         if local_time is not None and remote_time < local_time:
             return False
