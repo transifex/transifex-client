@@ -491,13 +491,10 @@ class Project(object):
                 try:
                     self.do_url_request('resource_details')
                 except Exception, e:
-                    try:
-                        code = e.code
-                    except:
-                        raise e
-                    if e.code == 404:
-                        ERRMSG("Resource %s doesn't exist on the server. Use the"
-                            " --source option to create it." % resource)
+                    code = getattr(e, 'code', None)
+                    if code == 404:
+                        msg = "Resource %s doesn't exist on the server."
+                        logger.error(msg % resource)
                         continue
 
             if translations:
