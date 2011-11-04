@@ -57,16 +57,18 @@ def main(argv):
         "-q", "--quiet", action="store_true", dest="quiet",
         default=False, help="don't print status messages to stdout"
     )
-    parser.add_option("-r", "--root", action="store",
-        dest="root_dir", type="string", default=None,
-        help="change root directory (default is cwd)")
-    parser.add_option("--traceback", action="store_true",
-        dest="trace", default=False,
-        help="print full traceback on exceptions")
-    parser.add_option("--disable-colors", action="store_true",
-        dest="color_disable", default=(os.name == 'nt'),
-        help="print full traceback on exceptions")
-
+    parser.add_option(
+        "-r", "--root", action="store", dest="root_dir", type="string",
+        default=None, help="change root directory (default is cwd)"
+    )
+    parser.add_option(
+        "--traceback", action="store_true", dest="trace", default=False,
+        help="print full traceback on exceptions"
+    )
+    parser.add_option(
+        "--disable-colors", action="store_true", dest="color_disable",
+        default=(os.name == 'nt'), help="print full traceback on exceptions"
+    )
     (options, args) = parser.parse_args()
 
     if len(args) < 1:
