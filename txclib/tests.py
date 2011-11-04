@@ -22,6 +22,40 @@ class TestProject(unittest.TestCase):
         )
         self.assertEqual(stats['last_update'], Project._extract_updated(stats))
 
+    def test_specifying_resources(self):
+        """Test the various ways to specify resources in a project."""
+        p = Project(init=False)
+        resources = [
+            'proj1.res1',
+            'proj2.res2',
+            'transifex.txn',
+            'transifex.txo',
+        ]
+        with patch.object(p, 'get_resource_list') as mock:
+            mock.return_value = resources
+            cmd_args = [
+                'proj1.res1', '*1*', 'transifex*', '*r*',
+                '*o', 'transifex.tx?', 'transifex.txn',
+            ]
+            results = [
+                ['proj1.res1', ],
+                ['proj1.res1', ],
+                ['transifex.txn', 'transifex.txo', ],
+                ['proj1.res1', 'proj2.res2', 'transifex.txn', 'transifex.txo', ],
+                ['transifex.txo', ],
+                ['transifex.txn', 'transifex.txo', ],
+                ['transifex.txn', ],
+                [],
+            ]
+
+            for arg in cmd_args:
+                resources = [arg]
+                p.get_chosen_resources(resources)
+
+            # wrong argument
+            resources = ['*trasnifex*', ]
+            self.assertRaises(Exception, p.get_chosen_resources, resources)
+
 
 class TestProjectMinimumPercent(unittest.TestCase):
     """Test the minimum-perc option."""

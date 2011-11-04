@@ -424,19 +424,16 @@ def cmd_push(argv, path_to_tx):
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
-    available_resources = prj.get_resource_list()
-    for r in resources:
-        if not r in available_resources:
-            raise Exception("Specified resource '%s' does not exist." % r)
-
     if not (options.push_source or options.push_translations):
         parser.error("You need to specify at least one of the -s|--source,"
             " -t|--translations flags with the push command.")
 
-    prj.push(force=force_creation, resources=resources, languages=languages,
+    prj.push(
+        force=force_creation, resources=resources, languages=languages,
         skip=skip, source=options.push_source,
         translations=options.push_translations,
-        no_interactive=options.no_interactive)
+        no_interactive=options.no_interactive
+    )
 
     utils.MSG("Done.")
 
@@ -506,14 +503,11 @@ def cmd_pull(argv, path_to_tx):
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
-    available_resources = prj.get_resource_list()
-    for r in resources:
-        if not r in available_resources:
-            raise Exception("Specified resource '%s' does not exist." % r)
-
-    prj.pull(languages=languages, resources=resources, overwrite=options.overwrite,
+    prj.pull(
+        languages=languages, resources=resources, overwrite=options.overwrite,
         fetchall=options.fetchall, fetchsource=options.fetchsource,
-        force=options.force, skip=skip, minimum_perc=minimum_perc)
+        force=options.force, skip=skip, minimum_perc=minimum_perc
+    )
 
     utils.MSG("Done.")
 
@@ -627,12 +621,7 @@ def cmd_status(argv, path_to_tx):
         resources = []
 
     prj = project.Project(path_to_tx)
-    available_resources = prj.get_resource_list()
-    for r in resources:
-        if not r in available_resources:
-            raise Exception("Specified resource '%s' does not exist." % r)
-    if not resources:
-        resources = available_resources
+    resources = prj.get_chosen_resources(resources)
     resources_num = len(resources)
     for id, res in enumerate(resources):
         p, r = res.split('.')
@@ -736,11 +725,6 @@ def cmd_delete(argv, path_to_tx):
     skip = options.skip_errors
 
     prj = project.Project(path_to_tx)
-    available_resources = prj.get_resource_list()
-    hostname = prj.get_resource_host('')
-    for r in resources:
-        if not r in available_resources:
-            raise Exception("Specified resource '%s' does not exist." % r)
     prj.delete(resources, languages, skip)
     utils.MSG("Done.")
 

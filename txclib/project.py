@@ -4,6 +4,7 @@ import copy
 import getpass
 import os
 import re
+import fnmatch
 import urllib2
 import datetime, time
 import ConfigParser
@@ -284,11 +285,7 @@ class Project(object):
         Pull all translations file from transifex server
         """
         self.minimum_perc = minimum_perc
-        if resources:
-            resource_list = resources
-        else:
-            resource_list = self.get_resource_list()
-        logger.debug("Operating on resources: %s" % resource_list)
+        resource_list = self.get_chosen_resources(resources)
 
         for resource in resource_list:
             logger.debug("Handling resource %s" % resource)
@@ -431,11 +428,7 @@ class Project(object):
         """
         Push all the resources
         """
-        if resources:
-            resource_list = resources
-        else:
-            resource_list = self.get_resource_list()
-
+        resource_list = self.get_chosen_resources(resources)
         for resource in resource_list:
             push_languages = []
             project_slug, resource_slug = resource.split('.')
@@ -552,8 +545,7 @@ class Project(object):
 
     def delete(self, resources=[], languages=[], skip=False):
         """Delete translations."""
-        if not resources:
-            resources = self.get_resource_list()
+        resource_list = self.get_chosen_resources(resources)
         for resource in resources:
             delete_languages = []
             files = self.get_resource_files(resource)
@@ -875,3 +867,30 @@ class Project(object):
             logger.debug("Empty statistics: %s" % e)
             stats = {}
         return stats
+
+    def get_chosen_resources(self, resources):
+        """Get the resources the user selected.
+
+        Support wildcards in the resources specified by the user.
+
+        Args:
+            resources: A list of resources as specified in command-line or
+                an empty list.
+        Returns:
+            A list of resources.
+        """
+        configured_resources = self.get_resource_list()
+        if not resources:
+            return configured_resources
+
+        selected_resources = []
+        for resource in resources:
+            for full_name in configured_resources:
+                if fnmatch.fnmatch(full_name, resource):
+                    selected_resources.append(full_name)
+                    break
+            else:
+                msg = "Specified resource '%s' does not exist."
+                raise Exception(msg % resource)
+        logger.debug("Operating on resources: %s" % selected_resources)
+        return selected_resources
