@@ -3,7 +3,7 @@
 API_URLS = {
     'get_resources': '%(hostname)s/api/2/project/%(project)s/resources/',
     'project_details': '%(hostname)s/api/2/project/%(project)s/?details',
-    'resource_details': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/?details',
+    'resource_details': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/',
     'release_details': '%(hostname)s/api/project/%(project)s/release/%(release)s/',
     'push_file': '%(hostname)s/api/storage/',  #'%(hostname)s/api/project/%(project)s/files/',
     'pull_file': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file',

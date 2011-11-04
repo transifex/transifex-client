@@ -887,14 +887,10 @@ class Project(object):
         """
         new_translations = []
         timestamp = time.time()
-        raw = self.do_url_request('resource_details', **self.url_info)
-        logger.debug("Details of resource are: %s" % raw)
-        details = parse_json(raw)
-        langs = details['available_languages']
+        langs = stats.keys()
         logger.debug("Available languages are: %s" % langs)
 
-        for l in langs:
-            code = l['code']
+        for code in langs:
             code_exists = code in files.keys()
             code_is_source = code == slang
             mapped_code_exists = (
