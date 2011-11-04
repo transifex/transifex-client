@@ -504,8 +504,7 @@ class Project(object):
                         ERRMSG(e)
             else:
                 try:
-                    self.do_url_request('resource_details', host=host,
-                        project=project_slug, resource=resource_slug)
+                    self.do_url_request('resource_details')
                 except Exception, e:
                     try:
                         code = e.code
@@ -611,10 +610,7 @@ class Project(object):
                             raise
             else:
                 try:
-                    r = self.do_url_request(
-                        'resource_details', host=host, project=project_slug,
-                        resource=resource_slug, method="DELETE"
-                    )
+                    r = self.do_url_request('resource_details', method="DELETE")
                     MSG("Deleted resource %s in project %s." % (
                             resource_slug, project_slug
                     ))
@@ -626,12 +622,13 @@ class Project(object):
                     if not skip:
                         raise
 
-    def do_url_request(self, api_call, host=None, multipart=False, data=None,
+    def do_url_request(self, api_call, multipart=False, data=None,
                        files=[], encoding=None, method="GET", **kwargs):
         """
         Issues a url request.
         """
         # Read the credentials from the config file (.transifexrc)
+        host = self.url_info['host']
         try:
             username = self.txrc.get(host, 'username')
             passwd = self.txrc.get(host, 'password')
@@ -644,6 +641,7 @@ class Project(object):
 
         # Create the Url
         kwargs['hostname'] = hostname
+        kwargs.update(self.url_info)
         url = (API_URLS[api_call] % kwargs).encode('UTF-8')
 
         opener = None
@@ -911,7 +909,7 @@ class Project(object):
     def _get_stats_for_resource(self):
         """Get the statistics information for a resource."""
         try:
-            r = self.do_url_request('resource_stats', **self.url_info)
+            r = self.do_url_request('resource_stats')
             logger.debug("Statistics response is %s" % r)
             stats = parse_json(r)
         except Exception,e:
