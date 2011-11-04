@@ -300,11 +300,14 @@ class Project(object):
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
             logger.debug("Language mapping is: %s" % lang_map)
-            logger.debug("Using host %s" % host)
+            self.url_info = {
+                'host': host,
+                'project': project_slug,
+                'resource': resource_slug
+            }
+            logger.debug("URL data are: %s" % self.url_info)
 
-            stats = self._get_stats_for_resource(
-                host, project_slug, resource_slug
-            )
+            stats = self._get_stats_for_resource()
 
             # remove mapped lanaguages from local file listing
             for l in lang_map.flip:
@@ -451,12 +454,15 @@ class Project(object):
             host = self.get_resource_host(resource)
             logger.debug("Language mapping is: %s" % lang_map)
             logger.debug("Using host %s" % host)
+            self.url_info = {
+                'host': host,
+                'project': project_slug,
+                'resource': resource_slug
+            }
 
             MSG("Pushing translations for resource %s:" % resource)
 
-            stats = self._get_stats_for_resource(
-                host, project_slug, resource_slug
-            )
+            stats = self._get_stats_for_resource()
 
             if force and not no_interactive:
                 answer = raw_input("Warning: By using --force, the uploaded"
@@ -883,10 +889,7 @@ class Project(object):
         """
         new_translations = []
         timestamp = time.time()
-        raw = self.do_url_request(
-            'resource_details', host=self.host,
-            project=self.project_slug, resource=self.resource_slug
-        )
+        raw = self.do_url_request('resource_details', **self.url_info)
         logger.debug("Details of resource are: %s" % raw)
         details = parse_json(raw)
         langs = details['available_languages']
@@ -905,13 +908,10 @@ class Project(object):
                 new_translations.append(code)
         return new_translations
 
-    def _get_stats_for_resource(self, host, project_slug, resource_slug):
+    def _get_stats_for_resource(self):
         """Get the statistics information for a resource."""
         try:
-            r = self.do_url_request(
-                'resource_stats', host=host, project=project_slug,
-                resource=resource_slug
-            )
+            r = self.do_url_request('resource_stats', **self.url_info)
             logger.debug("Statistics response is %s" % r)
             stats = parse_json(r)
         except Exception,e:
