@@ -547,22 +547,14 @@ class Project(object):
 
                     MSG("Pushing '%s' translations (file: %s)" % (color_text(remote_lang, "RED"), local_file))
                     try:
-                        r = self.do_url_request('push_file', host=host, multipart=True,
-                            files=[( "%s;%s" % (resource_slug, remote_lang),
-                            self.get_full_path(local_file))],
-                            method="POST",
-                            project=project_slug)
-                        r = parse_json(r)
-                        logger.debug("Response was %s" % r)
-                        uuid = r['files'][0]['uuid']
-                        self.do_url_request('extract_translation',
-                            host=host,
-                            data=compile_json({"uuid":uuid}),
-                            encoding='application/json',
-                            method="PUT",
-                            project=project_slug,
-                            resource=resource_slug,
-                            language=remote_lang)
+                        self.do_url_request(
+                            'push_translation', multipart=True, method='PUT',
+                            files=[(
+                                    "%s;%s" % (resource_slug, remote_lang),
+                                    self.get_full_path(local_file)
+                            )], language=remote_lang
+                        )
+                        logger.debug("Translation %s pushed." % remote_lang)
                     except Exception, e:
                         if not skip:
                             raise e

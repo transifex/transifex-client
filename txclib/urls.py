@@ -12,6 +12,7 @@ API_URLS = {
     'resource_stats': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/stats/',
     'delete_translation': '%(hostname)s/api/project/%(project)s/resource/%(resource)s/%(language)s/file/',
     'push_source': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/content/',
+    'push_translation': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/',
 }
 
 
