@@ -81,6 +81,8 @@ def cmd_init(argv, path_to_tx):
 
     if not transifex_host:
         transifex_host = default_transifex
+    if not transifex_host.startswith(('http://', 'https://')):
+        transifex_host = 'https://' + transifex_host
 
     config_file = os.path.join(path_to_tx, ".tx", "config")
     if not os.path.exists(config_file):
