@@ -742,7 +742,7 @@ class Project(object):
             lang_stats = stats[lang]
         except KeyError, e:
             logger.debug("No lang %s in statistics" % lang)
-            return True
+            return False
 
         if local_file is not None:
             remote_update = self._extract_updated(lang_stats)
