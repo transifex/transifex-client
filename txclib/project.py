@@ -483,20 +483,13 @@ class Project(object):
                 # Push source file
                 try:
                     MSG("Pushing source file (%s)" % sfile)
-                    r = self.do_url_request('push_file', host=host, multipart=True,
-                            files=[( "%s;%s" % (resource_slug, slang),
-                            self.get_full_path(sfile))],
-                            method="POST",
-                            project=project_slug)
-                    logger.debug("Response was %s" % r)
-                    r = parse_json(r)
-                    uuid = r['files'][0]['uuid']
-                    self.do_url_request('extract_source',
-                        host=host,
-                        data=compile_json({"uuid":uuid,"slug":resource_slug}),
-                        encoding='application/json',
-                        method="POST",
-                        project=project_slug)
+                    self.do_url_request(
+                        'push_source', multipart=True, method="PUT",
+                        files=[(
+                                "%s;%s" % (resource_slug, slang)
+                                , self.get_full_path(sfile)
+                        )],
+                    )
                 except Exception, e:
                     if not skip:
                         raise e

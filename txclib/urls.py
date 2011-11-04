@@ -11,6 +11,7 @@ API_URLS = {
     'extract_source': '%(hostname)s/api/project/%(project)s/files/',  #'%(hostname)s/api/project/%(project)s/files/',
     'resource_stats': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/stats/',
     'delete_translation': '%(hostname)s/api/project/%(project)s/resource/%(resource)s/%(language)s/file/',
+    'push_source': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/content/',
 }
 
 
