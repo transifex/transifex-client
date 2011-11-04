@@ -385,11 +385,7 @@ class Project(object):
                     local_file = ("%s.new" % local_file)
                 MSG(" -> %s: %s" % (color_text(remote_lang,"RED"), local_file))
                 try:
-                    r = self.do_url_request('pull_file',
-                        host=host,
-                        project=project_slug,
-                        resource=resource_slug,
-                        language=remote_lang)
+                    r = self.do_url_request('pull_file', language=remote_lang)
                 except Exception,e:
                     if not skip:
                         raise e
@@ -422,11 +418,7 @@ class Project(object):
                             local_lang, os.curdir))
 
                     MSG(" -> %s: %s" % (color_text(remote_lang, "RED"), local_file))
-                    r = self.do_url_request('pull_file',
-                        host=host,
-                        project=project_slug,
-                        resource=resource_slug,
-                        language=remote_lang)
+                    r = self.do_url_request('pull_file', language=remote_lang)
 
                     base_dir = os.path.split(local_file)[0]
                     mkdir_p(base_dir)
