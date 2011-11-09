@@ -6,6 +6,7 @@ import itertools
 import json
 from mock import patch
 from txclib.project import Project
+from txclib.config import Flipdict
 
 
 class TestProject(unittest.TestCase):
@@ -309,7 +310,7 @@ class TestProjectPull(unittest.TestCase):
         for lang in self.langs:
             self.details['available_languages'].append({'code': lang})
         self.slang = 'en'
-        self.lang_map = {}
+        self.lang_map = Flipdict()
 
     def test_new_translations(self):
         """Test finding new transaltions to add."""
@@ -321,7 +322,7 @@ class TestProjectPull(unittest.TestCase):
                 res = new_trans(
                     self.files, self.slang, self.lang_map, self.stats, force
                 )
-                self.assertEquals(res, [])
+                self.assertEquals(res, set([]))
 
             with patch.object(self.p, '_should_add_translation') as filter_mock:
                 filter_mock.return_value = True
@@ -329,12 +330,12 @@ class TestProjectPull(unittest.TestCase):
                     res = new_trans(
                         {'el': None}, self.slang, self.lang_map, self.stats, force
                     )
-                    self.assertEquals(res, ['pt'])
+                    self.assertEquals(res, set(['pt']))
                 for force in [True, False]:
                     res = new_trans(
                         {}, self.slang, self.lang_map, self.stats, force
                     )
-                    self.assertEquals(res, ['el', 'pt'])
+                    self.assertEquals(res, set(['el', 'pt']))
 
                 files = {}
                 files['pt_PT'] = None
@@ -343,4 +344,79 @@ class TestProjectPull(unittest.TestCase):
                     res = new_trans(
                         files, self.slang, lang_map, self.stats, force
                     )
-                    self.assertEquals(res, ['el'])
+                    self.assertEquals(res, set(['el']))
+
+    def test_languages_to_pull_empty_initial_list(self):
+        """Test determining the languages to pull, when the initial
+        list is empty.
+        """
+        languages = []
+        force = False
+
+        res = self.p._languages_to_pull(
+            languages, self.files, self.lang_map, self.stats, force
+        )
+        existing = res[0]
+        new = res[1]
+        self.assertEquals(existing, set(['el', 'en', 'pt']))
+        self.assertFalse(new)
+
+        del self.files['el']
+        self.files['el-gr'] = None
+        self.lang_map['el'] = 'el-gr'
+        res = self.p._languages_to_pull(
+            languages, self.files, self.lang_map, self.stats, force
+        )
+        existing = res[0]
+        new = res[1]
+        self.assertEquals(existing, set(['el', 'en', 'pt']))
+        self.assertFalse(new)
+
+    def test_languages_to_pull_with_initial_list(self):
+        """Test determining the languages to pull, then there is a
+        language selection from the user.
+        """
+        languages = ['el', 'en']
+        self.lang_map['el'] = 'el-gr'
+        del self.files['el']
+        self.files['el-gr'] = None
+        force = False
+
+        with patch.object(self.p, '_should_add_translation') as mock:
+            mock.return_value = True
+            res = self.p._languages_to_pull(
+                languages, self.files, self.lang_map, self.stats, force
+            )
+            existing = res[0]
+            new = res[1]
+            self.assertEquals(existing, set(['en', 'el-gr', ]))
+            self.assertFalse(new)
+
+            mock.return_value = False
+            res = self.p._languages_to_pull(
+                languages, self.files, self.lang_map, self.stats, force
+            )
+            existing = res[0]
+            new = res[1]
+            self.assertEquals(existing, set(['en', 'el-gr', ]))
+            self.assertFalse(new)
+
+            del self.files['el-gr']
+            mock.return_value = True
+            res = self.p._languages_to_pull(
+                languages, self.files, self.lang_map, self.stats, force
+            )
+            existing = res[0]
+            new = res[1]
+            self.assertEquals(existing, set(['en', ]))
+            self.assertEquals(new, set(['el', ]))
+
+            mock.return_value = False
+            res = self.p._languages_to_pull(
+                languages, self.files, self.lang_map, self.stats, force
+            )
+            existing = res[0]
+            new = res[1]
+            self.assertEquals(existing, set(['en', ]))
+            self.assertEquals(new, set([]))
+

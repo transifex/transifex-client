@@ -306,19 +306,14 @@ class Project(object):
 
             stats = self._get_stats_for_resource()
 
-            # remove mapped lanaguages from local file listing
-            for l in lang_map.flip:
-                if l in files:
-                    del files[l]
-
             try:
                 file_filter = self.config.get(resource, 'file_filter')
             except ConfigParser.NoOptionError:
                 file_filter = None
 
             # Pull source file
-            pull_languages = []
-            new_translations = []
+            pull_languages = set([])
+            new_translations = set([])
 
             if fetchall:
                 new_translations = self._new_translations_to_add(
@@ -328,18 +323,12 @@ class Project(object):
                     MSG("New translations found for the following languages: %s" %
                         ', '.join(new_translations))
 
-            if not languages:
-                pull_languages.extend(files.keys())
-            else:
-                f_langs = files.keys()
-                for l in languages:
-                    if l not in f_langs and not (l in lang_map and lang_map[l] in f_langs):
-                        if self._should_add_translation(l, stats, force):
-                            new_translations.append(l)
-                    else:
-                        if l in lang_map.keys():
-                            l = lang_map[l]
-                        pull_languages.append(l)
+            existing, new = self._languages_to_pull(
+                languages, files, lang_map, stats, force
+            )
+            pull_languages |= existing
+            new_translations |= new
+            logger.debug("Adding to new translations: %s" % new)
 
             if fetchsource:
                 if sfile and slang not in pull_languages:
@@ -362,7 +351,7 @@ class Project(object):
                     logger.debug("Skipping language %s" % lang)
                     continue
                 if lang != slang:
-                    local_file = files[lang] or files[lang_map[lang]]
+                    local_file = files.get(lang, None) or files[lang_map[lang]]
                 else:
                     local_file = sfile
                 logger.debug("Using file %s" % local_file)
@@ -855,7 +844,7 @@ class Project(object):
                 continue
             if self._should_add_translation(lang, stats, force):
                 new_translations.append(lang)
-        return new_translations
+        return set(new_translations)
 
     def _get_stats_for_resource(self):
         """Get the statistics information for a resource."""
@@ -895,3 +884,37 @@ class Project(object):
                 raise Exception(msg % resource)
         logger.debug("Operating on resources: %s" % selected_resources)
         return selected_resources
+
+    def _languages_to_pull(self, languages, files, lang_map, stats, force):
+        """Get a set of langauges to pull.
+
+        Args:
+            languages: A list of languages the user selected in cmd.
+            files: A dictionary of current local translation files.
+        Returns:
+            A tuple of a set of existing languages and new translations.
+        """
+        if not languages:
+            pull_languages = set([])
+            pull_languages |= set(files.keys())
+            mapped_files = []
+            for lang in pull_languages:
+                if lang in lang_map.flip:
+                    mapped_files.append(lang_map.flip[lang])
+            pull_languages -= set(lang_map.flip.keys())
+            pull_languages |= set(mapped_files)
+            return (pull_languages, set([]))
+        else:
+            pull_languages = []
+            new_translations = []
+            f_langs = files.keys()
+            for l in languages:
+                if l not in f_langs and not (l in lang_map and lang_map[l] in f_langs):
+                    if self._should_add_translation(l, stats, force):
+                        new_translations.append(l)
+                else:
+                    if l in lang_map.keys():
+                        l = lang_map[l]
+                    pull_languages.append(l)
+            return (set(pull_languages), set(new_translations))
+
