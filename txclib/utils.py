@@ -9,30 +9,6 @@ from urls import API_URLS
 from txclib.log import logger
 
 
-# This is a mapping between i18n types supported on Transifex and related file
-# extensions of the translation files.
-FILE_EXTENSIONS = {
-    'PO': 'po',
-    'QT': 'ts',
-    'INI': 'ini',
-    'PROPERTIES': 'properties',
-    'ANDROID': 'xml',
-    'XHTML': 'xhtml',
-    'HTML': 'html',
-    'DESKTOP': 'desktop',
-    'STRINGS': 'strings',
-    'XLIFF': 'xlf',
-    'DTD': 'dtd',
-    'PHP': 'php',
-    'YML': 'yml',
-    'RESX': 'resx',
-    'SRT': 'srt',
-    'SUB': 'sub',
-    'SBV': 'sbv',
-    'MIF': 'mif',
-}
-
-
 def MSG(msg, verbose=1):
     """
     STDOUT logging function

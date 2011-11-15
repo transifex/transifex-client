@@ -126,10 +126,13 @@ class Project(object):
 
         p_slug, r_slug = resource.split('.')
         file_filter = file_filter.replace("<sep>", r"%s" % os.path.sep)
+        extension = self._extension_for(i18n_type)
 
         self.config.set(resource, 'source_lang', source_lang)
-        self.config.set(resource, 'file_filter', file_filter % {'proj': p_slug,
-            'res': r_slug, 'extension': FILE_EXTENSIONS[i18n_type]})
+        self.config.set(
+            resource, 'file_filter',
+            file_filter % {'proj': p_slug, 'res': r_slug, 'extension': extension}
+        )
         if host != self.config.get('main', 'host'):
             self.config.set(resource, 'host', host)
 
@@ -918,3 +921,11 @@ class Project(object):
                     pull_languages.append(l)
             return (set(pull_languages), set(new_translations))
 
+    def _extension_for(self, i18n_type):
+        """Return the extension used for the specified type."""
+        try:
+            res = self.do_url_request('formats')
+            return res[i18n_type]['file-extensions'].split(',')[0]
+        except Exception,e:
+            ERRMSG(e)
+            return ''

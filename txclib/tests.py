@@ -420,3 +420,22 @@ class TestProjectPull(unittest.TestCase):
             self.assertEquals(existing, set(['en', ]))
             self.assertEquals(new, set([]))
 
+
+class TestFormats(unittest.TestCase):
+    """Tests for the supported formats."""
+
+    def setUp(self):
+        self.p = Project(init=False)
+
+    def test_extensions(self):
+        """Test returning the correct extension for a format."""
+        sample_formats = {
+            'PO': {'file-extensions': '.po, .pot'},
+            'QT': {'file-extensions': '.ts'},
+        }
+        extensions = ['.po', '.ts', '', ]
+        with patch.object(self.p, "do_url_request") as mock:
+            mock.return_value = sample_formats
+            for (type_, ext) in zip(['PO', 'QT', 'NONE', ], extensions):
+                extension = self.p._extension_for(type_)
+                self.assertEquals(extension, ext)
