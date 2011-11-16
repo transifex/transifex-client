@@ -460,6 +460,11 @@ class Project(object):
                 # Push source file
                 try:
                     MSG("Pushing source file (%s)" % sfile)
+                    if not self._resource_exists(stats):
+                        logger.info("Resource does not exist.  Creating...")
+                        fileinfo = "%s;%s" % (resource_slug, slang)
+                        filename = self.get_full_path(sfile)
+                        self._create_resource(resource, project_slug, fileinfo, filename)
                     self.do_url_request(
                         'push_source', multipart=True, method="PUT",
                         files=[(
@@ -855,9 +860,12 @@ class Project(object):
             r = self.do_url_request('resource_stats')
             logger.debug("Statistics response is %s" % r)
             stats = parse_json(r)
-        except Exception,e:
-            logger.debug("Empty statistics: %s" % e)
+        except urllib2.HTTPError, e:
+            logger.debug("Resource not found: %s" % e)
             stats = {}
+        except Exception,e:
+            logger.debug("Network error: %s" % e)
+            raise
         return stats
 
     def get_chosen_resources(self, resources):
@@ -929,3 +937,105 @@ class Project(object):
         except Exception,e:
             ERRMSG(e)
             return ''
+
+    def _resource_exists(self, stats):
+        """Check if resource exists.
+
+        Args:
+            stats: The statistics dict as returned by Tx.
+        Returns:
+            True, if the resource exists in the server.
+        """
+        return bool(stats)
+
+    def _create_resource(self, resource, pslug, fileinfo, filename, **kwargs):
+        """Create a resource.
+
+        Args:
+            resource: The full resource name.
+            pslug: The slug of the project.
+            fileinfo: The information of the resource.
+            filename: The name of the file.
+        Raises:
+            URLError, in case of a problem.
+        """
+        multipart = True
+        method = "POST"
+        api_call = 'create_resource'
+
+        host = self.url_info['host']
+        try:
+            username = self.txrc.get(host, 'username')
+            passwd = self.txrc.get(host, 'password')
+            token = self.txrc.get(host, 'token')
+            hostname = self.txrc.get(host, 'hostname')
+        except ConfigParser.NoSectionError:
+            raise Exception("No user credentials found for host %s. Edit"
+                " ~/.transifexrc and add the appropriate info in there." %
+                host)
+
+        # Create the Url
+        kwargs['hostname'] = hostname
+        kwargs.update(self.url_info)
+        kwargs['project'] = pslug
+        url = (API_URLS[api_call] % kwargs).encode('UTF-8')
+
+        opener = None
+        headers = None
+        req = None
+
+        i18n_type = self._get_option(resource, 'type')
+        if i18n_type is None:
+            logger.error(
+                "Cannot get type for resource. Please, add it in "
+                "the .tx/config file."
+            )
+
+        opener = urllib2.build_opener(MultipartPostHandler)
+        data = {
+            "slug": fileinfo.split(';')[0],
+            "name": fileinfo.split(';')[0],
+            "uploaded_file":  open(filename,'rb'),
+            "i18n_type": i18n_type
+        }
+        urllib2.install_opener(opener)
+        req = RequestWithMethod(url=url, data=data, method=method)
+
+        base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
+        authheader = "Basic %s" % base64string
+        req.add_header("Authorization", authheader)
+
+        try:
+            fh = urllib2.urlopen(req)
+        except urllib2.HTTPError, e:
+            if e.code in [401, 403, 404]:
+                raise e
+            else:
+                # For other requests, we should print the message as well
+                raise Exception("Remote server replied: %s" % e.read())
+        except urllib2.URLError, e:
+            error = e.args[0]
+            raise Exception("Remote server replied: %s" % error[1])
+
+        raw = fh.read()
+        fh.close()
+        return raw
+
+    def _get_option(self, resource, option):
+        """Get the value for the option in the config file.
+
+        If the option is not in the resource section, look for it in
+        the project.
+
+        Args:
+            resource: The resource name.
+            option: The option the value of which we are interested in.
+        Returns:
+            The option value or None, if it does not exist.
+        """
+        value = self.get_resource_option(resource, option)
+        if value is None:
+            if self.config.has_option('main', option):
+                return self.config.get('main', option)
+        return None
+

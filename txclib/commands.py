@@ -246,7 +246,6 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     """
     Auto configure local project
     """
-
     # The path everything will be relative to
     curpath = os.path.abspath(os.curdir)
 
