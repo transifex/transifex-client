@@ -342,8 +342,8 @@ def _auto_remote(path_to_tx, url):
             project = vars['project'], release = vars['release'])
         resources = []
         for r in rel_info['resources']:
-            if r.has_key('project_slug'):
-                resources.append('.'.join([r['project_slug'], r['slug']]))
+            if r.has_key('project'):
+                resources.append('.'.join([r['project']['slug'], r['slug']]))
             else:
                 resources.append('.'.join([vars['project'], r['slug']]))
         utils.MSG("%s resources found. Configuring..." % len(resources))
