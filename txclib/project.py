@@ -335,9 +335,9 @@ class Project(object):
 
             if fetchsource:
                 if sfile and slang not in pull_languages:
-                    pull_languages.append(slang)
+                    pull_languages.add(slang)
                 elif slang not in new_translations:
-                    new_translations.append(slang)
+                    new_translations.add(slang)
 
             if pull_languages:
                 logger.debug("Pulling languages for: %s" % pull_languages)
