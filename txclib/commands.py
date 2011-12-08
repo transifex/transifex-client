@@ -710,6 +710,8 @@ def cmd_delete(argv, path_to_tx):
         "--skip", action="store_true", dest="skip_errors", default=False,
         help="Don't stop on errors."
     )
+    parser.add_option("-f","--force", action="store_true", dest="force_delete",
+        default=False, help="Delete an entity forcefully.")
 
     (options, args) = parser.parse_args(argv)
 
@@ -724,9 +726,10 @@ def cmd_delete(argv, path_to_tx):
         resources = []
 
     skip = options.skip_errors
+    force = options.force_delete
 
     prj = project.Project(path_to_tx)
-    prj.delete(resources, languages, skip)
+    prj.delete(resources, languages, skip, force)
     utils.MSG("Done.")
 
 

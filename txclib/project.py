@@ -540,7 +540,7 @@ class Project(object):
                         else:
                             ERRMSG(e)
 
-    def delete(self, resources=[], languages=[], skip=False):
+    def delete(self, resources=[], languages=[], skip=False, force=False):
         """Delete translations."""
         resource_list = self.get_chosen_resources(resources)
         for resource in resources:
@@ -555,6 +555,11 @@ class Project(object):
                 'project': project_slug,
                 'resource': resource_slug
             }
+
+            project_details = parse_json(self.do_url_request('project_details',
+                project = self))
+            teams = project_details['teams']
+
             logger.debug("URL data are: %s" % self.url_info)
 
             MSG("Deleting translations for resource %s:" % resource)
@@ -563,9 +568,17 @@ class Project(object):
                 return
             for language in languages:
                 try:
+                    if not force:
+                        if language in teams:
+                            msg = "Skipping: Unable to delete translation %s.%s.%s "\
+                                    "because it is associated with a team.\n"\
+                                    "Please use -f or --force option to delete this translation."
+                            MSG(msg % (project_slug, resource_slug, language))
+                            continue
                     self.do_url_request(
                         'delete_translation', language=language, method="DELETE"
                     )
+
                     msg = "Deleted language %s from resource %s in project %s."
                     MSG(msg % (language, resource_slug, project_slug))
                 except Exception, e:
