@@ -420,6 +420,29 @@ class TestProjectPull(unittest.TestCase):
             self.assertEquals(existing, set(['en', ]))
             self.assertEquals(new, set([]))
 
+    def test_in_combination_with_force_option(self):
+        """Test the minumum-perc option along with -f."""
+        with patch.object(self.p, 'get_resource_option') as mock:
+            mock.return_value = 70
+
+            res = self.p._should_download('de', self.stats, None, False)
+            self.assertEquals(res, False)
+            res = self.p._should_download('el', self.stats, None, False)
+            self.assertEquals(res, False)
+            res = self.p._should_download('el', self.stats, None, True)
+            self.assertEquals(res, False)
+            res = self.p._should_download('en', self.stats, None, False)
+            self.assertEquals(res, True)
+            res = self.p._should_download('en', self.stats, None, True)
+            self.assertEquals(res, True)
+
+            with patch.object(self.p, '_remote_is_newer') as local_file_mock:
+                local_file_mock = False
+                res = self.p._should_download('pt', self.stats, None, False)
+                self.assertEquals(res, True)
+                res = self.p._should_download('pt', self.stats, None, True)
+                self.assertEquals(res, True)
+
 
 class TestFormats(unittest.TestCase):
     """Tests for the supported formats."""

@@ -690,22 +690,26 @@ class Project(object):
         If local_file is None, skip the timestamps check (the file does
         not exist locally).
         """
-        if force:
-            logger.debug("Downloading translation due -f")
-            return True
         try:
             lang_stats = stats[lang]
         except KeyError, e:
             logger.debug("No lang %s in statistics" % lang)
             return False
 
+        satisfies_min = self._satisfies_min_translated(lang_stats)
+        if not satisfies_min:
+            return False
+
+        if force:
+            logger.debug("Downloading translation due to -f")
+            return True
+
         if local_file is not None:
             remote_update = self._extract_updated(lang_stats)
             if not self._remote_is_newer(remote_update, local_file):
                 logger.debug("Local is newer than remote for lang %s" % lang)
                 return False
-
-        return self._satisfies_min_translated(lang_stats)
+        return True
 
     def _should_push_translation(self, lang, stats, local_file, force=False):
         """Return whether a local translation file should be
