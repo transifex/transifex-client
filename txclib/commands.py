@@ -695,9 +695,7 @@ def cmd_delete(argv, path_to_tx):
 
     usage="usage: %prog [tx_options] delete OPTION [OPTIONS]"
     description=(
-        "This command deletes either a resource (if no language "
-        "has been specified) or specific translations for a "
-        "resource in the remote server."
+        "This command deletes translations for a resource in the remote server."
     )
     epilog="\nExamples:\n"\
         " To delete a translation:\n  "\
