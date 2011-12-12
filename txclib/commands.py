@@ -694,10 +694,14 @@ def cmd_delete(argv, path_to_tx):
            return self.epilog
 
     usage="usage: %prog [tx_options] delete OPTION [OPTIONS]"
-    description="This command deletes either a resource (if no language has been specified)"
-    " or specific translations for a resource in the remote server."
+    description=(
+        "This command deletes either a resource (if no language "
+        "has been specified) or specific translations for a "
+        "resource in the remote server."
+    )
     epilog="\nExamples:\n"\
-        " To delete a translation:\n  $ tx delete -r project.resource -l <lang_code>\n\n"\
+        " To delete a translation:\n  "\
+        "$ tx delete -r project.resource -l <lang_code>\n\n"\
         " To delete a resource:\n  $ tx delete -r project.resource\n"
     parser = EpilogParser(usage=usage, description=description, epilog=epilog)
     parser.add_option(
