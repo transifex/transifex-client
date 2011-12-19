@@ -589,6 +589,12 @@ class Project(object):
                                     "Please use -f or --force option to delete this translation."
                             MSG(msg % (project_slug, resource_slug, language))
                             continue
+                        elif int(stats[language]['translated_entities']) > 0:
+                            msg = "Skipping: Unable to delete translation %s.%s.%s "\
+                                    "because it is not empty "\
+                                    "Please use -f or --force option to delete this translation."
+                            MSG(msg % (project_slug, resource_slug, language))
+                            continue
                     self.do_url_request(
                         'delete_translation', language=language, method="DELETE"
                     )
