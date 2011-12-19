@@ -126,6 +126,11 @@ class Project(object):
 
         p_slug, r_slug = resource.split('.')
         file_filter = file_filter.replace("<sep>", r"%s" % os.path.sep)
+        self.url_info = {
+            'host': host,
+            'project': p_slug,
+            'resource': r_slug
+        }
         extension = self._extension_for(i18n_type)
 
         self.config.set(resource, 'source_lang', source_lang)
@@ -559,6 +564,7 @@ class Project(object):
             project_details = parse_json(self.do_url_request('project_details',
                 project = self))
             teams = project_details['teams']
+            stats = self._get_stats_for_resource()
 
             logger.debug("URL data are: %s" % self.url_info)
 
@@ -949,7 +955,7 @@ class Project(object):
     def _extension_for(self, i18n_type):
         """Return the extension used for the specified type."""
         try:
-            res = self.do_url_request('formats')
+            res = parse_json(self.do_url_request('formats'))
             return res[i18n_type]['file-extensions'].split(',')[0]
         except Exception,e:
             ERRMSG(e)
