@@ -458,7 +458,7 @@ class TestFormats(unittest.TestCase):
         }
         extensions = ['.po', '.ts', '', ]
         with patch.object(self.p, "do_url_request") as mock:
-            mock.return_value = sample_formats
+            mock.return_value = json.dumps(sample_formats)
             for (type_, ext) in zip(['PO', 'QT', 'NONE', ], extensions):
                 extension = self.p._extension_for(type_)
                 self.assertEquals(extension, ext)
