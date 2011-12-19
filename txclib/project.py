@@ -543,7 +543,7 @@ class Project(object):
     def delete(self, resources=[], languages=[], skip=False, force=False):
         """Delete translations."""
         resource_list = self.get_chosen_resources(resources)
-        for resource in resources:
+        for resource in resource_list:
             delete_languages = []
             files = self.get_resource_files(resource)
             project_slug, resource_slug = resource.split('.')
