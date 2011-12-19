@@ -360,7 +360,7 @@ def _auto_remote(path_to_tx, url):
              username, password, hostname = vars['hostname'],
              project = proj, resource=res)
         try:
-            source_lang = res_info['source_language']['code']
+            source_lang = res_info['source_language_code']
             i18n_type = res_info['i18n_type']
         except KeyError:
             raise Exception("Remote server seems to be running an unsupported version"
