@@ -574,6 +574,14 @@ class Project(object):
                 return
             for language in languages:
                 try:
+                    if language not in stats:
+                        msg = (
+                            "Skipping: Translation %s.%s.%s does not exist. "
+                            "Please use -f or --force option to delete "
+                            "this translation."
+                        )
+                        MSG(msg % (project_slug, resource_slug, language))
+                        continue
                     if not force:
                         if language in teams:
                             msg = "Skipping: Unable to delete translation %s.%s.%s "\
