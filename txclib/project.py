@@ -568,33 +568,32 @@ class Project(object):
 
             logger.debug("URL data are: %s" % self.url_info)
 
-            MSG("Deleting translations for resource %s:" % resource)
+            MSG("Deleting translations from resource %s:" % resource)
             if not languages:
                 logger.warning("No languages specified.")
                 return
             for language in languages:
-                try:
-                    if language not in stats:
-                        msg = (
-                            "Skipping: Translation %s.%s.%s does not exist. "
-                            "Please use -f or --force option to delete "
-                            "this translation."
-                        )
-                        MSG(msg % (project_slug, resource_slug, language))
+                if language not in stats:
+                    if not skip:
+                        msg = "Skipping: %s : Translation does not exist."
+                        MSG(msg % (language))
+
+                    continue
+                if not force:
+                    if language in teams:
+                        msg = "Skipping: %s : Unable to delete translation "\
+                            "because it is associated with a team.\n"\
+                            "Please use -f or --force option to delete this translation."
+                        MSG(msg % (language))
                         continue
-                    if not force:
-                        if language in teams:
-                            msg = "Skipping: Unable to delete translation %s.%s.%s "\
-                                    "because it is associated with a team.\n"\
-                                    "Please use -f or --force option to delete this translation."
-                            MSG(msg % (project_slug, resource_slug, language))
-                            continue
-                        elif int(stats[language]['translated_entities']) > 0:
-                            msg = "Skipping: Unable to delete translation %s.%s.%s "\
-                                    "because it is not empty "\
-                                    "Please use -f or --force option to delete this translation."
-                            MSG(msg % (project_slug, resource_slug, language))
-                            continue
+                    if int(stats[language]['translated_entities']) > 0:
+                        msg = "Skipping: %s : Unable to delete translation "\
+                            "because it is not empty.\n"\
+                            "Please use -f or --force option to delete this translation."
+                        MSG(msg % (language))
+                        continue
+
+                try:
                     self.do_url_request(
                         'delete_translation', language=language, method="DELETE"
                     )
@@ -602,8 +601,8 @@ class Project(object):
                     msg = "Deleted language %s from resource %s in project %s."
                     MSG(msg % (language, resource_slug, project_slug))
                 except Exception, e:
-                    msg = "ERROR: Unable to delete translation %s.%s.%s"
-                    MSG(msg % (project_slug, resource_slug, language))
+                    msg = "ERROR: Unable to delete translation %s"
+                    MSG(msg % (language))
                     if not skip:
                         raise
 
