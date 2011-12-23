@@ -131,7 +131,7 @@ class Project(object):
             'project': p_slug,
             'resource': r_slug
         }
-        extension = self._extension_for(i18n_type)
+        extension = self._extension_for(i18n_type)[1:]
 
         self.config.set(resource, 'source_lang', source_lang)
         self.config.set(
