@@ -1074,5 +1074,5 @@ class Project(object):
         if value is None:
             if self.config.has_option('main', option):
                 return self.config.get('main', option)
-        return None
+        return value
 

@@ -2,8 +2,12 @@
 
 from __future__ import with_statement
 import unittest
+import contextlib
 import itertools
-import json
+try:
+    import json
+except ImportError:
+    import simplejson as json
 from mock import patch
 from txclib.project import Project
 from txclib.config import Flipdict
@@ -462,3 +466,27 @@ class TestFormats(unittest.TestCase):
             for (type_, ext) in zip(['PO', 'QT', 'NONE', ], extensions):
                 extension = self.p._extension_for(type_)
                 self.assertEquals(extension, ext)
+
+
+class TestOptions(unittest.TestCase):
+    """Test the methods related to parsing the configuration file."""
+
+    def setUp(self):
+        self.p = Project(init=False)
+
+    def test_get_option(self):
+        """Test _get_option method."""
+        with contextlib.nested(
+            patch.object(self.p, 'get_resource_option'),
+            patch.object(self.p, 'config', create=True)
+        ) as (rmock, cmock):
+            rmock.return_value = 'resource'
+            cmock.has_option.return_value = 'main'
+            cmock.get.return_value = 'main'
+            self.assertEqual(self.p._get_option(None, None), 'resource')
+            rmock.return_value = None
+            cmock.has_option.return_value = 'main'
+            cmock.get.return_value = 'main'
+            self.assertEqual(self.p._get_option(None, None), 'main')
+            cmock.has_option.return_value = None
+            self.assertIs(self.p._get_option(None, None), None)
