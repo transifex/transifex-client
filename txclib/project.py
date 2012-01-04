@@ -577,20 +577,21 @@ class Project(object):
                     if not skip:
                         msg = "Skipping: %s : Translation does not exist."
                         MSG(msg % (language))
-
                     continue
                 if not force:
                     if language in teams:
                         msg = "Skipping: %s : Unable to delete translation "\
                             "because it is associated with a team.\n"\
-                            "Please use -f or --force option to delete this translation."
-                        MSG(msg % (language))
+                            "Please use -f or --force option to delete "\
+                            "this translation."
+                        MSG(msg % language)
                         continue
                     if int(stats[language]['translated_entities']) > 0:
                         msg = "Skipping: %s : Unable to delete translation "\
                             "because it is not empty.\n"\
-                            "Please use -f or --force option to delete this translation."
-                        MSG(msg % (language))
+                            "Please use -f or --force option to delete this "\
+                            "translation."
+                        MSG(msg % language)
                         continue
 
                 try:
@@ -602,7 +603,7 @@ class Project(object):
                     MSG(msg % (language, resource_slug, project_slug))
                 except Exception, e:
                     msg = "ERROR: Unable to delete translation %s"
-                    MSG(msg % (language))
+                    MSG(msg % language)
                     if not skip:
                         raise
 
