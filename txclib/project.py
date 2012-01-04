@@ -131,7 +131,7 @@ class Project(object):
             'project': p_slug,
             'resource': r_slug
         }
-        extension = self._extension_for(i18n_type)
+        extension = self._extension_for(i18n_type)[1:]
 
         self.config.set(resource, 'source_lang', source_lang)
         self.config.set(
@@ -1073,5 +1073,5 @@ class Project(object):
         if value is None:
             if self.config.has_option('main', option):
                 return self.config.get('main', option)
-        return None
+        return value
 
