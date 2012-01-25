@@ -67,7 +67,7 @@ def main(argv):
     )
     parser.add_option(
         "--disable-colors", action="store_true", dest="color_disable",
-        default=(os.name == 'nt'), help="print full traceback on exceptions"
+        default=(os.name == 'nt'), help="disable colors in the output of commands"
     )
     (options, args) = parser.parse_args()
 
