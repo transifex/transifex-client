@@ -74,7 +74,7 @@ def parse_tx_url(url):
         if m:
             return type, m.groupdict()
 
-    raise Exception("tx: Malformed url given!")
+    raise Exception("tx: Malformed url given. Please refer to our docs: http://bit.ly/txautor")
 
 
 def get_details(api_call, username, password, *args, **kwargs):
