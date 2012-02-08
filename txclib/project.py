@@ -1024,8 +1024,8 @@ class Project(object):
         i18n_type = self._get_option(resource, 'type')
         if i18n_type is None:
             logger.error(
-                "Cannot get type for resource. Please, add it in "
-                "the .tx/config file."
+                "Please define the resource type in .tx/config (eg. type = PO)."
+                " More info: http://bit.ly/txcl-rt"
             )
 
         opener = urllib2.build_opener(MultipartPostHandler)
