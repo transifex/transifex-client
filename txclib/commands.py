@@ -119,8 +119,6 @@ def cmd_set(argv, path_to_tx):
     epilog="\nExamples:\n"\
         " To set the source file:\n  $ tx set -r project.resource --source -l en <file>\n\n"\
         " To set a single translation file:\n  $ tx set -r project.resource -l de <file>\n\n"\
-        " To automatically detect and assign translation files:\n"\
-        "  $ tx set --auto-local -r project.resource 'expr'\n\n"\
         " To automatically detect and assign the source files and translations:\n"\
         "  $ tx set --auto-local -r project.resource 'expr' --source-lang en\n\n"\
         " To set a specific file as a source and auto detect translations:\n"\
@@ -144,6 +142,14 @@ def cmd_set(argv, path_to_tx):
     parser.add_option("-l","--language", action="store", dest="language",
         default=None, help="Specify which translations you want to pull"
         " [doesn't work with the --auto-* commands].")
+    parser.add_option("-t", "--type", action="store", dest="i18n_type",
+        help=(
+            "Specify the i18n type of the resource(s). This is only needed, if "
+            "the resource(s) does not exist yet in Transifex. For a list of "
+            "available i18n types, see "
+            "http://help.transifex.net/features/formats.html"
+        )
+    )
     group = OptionGroup(parser, "Extended options", "These options can only be"
         " used with the --auto-local command.")
     group.add_option("-s","--source-language", action="store",
@@ -180,7 +186,7 @@ def cmd_set(argv, path_to_tx):
         _auto_local(path_to_tx, options.resource,
             source_language=options.source_language,
             expression = expression, source_file=options.source_file,
-            execute=options.execute, nosource=False, regex=False)
+            execute=options.execute, regex=False, i18n_type=options.i18n_type)
     elif options.remote:
         try:
             url = args[0]
@@ -241,11 +247,10 @@ def cmd_set(argv, path_to_tx):
     return
 
 
-def _auto_local(path_to_tx, resource, source_language, expression, execute=False, source_file=None,
-    nosource=False, regex=False):
-    """
-    Auto configure local project
-    """
+def _auto_local(
+    path_to_tx, resource, source_language, expression, execute=False,
+    source_file=None, regex=False, i18n_type=i18n_type):
+    """Auto configure local project."""
     # The path everything will be relative to
     curpath = os.path.abspath(os.curdir)
 
@@ -272,23 +277,20 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
                 else:
                     translation_files[lang] = f_path
 
-    # The set_source_file commands needs to be handled first.
-    # If source file search is enabled, go ahead and find it:
-    if not nosource:
-        if not source_file:
-            raise Exception("Could not find a source language file. Please run"
-                " set --source manually and then re-run this command or provide"
-                " the source file with the -s flag.")
-        if execute:
-            utils.MSG("Updating source for resource %s ( %s -> %s )." % (resource,
-                source_language, relpath(source_file, path_to_tx)))
-            _set_source_file(path_to_tx, resource, source_language,
-                relpath(source_file, path_to_tx))
-        else:
-            utils.MSG('\ntx set --source -r %(res)s -l %(lang)s %(file)s\n' % {
-                'res': resource,
-                'lang': source_language,
-                'file': relpath(source_file, curpath)})
+    if not source_file:
+        raise Exception("Could not find a source language file. Please run"
+            " set --source manually and then re-run this command or provide"
+            " the source file with the -s flag.")
+    if execute:
+        utils.MSG("Updating source for resource %s ( %s -> %s )." % (resource,
+            source_language, relpath(source_file, path_to_tx)))
+        _set_source_file(path_to_tx, resource, source_language,
+            relpath(source_file, path_to_tx))
+    else:
+        utils.MSG('\ntx set --source -r %(res)s -l %(lang)s %(file)s\n' % {
+            'res': resource,
+            'lang': source_language,
+            'file': relpath(source_file, curpath)})
 
     prj = project.Project(path_to_tx)
     root_dir = os.path.abspath(path_to_tx)
