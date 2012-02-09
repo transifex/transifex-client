@@ -247,9 +247,8 @@ def cmd_set(argv, path_to_tx):
     return
 
 
-def _auto_local(
-    path_to_tx, resource, source_language, expression, execute=False,
-    source_file=None, regex=False, i18n_type=i18n_type):
+def _auto_local(path_to_tx, resource, source_language, expression, execute=False,
+                source_file=None, regex=False, i18n_type=None):
     """Auto configure local project."""
     # The path everything will be relative to
     curpath = os.path.abspath(os.curdir)
@@ -310,6 +309,8 @@ def _auto_local(
         file_filter = relpath(os.path.join(curpath, expression),
             path_to_tx)
         prj.config.set("%s" % resource, "file_filter", file_filter)
+        if i18n_type is not None:
+            prj.config.set("%s" % resource, "type", i18n_type)
     else:
         for (lang, f_path) in sorted(translation_files.items()):
             utils.MSG('tx set -r %(res)s -l %(lang)s %(file)s' % {
