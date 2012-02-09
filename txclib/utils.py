@@ -7,6 +7,7 @@ import urllib2 # This should go and instead use do_url_request everywhere
 
 from urls import API_URLS
 from txclib.log import logger
+from txclib.exceptions import UnknownCommandError
 
 
 def MSG(msg, verbose=1):
@@ -142,10 +143,6 @@ def discover_commands():
             })
 
     return command_table
-
-
-class UnknownCommandError(Exception):
-	pass
 
 
 def exec_command(command, *args, **kwargs):
