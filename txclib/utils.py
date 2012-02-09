@@ -10,20 +10,6 @@ from txclib.log import logger
 from txclib.exceptions import UnknownCommandError
 
 
-def MSG(msg, verbose=1):
-    """
-    STDOUT logging function
-    """
-    logger.info('%s' % msg)
-
-
-def ERRMSG(msg, verbosity=1):
-    """
-    STDERR logging function
-    """
-    logger.error('%s' % msg)
-
-
 def find_dot_tx(path = os.path.curdir, previous = None):
     """
     Return the path where .tx folder is found.
