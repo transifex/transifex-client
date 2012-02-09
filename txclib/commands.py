@@ -35,10 +35,8 @@ def cmd_init(argv, path_to_tx):
     "Initialize a new transifex project."
     parser = init_parser()
     (options, args) = parser.parse_args(argv)
-
     if len(args) > 1:
         parser.error("Too many arguments were provided. Aborting...")
-
     if args:
         path_to_tx = args[0]
     else:
@@ -325,22 +323,10 @@ def cmd_push(argv, path_to_tx):
     "Push local files to remote server"
     parser = push_parser()
     (options, args) = parser.parse_args(argv)
-
     force_creation = options.force_creation
-
-    if options.languages:
-        languages = options.languages.split(',')
-    else:
-        languages = []
-
-    if options.resources:
-        resources = options.resources.split(',')
-    else:
-        resources = []
-
+    languages = parse_csv_option(options.languages)
+    resources = parse_csv_option(options.resources)
     skip = options.skip_errors
-
-    # instantiate the project.Project
     prj = project.Project(path_to_tx)
     if not (options.push_source or options.push_translations):
         parser.error("You need to specify at least one of the -s|--source,"
@@ -359,21 +345,11 @@ def cmd_pull(argv, path_to_tx):
     "Pull files from remote server to local repository"
     parser = pull_parser()
     (options, args) = parser.parse_args(argv)
-
     if options.fetchall and options.languages:
         parser.error("You can't user a language filter along with the"\
             " -a|--all option")
-
-    if options.languages:
-        languages = options.languages.split(',')
-    else:
-        languages = []
-
-    if options.resources:
-        resources = options.resources.split(',')
-    else:
-        resources = []
-
+    languages = parse_csv_option(options.languages)
+    resources = parse_csv_option(options.resources)
     skip = options.skip_errors
     minimum_perc = options.minimum_perc or None
 
@@ -396,13 +372,11 @@ def cmd_pull(argv, path_to_tx):
 
 def _set_source_file(path_to_tx, resource, lang, path_to_file):
     """Reusable method to set source file."""
-
     proj, res = resource.split('.')
     if not proj or not res:
         raise Exception("\"%s.%s\" is not a valid resource identifier. It should"
             " be in the following format project_slug.resource_slug." %
             (proj, res))
-
     if not lang:
         raise Exception("You haven't specified a source language.")
 
@@ -490,15 +464,11 @@ def cmd_status(argv, path_to_tx):
     "Print status of current project"
     parser = status_parser()
     (options, args) = parser.parse_args(argv)
-    if options.resources:
-        resources = options.resources.split(',')
-    else:
-        resources = []
-
+    resources = parse_csv_option(options.resources)
     prj = project.Project(path_to_tx)
     resources = prj.get_chosen_resources(resources)
     resources_num = len(resources)
-    for id, res in enumerate(resources):
+    for idx, res in enumerate(resources):
         p, r = res.split('.')
         logger.info("%s -> %s (%s of %s)" % (p, r, idx + 1, resources_num))
         logger.info("Translation Files:")
@@ -523,7 +493,6 @@ def cmd_help(argv, path_to_tx):
     """List all available commands"""
     parser = help_parser()
     (options, args) = parser.parse_args(argv)
-
     if len(args) > 1:
         parser.error("Multiple arguments received. Exiting...")
 
@@ -555,20 +524,10 @@ def cmd_delete(argv, path_to_tx):
     "Delete an accessible resource or translation in a remote server."
     parser = delete_parser()
     (options, args) = parser.parse_args(argv)
-
-    if options.languages:
-        languages = options.languages.split(',')
-    else:
-        languages = []
-
-    if options.resources:
-        resources = options.resources.split(',')
-    else:
-        resources = []
-
+    languages = parse_csv_option(options.languages)
+    resources = parse_csv_option(options.resources)
     skip = options.skip_errors
     force = options.force_delete
-
     prj = project.Project(path_to_tx)
     prj.delete(resources, languages, skip, force)
     logger.info("Done.")
