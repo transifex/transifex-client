@@ -33,52 +33,63 @@ class Project(object):
             self._init(path_to_tx)
 
     def _init(self, path_to_tx=None):
-        # The path to the root of the project, where .tx lives!
-        self.root = path_to_tx or find_dot_tx()
-        logger.debug("Path to tx is %s." % self.root)
-        if not self.root:
-            MSG("Cannot find any .tx directory!")
-            MSG("Run 'tx init' to initialize your project first!")
-            raise ProjectNotInit()
-
-        # The path to the config file (.tx/config)
-        self.config_file = os.path.join(self.root, ".tx", "config")
-        logger.debug("Config file is %s" % self.config_file)
-        # Touch the file if it doesn't exist
-        if not os.path.exists(self.config_file):
-            MSG("Cannot find the config file (.tx/config)!")
-            MSG("Run 'tx init' to fix this!")
-            raise ProjectNotInit()
-
-        # The dictionary which holds the config parameters after deser/tion.
-        # Read the config in memory
-        self.config = OrderedRawConfigParser()
+        instructions = "Run 'tx init' to initialize your project first!"
         try:
-            self.config.read(self.config_file)
-        except Exception, err:
-            MSG("WARNING: Cannot open/parse .tx/config file", err)
-            MSG("Run 'tx init' to fix this!")
-            raise ProjectNotInit()
+            self.root = self._get_tx_dir_path(path_to_tx)
+            self.config_file = self._get_config_file_path(self.root)
+            self.config = self._read_config_file(self.config_file)
+            self.txrc = self._read_transifex_auth()
+        except ProjectNotInit, e:
+            logger.error('\n'.join([msg, instructions]))
+            raise
 
+    def _get_config_file_path(self, root_path):
+        """Check the .tx/config file exists."""
+        config_file = os.path.join(root_path, ".tx", "config")
+        logger.debug("Config file is %s" % config_file)
+        if not os.path.exists(config_file):
+            msg = "Cannot find the config file (.tx/config)!"
+            raise ProjectNotInit(msg)
+        return config_file
 
-        home = os.path.expanduser("~")
-        self.txrc_file = os.path.join(home, ".transifexrc")
-        logger.debug(".transifexrc file is at %s" % home)
-        if not os.path.exists(self.txrc_file):
-            MSG("No configuration file found.")
-            # Writing global configuration file
-            mask = os.umask(077)
-            open(self.txrc_file, 'w').close()
-            os.umask(mask)
+    def _get_tx_dir_path(self, path_to_tx):
+        """Check the .tx directory exists."""
+        root_path = path_to_tx or find_dot_tx()
+        logger.debug("Path to tx is %s." % root_path)
+        if not root_path:
+            msg = "Cannot find any .tx directory!"
+            raise ProjectNotInit(msg)
+        return root_path
 
-        self.txrc = OrderedRawConfigParser()
+    def _read_config_file(self, config_file):
+        """Parse the config file and return its contents."""
+        config = OrderedRawConfigParser()
         try:
-            self.txrc.read(self.txrc_file)
+            config.read(config_file)
         except Exception, err:
-            MSG("WARNING: Cannot global conf file (%s)" %  err)
-            MSG("Run 'tx init' to fix this!")
-            raise ProjectNotInit()
+            msg = "Cannot open/parse .tx/config file: %s" % err
+            raise ProjectNotInit(msg)
+        return config
+    def _read_transifex_auth(self, directory=None):
+        """Read the authentication data from the .transifexrc file.
 
+
+        It is in the home directory ofthe user by default.
+        """
+        if directory is None:
+            directory = os.path.expanduser('~')
+        txrc_file = os.path.join(directory, ".transifexrc")
+        logger.debug(".transifexrc file is at %s" % directory)
+        if not os.path.exists(txrc_file):
+            msg = "No authentication data found."
+            raise ProjectNotInit(msg)
+        txrc = OrderedRawConfigParser()
+        try:
+            txrc.read(txrc_file)
+        except Exception, e:
+            msg = "Cannot read global configuration file: %s" % e
+            raise ProjectNotInit(msg)
+        return txrc
 
     def create_resource(self):
         pass
@@ -99,7 +110,7 @@ class Project(object):
             username = self.txrc.get(host, 'username')
             passwd = self.txrc.get(host, 'password')
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-            MSG("No entry found for host %s. Creating..." % host)
+            logger.info("No entry found for host %s. Creating..." % host)
             username = user or raw_input("Please enter your transifex username: ")
             while (not username):
                 username = raw_input("Please enter your transifex username: ")
@@ -107,7 +118,7 @@ class Project(object):
             while (not passwd):
                 passwd = getpass.getpass()
 
-            MSG("Updating %s file..." % self.txrc_file)
+            logger.info("Updating %s file..." % self.txrc_file)
             self.txrc.add_section(host)
             self.txrc.set(host, 'username', username)
             self.txrc.set(host, 'password', passwd)
@@ -328,7 +339,7 @@ class Project(object):
                     files, slang, lang_map, stats, force
                 )
                 if new_translations:
-                    MSG("New translations found for the following languages: %s" %
+                    logger.info("New translations found for the following languages: %s" %
                         ', '.join(new_translations))
 
             existing, new = self._languages_to_pull(
@@ -346,7 +357,7 @@ class Project(object):
 
             if pull_languages:
                 logger.debug("Pulling languages for: %s" % pull_languages)
-                MSG("Pulling translations for resource %s (source: %s)" %
+                logger.info("Pulling translations for resource %s (source: %s)" %
                     (resource, sfile))
 
             for lang in pull_languages:
@@ -372,19 +383,19 @@ class Project(object):
                 }
                 if not self._should_update_translation(**kwargs):
                     msg = "Skipping '%s' translation (file: %s)."
-                    MSG(msg % (color_text(remote_lang, "RED"), local_file))
+                    logger.info(msg % (color_text(remote_lang, "RED"), local_file))
                     continue
 
                 if not overwrite:
                     local_file = ("%s.new" % local_file)
-                MSG(" -> %s: %s" % (color_text(remote_lang,"RED"), local_file))
+                logger.info(" -> %s: %s" % (color_text(remote_lang,"RED"), local_file))
                 try:
                     r = self.do_url_request('pull_file', language=remote_lang)
                 except Exception,e:
                     if not skip:
                         raise e
                     else:
-                        ERRMSG(e)
+                        logger.error(e)
                         continue
                 base_dir = os.path.split(local_file)[0]
                 mkdir_p(base_dir)
@@ -393,7 +404,7 @@ class Project(object):
                 fd.close()
 
             if new_translations:
-                MSG("Pulling new translations for resource %s (source: %s)" %
+                logger.info("Pulling new translations for resource %s (source: %s)" %
                 (resource, sfile))
                 for lang in new_translations:
                     if lang in lang_map.keys():
@@ -411,7 +422,7 @@ class Project(object):
                         local_file = relpath(os.path.join(trans_dir, '%s_translation' %
                             local_lang, os.curdir))
 
-                    MSG(" -> %s: %s" % (color_text(remote_lang, "RED"), local_file))
+                    logger.info(" -> %s: %s" % (color_text(remote_lang, "RED"), local_file))
                     r = self.do_url_request('pull_file', language=remote_lang)
 
                     base_dir = os.path.split(local_file)[0]
@@ -442,7 +453,7 @@ class Project(object):
                 'resource': resource_slug
             }
 
-            MSG("Pushing translations for resource %s:" % resource)
+            logger.info("Pushing translations for resource %s:" % resource)
 
             stats = self._get_stats_for_resource()
 
@@ -457,14 +468,14 @@ class Project(object):
 
             if source:
                 if sfile == None:
-                    ERRMSG("You don't seem to have a proper source file"
+                    logger.error("You don't seem to have a proper source file"
                         " mapping for resource %s. Try without the --source"
                         " option or set a source file first and then try again." %
                         resource)
                     continue
                 # Push source file
                 try:
-                    MSG("Pushing source file (%s)" % sfile)
+                    logger.info("Pushing source file (%s)" % sfile)
                     if not self._resource_exists(stats):
                         logger.info("Resource does not exist.  Creating...")
                         fileinfo = "%s;%s" % (resource_slug, slang)
@@ -481,7 +492,7 @@ class Project(object):
                     if not skip:
                         raise e
                     else:
-                        ERRMSG(e)
+                        logger.error(e)
             else:
                 try:
                     self.do_url_request('resource_details')
@@ -504,7 +515,7 @@ class Project(object):
                             l = lang_map[l]
                         push_languages.append(l)
                         if l not in f_langs:
-                            ERRMSG("Warning: No mapping found for language code '%s'." %
+                            logger.error("Warning: No mapping found for language code '%s'." %
                                 color_text(l,"RED"))
                 logger.debug("Languages to push are %s" % push_languages)
 
@@ -526,10 +537,10 @@ class Project(object):
                     }
                     if not self._should_push_translation(**kwargs):
                         msg = "Skipping '%s' translation (file: %s)."
-                        MSG(msg % (color_text(lang, "RED"), local_file))
+                        logger.info(msg % (color_text(lang, "RED"), local_file))
                         continue
 
-                    MSG("Pushing '%s' translations (file: %s)" % (color_text(remote_lang, "RED"), local_file))
+                    logger.info("Pushing '%s' translations (file: %s)" % (color_text(remote_lang, "RED"), local_file))
                     try:
                         self.do_url_request(
                             'push_translation', multipart=True, method='PUT',
@@ -543,7 +554,7 @@ class Project(object):
                         if not skip:
                             raise e
                         else:
-                            ERRMSG(e)
+                            logger.error(e)
 
     def delete(self, resources=[], languages=[], skip=False, force=False):
         """Delete translations."""
@@ -568,7 +579,7 @@ class Project(object):
 
             logger.debug("URL data are: %s" % self.url_info)
 
-            MSG("Deleting translations from resource %s:" % resource)
+            logger.info("Deleting translations from resource %s:" % resource)
             if not languages:
                 logger.warning("No languages specified.")
                 return
@@ -576,7 +587,7 @@ class Project(object):
                 if language not in stats:
                     if not skip:
                         msg = "Skipping: %s : Translation does not exist."
-                        MSG(msg % (language))
+                        logger.info(msg % (language))
                     continue
                 if not force:
                     if language in teams:
@@ -584,14 +595,14 @@ class Project(object):
                             "because it is associated with a team.\n"\
                             "Please use -f or --force option to delete "\
                             "this translation."
-                        MSG(msg % language)
+                        logger.info(msg % language)
                         continue
                     if int(stats[language]['translated_entities']) > 0:
                         msg = "Skipping: %s : Unable to delete translation "\
                             "because it is not empty.\n"\
                             "Please use -f or --force option to delete this "\
                             "translation."
-                        MSG(msg % language)
+                        logger.info(msg % language)
                         continue
 
                 try:
@@ -600,10 +611,10 @@ class Project(object):
                     )
 
                     msg = "Deleted language %s from resource %s in project %s."
-                    MSG(msg % (language, resource_slug, project_slug))
+                    logger.info(msg % (language, resource_slug, project_slug))
                 except Exception, e:
                     msg = "ERROR: Unable to delete translation %s"
-                    MSG(msg % language)
+                    logger.info(msg % language)
                     if not skip:
                         raise
 
@@ -972,7 +983,7 @@ class Project(object):
             res = parse_json(self.do_url_request('formats'))
             return res[i18n_type]['file-extensions'].split(',')[0]
         except Exception,e:
-            ERRMSG(e)
+            logger.error(e)
             return ''
 
     def _resource_exists(self, stats):
