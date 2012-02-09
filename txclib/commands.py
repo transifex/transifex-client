@@ -26,6 +26,7 @@ from txclib import utils, project
 from txclib.utils import parse_json, compile_json, relpath
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
+from txclib.log import logger
 
 
 def cmd_init(argv, path_to_tx):
@@ -215,7 +216,17 @@ def cmd_set(argv, path_to_tx):
         # Calculate relative path
         path_to_file = relpath(file, path_to_tx)
         _set_source_file(path_to_tx, resource, options.language, path_to_file)
-
+    elif options.i18n_type:
+        resource = options.resource
+        if not resource:
+            logger.debug("Setting the i18n type for all resources.")
+            resources = []
+        else:
+            logger.debug("Setting the i18n type for resource %s." % resource)
+            resources = [resource, ]
+        prj = project.Project(path_to_tx)
+        prj.set_i18n_type(resources, options.i18n_type)
+        prj.save()
     else:
         resource = options.resource
         lang = options.language

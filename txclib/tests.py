@@ -490,3 +490,25 @@ class TestOptions(unittest.TestCase):
             self.assertEqual(self.p._get_option(None, None), 'main')
             cmock.has_option.return_value = None
             self.assertIs(self.p._get_option(None, None), None)
+
+
+class TestConfigurationOptions(unittest.TestCase):
+    """Test the various configuration options."""
+
+    def test_i18n_type(self):
+        p = Project(init=False)
+        type_string = 'type'
+        i18n_type = 'PO'
+        with patch.object(p, 'config', create=True) as config_mock:
+            p.set_i18n_type([], i18n_type)
+            calls = config_mock.method_calls
+            self.assertEquals('set', calls[0][0])
+            self.assertEquals('main', calls[0][1][0])
+            p.set_i18n_type(['transifex.txo'], 'PO')
+            calls = config_mock.method_calls
+            self.assertEquals('set', calls[0][0])
+            p.set_i18n_type(['transifex.txo', 'transifex.txn'], 'PO')
+            calls = config_mock.method_calls
+            self.assertEquals('set', calls[0][0])
+            self.assertEquals('set', calls[1][0])
+

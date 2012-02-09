@@ -1091,3 +1091,14 @@ class Project(object):
                 return self.config.get('main', option)
         return value
 
+    def set_i18n_type(self, resources, i18n_type):
+        """Set the for the specified resources.
+
+        If resources is empty, set the type globally.
+        """
+        if not resources:
+            self.config.set('main', 'type', i18n_type)
+            return
+        for r in resources:
+            self.config.set(r, 'type', i18n_type)
+
