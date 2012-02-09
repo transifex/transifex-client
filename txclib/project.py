@@ -38,7 +38,8 @@ class Project(object):
             self.root = self._get_tx_dir_path(path_to_tx)
             self.config_file = self._get_config_file_path(self.root)
             self.config = self._read_config_file(self.config_file)
-            self.txrc = self._get_transifex_config()
+            self.txrc_file = self._get_transifex_file()
+            self.txrc = self._get_transifex_config(self.txrc_file)
         except ProjectNotInit, e:
             logger.error('\n'.join([msg, instructions]))
             raise
@@ -71,8 +72,18 @@ class Project(object):
             raise ProjectNotInit(msg)
         return config
 
-    def _get_transifex_config(self, directory=None):
-        """Read the authentication data from the .transifexrc file.
+    def _get_transifex_config(self, txrc_file):
+        """Read the configuration from the .transifexrc file."""
+        txrc = OrderedRawConfigParser()
+        try:
+            txrc.read(txrc_file)
+        except Exception, e:
+            msg = "Cannot read global configuration file: %s" % e
+            raise ProjectNotInit(msg)
+        return txrc
+
+    def _get_transifex_file(self, directory=None):
+        """Fetch the path of the .transifexrc file.
 
         It is in the home directory ofthe user by default.
         """
@@ -83,13 +94,7 @@ class Project(object):
         if not os.path.exists(txrc_file):
             msg = "No authentication data found."
             raise ProjectNotInit(msg)
-        txrc = OrderedRawConfigParser()
-        try:
-            txrc.read(txrc_file)
-        except Exception, e:
-            msg = "Cannot read global configuration file: %s" % e
-            raise ProjectNotInit(msg)
-        return txrc
+        return txrc_file
 
     def create_resource(self):
         pass
