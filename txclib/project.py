@@ -96,9 +96,6 @@ class Project(object):
             raise ProjectNotInit(msg)
         return txrc_file
 
-    def create_resource(self):
-        pass
-
     def validate_config(self):
         """
         To ensure the json structure is correctly formed.
@@ -303,12 +300,15 @@ class Project(object):
             return os.path.join(self.root, relpath)
 
     def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
-        fetchsource=False, force=False, skip=False, minimum_perc=0):
-        """
-        Pull all translations file from transifex server
-        """
+        fetchsource=False, force=False, skip=False, minimum_perc=0, mode=None):
+        """Pull all translations file from transifex server."""
         self.minimum_perc = minimum_perc
         resource_list = self.get_chosen_resources(resources)
+
+        if mode == 'reviewed':
+            url = 'pull_reviewed_file'
+        else:
+            url = 'pull_file'
 
         for resource in resource_list:
             logger.debug("Handling resource %s" % resource)
@@ -394,7 +394,7 @@ class Project(object):
                     local_file = ("%s.new" % local_file)
                 logger.info(" -> %s: %s" % (color_text(remote_lang,"RED"), local_file))
                 try:
-                    r = self.do_url_request('pull_file', language=remote_lang)
+                    r = self.do_url_request(url, language=remote_lang)
                 except Exception,e:
                     if not skip:
                         raise e
@@ -427,7 +427,7 @@ class Project(object):
                             local_lang, os.curdir))
 
                     logger.info(" -> %s: %s" % (color_text(remote_lang, "RED"), local_file))
-                    r = self.do_url_request('pull_file', language=remote_lang)
+                    r = self.do_url_request(url, language=remote_lang)
 
                     base_dir = os.path.split(local_file)[0]
                     mkdir_p(base_dir)
@@ -670,6 +670,7 @@ class Project(object):
             fh = urllib2.urlopen(req)
         except urllib2.HTTPError, e:
             if e.code in [401, 403, 404]:
+                logger.error("Error with request: %s" % e)
                 raise e
             else:
                 # For other requests, we should print the message as well

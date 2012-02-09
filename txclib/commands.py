@@ -490,6 +490,14 @@ def cmd_pull(argv, path_to_tx):
         dest="minimum_perc", default=0,
         help="Specify the minimum acceptable percentage of a translation "
              "in order to download it.")
+    parser.add_option(
+        "--mode", action="store", dest="mode",
+        help=(
+            "Specify the mode of the translation file to pull. Currently, "
+            "the only available type is 'reviewed', which fetches only "
+            "the reviewed strings of a translation."
+        )
+    )
 
     (options, args) = parser.parse_args(argv)
 
@@ -521,7 +529,8 @@ def cmd_pull(argv, path_to_tx):
     prj.pull(
         languages=languages, resources=resources, overwrite=options.overwrite,
         fetchall=options.fetchall, fetchsource=options.fetchsource,
-        force=options.force, skip=skip, minimum_perc=minimum_perc
+        force=options.force, skip=skip, minimum_perc=minimum_perc,
+        mode=options.mode
     )
 
     utils.MSG("Done.")

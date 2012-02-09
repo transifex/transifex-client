@@ -6,6 +6,7 @@ API_URLS = {
     'resource_details': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/',
     'release_details': '%(hostname)s/api/2/project/%(project)s/release/%(release)s/',
     'pull_file': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file',
+    'pull_reviewed_file': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=reviewed',
     'resource_stats': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/stats/',
     'create_resource': '%(hostname)s/api/2/project/%(project)s/resources/',
     'push_source': '%(hostname)s/api/2/project/%(project)s/resource/%(resource)s/content/',
