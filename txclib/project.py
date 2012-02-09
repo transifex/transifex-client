@@ -38,7 +38,7 @@ class Project(object):
             self.root = self._get_tx_dir_path(path_to_tx)
             self.config_file = self._get_config_file_path(self.root)
             self.config = self._read_config_file(self.config_file)
-            self.txrc = self._read_transifex_auth()
+            self.txrc = self._get_transifex_config()
         except ProjectNotInit, e:
             logger.error('\n'.join([msg, instructions]))
             raise
@@ -70,9 +70,9 @@ class Project(object):
             msg = "Cannot open/parse .tx/config file: %s" % err
             raise ProjectNotInit(msg)
         return config
-    def _read_transifex_auth(self, directory=None):
-        """Read the authentication data from the .transifexrc file.
 
+    def _get_transifex_config(self, directory=None):
+        """Read the authentication data from the .transifexrc file.
 
         It is in the home directory ofthe user by default.
         """
@@ -93,7 +93,6 @@ class Project(object):
 
     def create_resource(self):
         pass
-
 
     def validate_config(self):
         """
