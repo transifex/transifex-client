@@ -26,26 +26,14 @@ from txclib import utils, project
 from txclib.utils import parse_json, compile_json, relpath
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
+from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
+        status_parser, pull_parser, set_parser, push_parser, init_parser
 from txclib.log import logger
 
 
 def cmd_init(argv, path_to_tx):
     "Initialize a new transifex project."
-
-    # Current working dir path
-    usage="usage: %prog [tx_options] init <path>"
-    description="This command initializes a new project for use with"\
-        " transifex. It is recommended to execute this command in the"\
-        " top level directory of your project so that you can include"\
-        " all files under it in transifex. If no path is provided, the"\
-        " current working dir will be used."
-    parser = OptionParser(usage=usage, description=description)
-    parser.add_option("--host", action="store", dest="host",
-        default=None, help="Specify a default Transifex host.")
-    parser.add_option("--user", action="store", dest="user",
-        default=None, help="Specify username for Transifex server.")
-    parser.add_option("--pass", action="store", dest="password",
-        default=None, help="Specify password for Transifex server.")
+    parser = init_parser()
     (options, args) = parser.parse_args(argv)
 
     if len(args) > 1:
@@ -108,62 +96,7 @@ def cmd_init(argv, path_to_tx):
 
 def cmd_set(argv, path_to_tx):
     "Add local or remote files under transifex"
-
-    class EpilogParser(OptionParser):
-       def format_epilog(self, formatter):
-           return self.epilog
-
-    usage="usage: %prog [tx_options] set [options] [args]"
-    description="This command can be used to create a mapping between files"\
-        " and projects either using local files or using files from a remote"\
-        " Transifex server."
-    epilog="\nExamples:\n"\
-        " To set the source file:\n  $ tx set -r project.resource --source -l en <file>\n\n"\
-        " To set a single translation file:\n  $ tx set -r project.resource -l de <file>\n\n"\
-        " To automatically detect and assign the source files and translations:\n"\
-        "  $ tx set --auto-local -r project.resource 'expr' --source-lang en\n\n"\
-        " To set a specific file as a source and auto detect translations:\n"\
-        "  $ tx set --auto-local -r project.resource 'expr' --source-lang en"\
-        " --source-file <file>\n\n"\
-        " To set a remote release/resource/project:\n"\
-        "  $ tx set --auto-remote <transifex-url>\n"
-    parser = EpilogParser(usage=usage, description=description, epilog=epilog)
-    parser.add_option("--auto-local", action="store_true", dest="local",
-        default=False, help="Used when auto configuring local project.")
-    parser.add_option("--auto-remote", action="store_true", dest="remote",
-        default=False, help="Used when adding remote files from Transifex"
-        " server.")
-    parser.add_option("-r","--resource", action="store", dest="resource",
-        default=None, help="Specify the slug of the resource that you're"
-            " setting up (This must be in the following format:"
-            " `project_slug.resource_slug`).")
-    parser.add_option("--source", action="store_true", dest="is_source",
-        default=False, help="Specify that added file a source file [doesn't"
-        " work with the --auto-* commands].")
-    parser.add_option("-l","--language", action="store", dest="language",
-        default=None, help="Specify which translations you want to pull"
-        " [doesn't work with the --auto-* commands].")
-    parser.add_option("-t", "--type", action="store", dest="i18n_type",
-        help=(
-            "Specify the i18n type of the resource(s). This is only needed, if "
-            "the resource(s) does not exist yet in Transifex. For a list of "
-            "available i18n types, see "
-            "http://help.transifex.net/features/formats.html"
-        )
-    )
-    group = OptionGroup(parser, "Extended options", "These options can only be"
-        " used with the --auto-local command.")
-    group.add_option("-s","--source-language", action="store",
-        dest="source_language",
-        default=None, help="Specify the source language of a resource"
-        " [requires --auto-local].")
-    group.add_option("-f","--source-file", action="store", dest="source_file",
-        default=None, help="Specify the source file of a resource [requires"
-        " --auto-local].")
-    group.add_option("--execute", action="store_true", dest="execute",
-        default=False, help="Execute commands [requires --auto-local].")
-    parser.add_option_group(group)
-
+    parser = set_parser()
     (options, args) = parser.parse_args(argv)
 
     # Implement options/args checks
@@ -391,36 +324,7 @@ def _auto_remote(path_to_tx, url):
 
 def cmd_push(argv, path_to_tx):
     "Push local files to remote server"
-    usage="usage: %prog [tx_options] push [options]"
-    description="This command pushes all local files that have been added to"\
-        " Transifex to the remote server. All new translations are merged"\
-        " with existing ones and if a language doesn't exists then it gets"\
-        " created. If you want to push the source file as well (either"\
-        " because this is your first time running the client or because"\
-        " you just have updated with new entries), use the -f|--force option."\
-        " By default, this command will push all files which are watched by"\
-        " Transifex but you can filter this per resource or/and language."
-    parser = OptionParser(usage=usage, description=description)
-    parser.add_option("-l","--language", action="store", dest="languages",
-        default=None, help="Specify which translations you want to push"
-        " (defaults to all)")
-    parser.add_option("-r","--resource", action="store", dest="resources",
-        default=None, help="Specify the resource for which you want to push"
-        " the translations (defaults to all)")
-    parser.add_option("-f","--force", action="store_true", dest="force_creation",
-        default=False, help="Push source files without checking modification"
-        " times.")
-    parser.add_option("--skip", action="store_true", dest="skip_errors",
-        default=False, help="Don't stop on errors. Useful when pushing many"
-        " files concurrently.")
-    parser.add_option("-s", "--source", action="store_true", dest="push_source",
-        default=False, help="Push the source file to the server.")
-
-    parser.add_option("-t", "--translations", action="store_true", dest="push_translations",
-        default=False, help="Push the translation files to the server")
-    parser.add_option("--no-interactive", action="store_true", dest="no_interactive",
-        default=False, help="Don't require user input when forcing a push.")
-
+    parser = push_parser()
     (options, args) = parser.parse_args(argv)
 
     force_creation = options.force_creation
@@ -455,50 +359,7 @@ def cmd_push(argv, path_to_tx):
 
 def cmd_pull(argv, path_to_tx):
     "Pull files from remote server to local repository"
-    usage="usage: %prog [tx_options] pull [options]"
-    description="This command pulls all outstanding changes from the remote"\
-        " Transifex server to the local repository. By default, only the"\
-        " files that are watched by Transifex will be updated but if you"\
-        " want to fetch the translations for new languages as well, use the"\
-        " -a|--all option. (Note: new translations are saved in the .tx folder"\
-        " and require the user to manually rename them and add then in "\
-        " transifex using the set_translation command)."
-    parser = OptionParser(usage=usage,description=description)
-    parser.add_option("-l","--language", action="store", dest="languages",
-        default=[], help="Specify which translations you want to pull"
-        " (defaults to all)")
-    parser.add_option("-r","--resource", action="store", dest="resources",
-        default=[], help="Specify the resource for which you want to pull"
-        " the translations (defaults to all)")
-    parser.add_option("-a","--all", action="store_true", dest="fetchall",
-        default=False, help="Fetch all translation files from server (even new"
-        " ones)")
-    parser.add_option("-s","--source", action="store_true", dest="fetchsource",
-        default=False, help="Force the fetching of the source file (default:"
-        " False)")
-    parser.add_option("-f","--force", action="store_true", dest="force",
-        default=False, help="Force download of translations files.")
-    parser.add_option("--skip", action="store_true", dest="skip_errors",
-        default=False, help="Don't stop on errors. Useful when pushing many"
-        " files concurrently.")
-    parser.add_option("--disable-overwrite", action="store_false",
-        dest="overwrite", default=True,
-        help="By default transifex will fetch new translations files and"\
-            " replace existing ones. Use this flag if you want to disable"\
-            " this feature")
-    parser.add_option("--minimum-perc", action="store", type="int",
-        dest="minimum_perc", default=0,
-        help="Specify the minimum acceptable percentage of a translation "
-             "in order to download it.")
-    parser.add_option(
-        "--mode", action="store", dest="mode",
-        help=(
-            "Specify the mode of the translation file to pull. Currently, "
-            "the only available type is 'reviewed', which fetches only "
-            "the reviewed strings of a translation."
-        )
-    )
-
+    parser = pull_parser()
     (options, args) = parser.parse_args(argv)
 
     if options.fetchall and options.languages:
@@ -630,14 +491,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
 def cmd_status(argv, path_to_tx):
     "Print status of current project"
-
-    usage="usage: %prog [tx_options] status [options]"
-    description="Prints the status of the current project by reading the"\
-        " data in the configuration file."
-    parser = OptionParser(usage=usage,description=description)
-    parser.add_option("-r","--resource", action="store", dest="resources",
-        default=[], help="Specify resources")
-
+    parser = status_parser()
     (options, args) = parser.parse_args(argv)
     if options.resources:
         resources = options.resources.split(',')
@@ -670,15 +524,8 @@ def cmd_status(argv, path_to_tx):
 
 
 def cmd_help(argv, path_to_tx):
-    "List all available commands"
-
-    usage="usage: %prog help command"
-    description="Lists all available commands in the transifex command"\
-        " client. If a command is specified, the help page of the specific"\
-        " command is displayed instead."
-
-    parser = OptionParser(usage=usage, description=description)
-
+    """List all available commands"""
+    parser = help_parser()
     (options, args) = parser.parse_args(argv)
 
     if len(args) > 1:
@@ -711,33 +558,7 @@ def cmd_help(argv, path_to_tx):
 
 def cmd_delete(argv, path_to_tx):
     "Delete an accessible resource or translation in a remote server."
-
-    class EpilogParser(OptionParser):
-       def format_epilog(self, formatter):
-           return self.epilog
-
-    usage="usage: %prog [tx_options] delete OPTION [OPTIONS]"
-    description=(
-        "This command deletes translations for a resource in the remote server."
-    )
-    epilog="\nExamples:\n"\
-        " To delete a translation:\n  "\
-        "$ tx delete -r project.resource -l <lang_code>\n\n"\
-        " To delete a resource:\n  $ tx delete -r project.resource\n"
-    parser = EpilogParser(usage=usage, description=description, epilog=epilog)
-    parser.add_option(
-        "-r", "--resource", action="store", dest="resources", default=None,
-        help="Specify the resource you want to delete (defaults to all)"
-    )
-    parser.add_option("-l","--language", action="store", dest="languages",
-        default=None, help="Specify the translation you want to delete")
-    parser.add_option(
-        "--skip", action="store_true", dest="skip_errors", default=False,
-        help="Don't stop on errors."
-    )
-    parser.add_option("-f","--force", action="store_true", dest="force_delete",
-        default=False, help="Delete an entity forcefully.")
-
+    parser = delete_parser()
     (options, args) = parser.parse_args(argv)
 
     if options.languages:
