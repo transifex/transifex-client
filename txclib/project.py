@@ -384,6 +384,7 @@ class Project(object):
                     'stats': stats,
                     'local_file': local_file,
                     'force': force,
+                    'mode': mode,
                 }
                 if not self._should_update_translation(**kwargs):
                     msg = "Skipping '%s' translation (file: %s)."
@@ -538,6 +539,7 @@ class Project(object):
                         'stats': stats,
                         'local_file': local_file,
                         'force': force,
+                        'mode': mode,
                     }
                     if not self._should_push_translation(**kwargs):
                         msg = "Skipping '%s' translation (file: %s)."
@@ -684,7 +686,8 @@ class Project(object):
         return raw
 
 
-    def _should_update_translation(self, lang, stats, local_file, force=False):
+    def _should_update_translation(self, lang, stats, local_file, force=False,
+                                   mode=None):
         """Whether a translation should be udpated from Transifex.
 
         We use the following criteria for that:
@@ -698,12 +701,13 @@ class Project(object):
             stats: The (global) statistics object.
             local_file: The local translation file.
             force: A boolean flag.
+            mode: The mode for the translation.
         Returns:
             True or False.
         """
         return self._should_download(lang, stats, local_file, force)
 
-    def _should_add_translation(self, lang, stats, force=False):
+    def _should_add_translation(self, lang, stats, force=False, mode=None):
         """Whether a translation should be added from Transifex.
 
         We use the following criteria for that:
@@ -715,12 +719,14 @@ class Project(object):
             lang: The language code to check.
             stats: The (global) statistics object.
             force: A boolean flag.
+            mode: The mode for the translation.
         Returns:
             True or False.
         """
         return self._should_download(lang, stats, None, force)
 
-    def _should_download(self, lang, stats, local_file=None, force=False):
+    def _should_download(self, lang, stats, local_file=None, force=False,
+                         mode=None):
         """Return whether a translation should be downloaded.
 
         If local_file is None, skip the timestamps check (the file does
@@ -732,7 +738,7 @@ class Project(object):
             logger.debug("No lang %s in statistics" % lang)
             return False
 
-        satisfies_min = self._satisfies_min_translated(lang_stats)
+        satisfies_min = self._satisfies_min_translated(lang_stats, mode)
         if not satisfies_min:
             return False
 
@@ -808,7 +814,7 @@ class Project(object):
             return None
         return time.mktime(time.gmtime(os.path.getmtime(path)))
 
-    def _satisfies_min_translated(self, stats):
+    def _satisfies_min_translated(self, stats, mode=None):
         """Check whether a translation fulfills the filter used for
         minimum translated percentage.
 
@@ -817,7 +823,7 @@ class Project(object):
         Returns:
             True or False
         """
-        cur = self._extract_completed(stats)
+        cur = self._extract_completed(stats, mode)
         option_name = 'minimum_perc'
         if self.minimum_perc is not None:
             minimum_percent = self.minimum_perc
@@ -858,16 +864,21 @@ class Project(object):
         return True
 
     @classmethod
-    def _extract_completed(cls, stats):
+    def _extract_completed(cls, stats, mode=None):
         """Extract the information for the translated percentage from the stats.
 
         Args:
             stats: The stats object for a language as returned by Transifex.
+            mode: The mode of translations requested.
         Returns:
             The percentage of translation as integer.
         """
+        if mode == 'reviewed':
+            key = 'reviewed'
+        else:
+            key = 'completed'
         try:
-            return int(stats['completed'][:-1])
+            return int(stats[key][:-1])
         except KeyError, e:
             return 0
 

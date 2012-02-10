@@ -8,7 +8,7 @@ try:
     import json
 except ImportError:
     import simplejson as json
-from mock import patch
+from mock import Mock, patch
 from txclib.project import Project
 from txclib.config import Flipdict
 
@@ -511,4 +511,20 @@ class TestConfigurationOptions(unittest.TestCase):
             calls = config_mock.method_calls
             self.assertEquals('set', calls[0][0])
             self.assertEquals('set', calls[1][0])
+
+
+class TestStats(unittest.TestCase):
+    """Test the access to the stats objects."""
+
+    def setUp(self):
+        self.stats = Mock()
+        self.stats.__getitem__ = Mock()
+        self.stats.__getitem__.return_value = '12%'
+
+    def test_field_used_per_mode(self):
+        """Test the fields used for each mode."""
+        Project._extract_completed(self.stats, 'translate')
+        self.stats.__getitem__.assert_called_with('completed')
+        Project._extract_completed(self.stats, 'reviewed')
+        self.stats.__getitem__.assert_called_with('reviewed')
 
