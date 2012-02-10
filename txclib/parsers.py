@@ -197,6 +197,12 @@ def set_parser():
             "in order to download it."
         )
     )
+    # parser.add_option(
+    #     "--mode", action="store", dest="mode", help=(
+    #         "Specify that only reviewed strings of the translations "
+    #         "should be downloaded."
+    #     )
+    # )
     group = OptionGroup(parser, "Extended options", "These options can only be"
         " used with the --auto-local command.")
     group.add_option("-s","--source-language", action="store",
