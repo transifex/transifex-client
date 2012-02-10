@@ -1103,3 +1103,14 @@ class Project(object):
         for r in resources:
             self.config.set(r, 'type', i18n_type)
 
+    def set_min_perc(self, resources, perc):
+        """Set the minimum percentage for the resources.
+
+        If resources is empty. set the percent globally.
+        """
+        if not resources:
+            self.config.set('main', 'minimum_perc', perc)
+            return
+        for r in resources:
+            self.config.set(r, 'minimum_perc', perc)
+

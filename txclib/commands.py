@@ -124,6 +124,7 @@ def cmd_set(argv, path_to_tx):
         except IndexError:
             parser.error("Please specify an remote url")
         _auto_remote(path_to_tx, url)
+        _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
     # if we have --source, we set source
     elif options.is_source:
         resource = options.resource
@@ -146,6 +147,7 @@ def cmd_set(argv, path_to_tx):
         # Calculate relative path
         path_to_file = relpath(file, path_to_tx)
         _set_source_file(path_to_tx, resource, options.language, path_to_file)
+        _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
     elif options.i18n_type:
         resource = options.resource
         if not resource:
@@ -157,6 +159,9 @@ def cmd_set(argv, path_to_tx):
         prj = project.Project(path_to_tx)
         prj.set_i18n_type(resources, options.i18n_type)
         prj.save()
+        _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
+    elif options.minimum_perc is not None:
+        _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
     else:
         resource = options.resource
         lang = options.language
@@ -182,9 +187,7 @@ def cmd_set(argv, path_to_tx):
                 ".<resource_slug> and the valid characters include [_-\w].")
 
         _set_translation(path_to_tx, resource, lang, path_to_file)
-
     logger.info("Done.")
-
     return
 
 
@@ -548,3 +551,22 @@ def _go_to_dir(path):
             "Did you forget to run 'tx init' first?"
         )
     os.chdir(path)
+
+
+def _set_minimum_perc(resource, value, path_to_tx):
+    """Set the minimum percentage in the .tx/config file.
+
+    If the resource is None, set the setting as global.
+    """
+    if value is None:
+        return
+    if not resource:
+        logger.debug("Setting the minimum percentage for all resources.")
+        resources = []
+    else:
+        msg = "Setting the minimum percentage for resource %s."
+        logger.debug(msg % resource)
+        resources = [resource, ]
+    prj = project.Project(path_to_tx)
+    prj.set_min_perc(resources, value)
+    prj.save()

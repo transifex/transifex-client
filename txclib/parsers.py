@@ -191,6 +191,12 @@ def set_parser():
             "http://help.transifex.net/features/formats.html"
         )
     )
+    parser.add_option("--minimum-perc", action="store", dest="minimum_perc",
+        help=(
+            "Specify the minimum acceptable percentage of a translation "
+            "in order to download it."
+        )
+    )
     group = OptionGroup(parser, "Extended options", "These options can only be"
         " used with the --auto-local command.")
     group.add_option("-s","--source-language", action="store",
