@@ -7,7 +7,7 @@ import sys
 
 from txclib import utils
 from txclib import get_version
-from txclib.log import set_log_level
+from txclib.log import set_log_level, logger
 
 reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
 
@@ -90,7 +90,7 @@ def main(argv):
     try:
         utils.exec_command(cmd, args[1:], path_to_tx)
     except utils.UnknownCommandError:
-        utils.ERRMSG("tx: Command %s not found" % cmd)
+        logger.error("tx: Command %s not found" % cmd)
     except SystemExit:
         sys.exit()
     except:
@@ -99,7 +99,7 @@ def main(argv):
             traceback.print_exc()
         else:
             formatted_lines = traceback.format_exc().splitlines()
-            utils.ERRMSG(formatted_lines[-1])
+            logger.error(formatted_lines[-1])
         sys.exit(1)
 
 # Run baby :) ... run
