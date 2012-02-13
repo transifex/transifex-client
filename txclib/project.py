@@ -539,7 +539,6 @@ class Project(object):
                         'stats': stats,
                         'local_file': local_file,
                         'force': force,
-                        'mode': mode,
                     }
                     if not self._should_push_translation(**kwargs):
                         msg = "Skipping '%s' translation (file: %s)."
