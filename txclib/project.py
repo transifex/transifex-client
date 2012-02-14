@@ -343,8 +343,8 @@ class Project(object):
                     files, slang, lang_map, stats, force
                 )
                 if new_translations:
-                    logger.info("New translations found for the following languages: %s" %
-                        ', '.join(new_translations))
+                    msg = "New translations found for the following languages: %s"
+                    logger.info(msg % ', '.join(new_translations))
 
             existing, new = self._languages_to_pull(
                 languages, files, lang_map, stats, force
@@ -361,8 +361,8 @@ class Project(object):
 
             if pull_languages:
                 logger.debug("Pulling languages for: %s" % pull_languages)
-                logger.info("Pulling translations for resource %s (source: %s)" %
-                    (resource, sfile))
+                msg = "Pulling translations for resource %s (source: %s)"
+                logger.info(msg % (resource, sfile))
 
             for lang in pull_languages:
                 local_lang = lang
@@ -388,12 +388,16 @@ class Project(object):
                 }
                 if not self._should_update_translation(**kwargs):
                     msg = "Skipping '%s' translation (file: %s)."
-                    logger.info(msg % (color_text(remote_lang, "RED"), local_file))
+                    logger.warning(
+                        msg % (color_text(remote_lang, "RED"), local_file)
+                    )
                     continue
 
                 if not overwrite:
                     local_file = ("%s.new" % local_file)
-                logger.info(" -> %s: %s" % (color_text(remote_lang,"RED"), local_file))
+                logger.warning(
+                    " -> %s: %s" % (color_text(remote_lang, "RED"), local_file)
+                )
                 try:
                     r = self.do_url_request(url, language=remote_lang)
                 except Exception,e:
@@ -409,8 +413,8 @@ class Project(object):
                 fd.close()
 
             if new_translations:
-                logger.info("Pulling new translations for resource %s (source: %s)" %
-                (resource, sfile))
+                msg = "Pulling new translations for resource %s (source: %s)"
+                logger.info(msg % (resource, sfile))
                 for lang in new_translations:
                     if lang in lang_map.keys():
                         local_lang = lang_map[lang]
@@ -492,7 +496,7 @@ class Project(object):
                     continue
                 # Push source file
                 try:
-                    logger.info("Pushing source file (%s)" % sfile)
+                    logger.warning("Pushing source file (%s)" % sfile)
                     if not self._resource_exists(stats):
                         logger.info("Resource does not exist.  Creating...")
                         fileinfo = "%s;%s" % (resource_slug, slang)
@@ -532,8 +536,8 @@ class Project(object):
                             l = lang_map[l]
                         push_languages.append(l)
                         if l not in f_langs:
-                            logger.error("Warning: No mapping found for language code '%s'." %
-                                color_text(l,"RED"))
+                            msg = "Warning: No mapping found for language code '%s'."
+                            logger.error(msg % color_text(l,"RED"))
                 logger.debug("Languages to push are %s" % push_languages)
 
                 # Push translation files one by one
@@ -554,10 +558,13 @@ class Project(object):
                     }
                     if not self._should_push_translation(**kwargs):
                         msg = "Skipping '%s' translation (file: %s)."
-                        logger.info(msg % (color_text(lang, "RED"), local_file))
+                        logger.warning(msg % (color_text(lang, "RED"), local_file))
                         continue
 
-                    logger.info("Pushing '%s' translations (file: %s)" % (color_text(remote_lang, "RED"), local_file))
+                    msg = "Pushing '%s' translations (file: %s)"
+                    logger.warning(
+                         msg % (color_text(remote_lang, "RED"), local_file)
+                    )
                     try:
                         self.do_url_request(
                             'push_translation', multipart=True, method='PUT',
@@ -702,6 +709,7 @@ class Project(object):
         kwargs['hostname'] = hostname
         kwargs.update(self.url_info)
         url = (API_URLS[api_call] % kwargs).encode('UTF-8')
+        logger.debug(url)
 
         opener = None
         headers = None
