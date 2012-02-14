@@ -427,7 +427,17 @@ class Project(object):
                         local_file = relpath(os.path.join(trans_dir, '%s_translation' %
                             local_lang, os.curdir))
 
-                    logger.info(" -> %s: %s" % (color_text(remote_lang, "RED"), local_file))
+                    if lang != slang:
+                        satisfies_min = self._satisfies_min_translated(
+                            stats[remote_lang], mode
+                        )
+                        if not satisfies_min:
+                            msg = "Skipping language %s due to used options."
+                            logger.warning(msg % lang)
+                            continue
+                    logger.warning(
+                        " -> %s: %s" % (color_text(remote_lang, "RED"), local_file)
+                    )
                     r = self.do_url_request(url, language=remote_lang)
 
                     base_dir = os.path.split(local_file)[0]
