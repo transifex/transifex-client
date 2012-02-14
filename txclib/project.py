@@ -932,7 +932,7 @@ class Project(object):
             The percentage of translation as integer.
         """
         if mode == 'reviewed':
-            key = 'reviewed'
+            key = 'reviewed_percentage'
         else:
             key = 'completed'
         try:
