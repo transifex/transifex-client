@@ -442,6 +442,8 @@ class Project(object):
         Push all the resources
         """
         resource_list = self.get_chosen_resources(resources)
+        self.skip = skip
+        self.force = force
         for resource in resource_list:
             push_languages = []
             project_slug, resource_slug = resource.split('.')
@@ -564,64 +566,110 @@ class Project(object):
     def delete(self, resources=[], languages=[], skip=False, force=False):
         """Delete translations."""
         resource_list = self.get_chosen_resources(resources)
-        for resource in resource_list:
-            delete_languages = []
-            files = self.get_resource_files(resource)
-            project_slug, resource_slug = resource.split('.')
-            lang_map = self.get_resource_lang_mapping(resource)
-            host = self.get_resource_host(resource)
+        self.skip = skip
+        self.force = force
 
+        if not languages:
+            delete_func = self._delete_resource
+        else:
+            delete_func = self._delete_translations
+
+        for resource in resource_list:
+            project_slug, resource_slug = resource.split('.')
+            host = self.get_resource_host(resource)
             self.url_info = {
                 'host': host,
                 'project': project_slug,
                 'resource': resource_slug
             }
-
-            project_details = parse_json(self.do_url_request('project_details',
-                project = self))
+            logger.debug("URL data are: %s" % self.url_info)
+            project_details = parse_json(
+                self.do_url_request('project_details', project=self)
+            )
             teams = project_details['teams']
             stats = self._get_stats_for_resource()
+            delete_func(project_details, resource, stats, languages)
 
-            logger.debug("URL data are: %s" % self.url_info)
-
-            logger.info("Deleting translations from resource %s:" % resource)
-            if not languages:
-                logger.warning("No languages specified.")
-                return
-            for language in languages:
-                if language not in stats:
-                    if not skip:
-                        msg = "Skipping: %s : Translation does not exist."
-                        logger.info(msg % (language))
+    def _delete_resource(self, project_details, resource, stats, *args):
+        """Delete a resource from Transifex."""
+        project_slug, resource_slug = resource.split('.')
+        project_resource_slugs = [
+            r['slug'] for r in project_details['resources']
+        ]
+        logger.info("Deleting resource %s:" % resource)
+        if resource_slug not in project_resource_slugs:
+            if not self.skip:
+                msg = "Skipping: %s : Resource does not exist."
+                logger.info(msg % resource)
+            return
+        if not self.force:
+            slang = self.get_resource_option(resource, 'source_lang')
+            for language in stats:
+                if language == slang:
                     continue
-                if not force:
-                    if language in teams:
-                        msg = "Skipping: %s : Unable to delete translation "\
-                            "because it is associated with a team.\n"\
-                            "Please use -f or --force option to delete "\
-                            "this translation."
-                        logger.info(msg % language)
-                        continue
-                    if int(stats[language]['translated_entities']) > 0:
-                        msg = "Skipping: %s : Unable to delete translation "\
-                            "because it is not empty.\n"\
-                            "Please use -f or --force option to delete this "\
-                            "translation."
-                        logger.info(msg % language)
-                        continue
-
-                try:
-                    self.do_url_request(
-                        'delete_translation', language=language, method="DELETE"
+                if int(stats[language]['translated_entities']) > 0:
+                    msg = (
+                        "Skipping: %s : Unable to delete resource because it "
+                        "has a not empty %s translation.\nPlease use -f or "
+                        "--force option to delete this resource."
                     )
+                    logger.info(msg % (resource, language))
+                    return
+        try:
+            self.do_url_request('delete_resource', method="DELETE")
+            self.config.remove_section(resource)
+            self.save()
+            msg = "Deleted resource %s of project %s."
+            logger.info(msg % (resource_slug, project_slug))
+        except Exception, e:
+            msg = "Unable to delete resource %s of project %s."
+            logger.error(msg % (resource_slug, project_slug))
+            if not self.skip:
+                raise
 
-                    msg = "Deleted language %s from resource %s in project %s."
-                    logger.info(msg % (language, resource_slug, project_slug))
-                except Exception, e:
-                    msg = "ERROR: Unable to delete translation %s"
-                    logger.info(msg % language)
-                    if not skip:
-                        raise
+    def _delete_translations(self, project_details, resource, stats, languages):
+        """Delete the specified translations for the specified resource."""
+        logger.info("Deleting translations from resource %s:" % resource)
+        for language in languages:
+            self._delete_translation(project_details, resource, stats, language)
+
+    def _delete_translation(self, project_details, resource, stats, language):
+        """Delete a specific translation from the specified resource."""
+        project_slug, resource_slug = resource.split('.')
+        if language not in stats:
+            if not self.skip:
+                msg = "Skipping %s: Translation does not exist."
+                logger.warning(msg % (language))
+            return
+        if not self.force:
+            teams = project_details['teams']
+            if language in teams:
+                msg = (
+                    "Skipping %s: Unable to delete translation because it is "
+                    "associated with a team.\nPlease use -f or --force option "
+                    "to delete this translation."
+                )
+                logger.warning(msg % language)
+                return
+            if int(stats[language]['translated_entities']) > 0:
+                msg = (
+                    "Skipping %s: Unable to delete translation because it "
+                    "is not empty.\nPlease use -f or --force option to delete "
+                    "this translation."
+                )
+                logger.warning(msg % language)
+                return
+        try:
+            self.do_url_request(
+                'delete_translation', language=language, method="DELETE"
+            )
+            msg = "Deleted language %s from resource %s of project %s."
+            logger.info(msg % (language, resource_slug, project_slug))
+        except Exception, e:
+            msg = "Unable to delete translation %s"
+            logger.error(msg % language)
+            if not self.skip:
+                raise
 
     def do_url_request(self, api_call, multipart=False, data=None,
                        files=[], encoding=None, method="GET", **kwargs):
@@ -669,20 +717,21 @@ class Project(object):
 
         try:
             fh = urllib2.urlopen(req)
+            raw = fh.read()
+            fh.close()
+            return raw
         except urllib2.HTTPError, e:
             if e.code in [401, 403, 404]:
                 logger.error("Error with request: %s" % e)
                 raise e
+            elif 200 <= e.code < 300:
+                return None
             else:
                 # For other requests, we should print the message as well
                 raise Exception("Remote server replied: %s" % e.read())
         except urllib2.URLError, e:
             error = e.args[0]
             raise Exception("Remote server replied: %s" % error[1])
-
-        raw = fh.read()
-        fh.close()
-        return raw
 
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
