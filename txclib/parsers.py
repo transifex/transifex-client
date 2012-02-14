@@ -107,11 +107,8 @@ def pull_parser():
         help="Specify the minimum acceptable percentage of a translation "
              "in order to download it.")
     parser.add_option(
-        "--mode", action="store", dest="mode",
-        help=(
-            "Specify the mode of the translation file to pull. Currently, "
-            "the only available type is 'reviewed', which fetches only "
-            "the reviewed strings of a translation."
+        "--mode", action="store", dest="mode", help=(
+            "Specify the mode of the translation file to pull (e.g. 'reviewed')."
         )
     )
     return parser
