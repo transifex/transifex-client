@@ -174,9 +174,13 @@ def set_parser():
         default=None, help="Specify the slug of the resource that you're"
             " setting up (This must be in the following format:"
             " `project_slug.resource_slug`).")
-    parser.add_option("--source", action="store_true", dest="is_source",
-        default=False, help="Specify that added file a source file [doesn't"
-        " work with the --auto-* commands].")
+    parser.add_option(
+        "--source", action="store_true", dest="is_source", default=False,
+        help=(
+            "Specify that the given file is a source file "
+            "[doesn't work with the --auto-* commands]."
+        )
+    )
     parser.add_option("-l","--language", action="store", dest="language",
         default=None, help="Specify which translations you want to pull"
         " [doesn't work with the --auto-* commands].")
