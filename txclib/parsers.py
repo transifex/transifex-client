@@ -108,7 +108,10 @@ def pull_parser():
              "in order to download it.")
     parser.add_option(
         "--mode", action="store", dest="mode", help=(
-            "Specify the mode of the translation file to pull (e.g. 'reviewed')."
+            "Specify the mode of the translation file to pull (e.g. "
+            "'reviewed'). See http://help.transifex.net/features/client/"
+            "index.html#defining-the-mode-of-the-translated-file for the"
+            "available values."
         )
     )
     return parser
