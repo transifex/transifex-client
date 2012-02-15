@@ -526,5 +526,5 @@ class TestStats(unittest.TestCase):
         Project._extract_completed(self.stats, 'translate')
         self.stats.__getitem__.assert_called_with('completed')
         Project._extract_completed(self.stats, 'reviewed')
-        self.stats.__getitem__.assert_called_with('reviewed')
+        self.stats.__getitem__.assert_called_with('reviewed_percentage')
 
