@@ -324,6 +324,8 @@ class Project(object):
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
             logger.debug("Language mapping is: %s" % lang_map)
+            if mode is None:
+                mode = self._get_option(resource, 'mode')
             self.url_info = {
                 'host': host,
                 'project': project_slug,
@@ -332,6 +334,7 @@ class Project(object):
             logger.debug("URL data are: %s" % self.url_info)
 
             stats = self._get_stats_for_resource()
+
 
             try:
                 file_filter = self.config.get(resource, 'file_filter')
@@ -1179,6 +1182,10 @@ class Project(object):
     def set_min_perc(self, resources, perc):
         """Set the minimum percentage for the resources."""
         self._set_resource_option(resources, key='minimum_perc', value=perc)
+
+    def set_default_mode(self, resources, mode):
+        """Set the default mode for the specified resources."""
+        self._set_resource_option(resources, key='mode', value=mode)
 
     def _set_resource_option(self, resources, key, value):
         """Set options in the config file.

@@ -201,12 +201,14 @@ def set_parser():
             "in order to download it."
         )
     )
-    # parser.add_option(
-    #     "--mode", action="store", dest="mode", help=(
-    #         "Specify that only reviewed strings of the translations "
-    #         "should be downloaded."
-    #     )
-    # )
+    parser.add_option(
+        "--mode", action="store", dest="mode", help=(
+            "Specify the mode of the translation file to pull (e.g. "
+            "'reviewed'). See http://help.transifex.net/features/client/"
+            "index.html#defining-the-mode-of-the-translated-file for the"
+            "available values."
+        )
+    )
     group = OptionGroup(parser, "Extended options", "These options can only be"
         " used with the --auto-local command.")
     group.add_option("-s","--source-language", action="store",
