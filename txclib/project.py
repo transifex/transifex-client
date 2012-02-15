@@ -740,7 +740,6 @@ class Project(object):
             return raw
         except urllib2.HTTPError, e:
             if e.code in [401, 403, 404]:
-                logger.error("Error with request: %s" % e)
                 raise e
             elif 200 <= e.code < 300:
                 return None
