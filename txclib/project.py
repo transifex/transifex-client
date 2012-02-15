@@ -1169,24 +1169,21 @@ class Project(object):
         return value
 
     def set_i18n_type(self, resources, i18n_type):
-        """Set the for the specified resources.
-
-        If resources is empty, set the type globally.
-        """
-        if not resources:
-            self.config.set('main', 'type', i18n_type)
-            return
-        for r in resources:
-            self.config.set(r, 'type', i18n_type)
+        """Set the type for the specified resources."""
+        self._set_resource_option(resources, key='type', value=i18n_type)
 
     def set_min_perc(self, resources, perc):
-        """Set the minimum percentage for the resources.
+        """Set the minimum percentage for the resources."""
+        self._set_resource_option(resources, key='minimum_perc', value=perc)
 
-        If resources is empty. set the percent globally.
+    def _set_resource_option(self, resources, key, value):
+        """Set options in the config file.
+
+        If resources is empty. set the option globally.
         """
         if not resources:
-            self.config.set('main', 'minimum_perc', perc)
+            self.config.set('main', key, value)
             return
         for r in resources:
-            self.config.set(r, 'minimum_perc', perc)
+            self.config.set(r, key, value)
 
