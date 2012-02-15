@@ -262,7 +262,8 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
                 'lang': lang,
                 'file': relpath(f_path, curpath)})
 
-    prj.save()
+    if execute:
+        prj.save()
 
 
 def _auto_remote(path_to_tx, url):
