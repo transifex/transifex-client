@@ -98,8 +98,6 @@ def cmd_set(argv, path_to_tx):
 
     # Implement options/args checks
     # TODO !!!!!!!
-
-    # if --auto is true
     if options.local:
         try:
             expression = args[0]
@@ -117,16 +115,24 @@ def cmd_set(argv, path_to_tx):
         _auto_local(path_to_tx, options.resource,
             source_language=options.source_language,
             expression = expression, source_file=options.source_file,
-            execute=options.execute, regex=False, i18n_type=options.i18n_type)
-    elif options.remote:
+            execute=options.execute, regex=False)
+        if options.execute:
+            _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
+            _set_mode(options.resource, options.mode, path_to_tx)
+            _set_type(options.resource, options.i18n_type, path_to_tx)
+        return
+
+    if options.remote:
         try:
             url = args[0]
         except IndexError:
             parser.error("Please specify an remote url")
         _auto_remote(path_to_tx, url)
         _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
-    # if we have --source, we set source
-    elif options.is_source:
+        _set_mode(options.resource, options.mode, path_to_tx)
+        return
+
+    if options.is_source:
         resource = options.resource
         if not resource:
             parser.error("You must specify a resource name with the"
@@ -147,28 +153,9 @@ def cmd_set(argv, path_to_tx):
         # Calculate relative path
         path_to_file = relpath(file, path_to_tx)
         _set_source_file(path_to_tx, resource, options.language, path_to_file)
-        _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
-    elif options.i18n_type:
-        resource = options.resource
-        if not resource:
-            logger.debug("Setting the i18n type for all resources.")
-            resources = []
-        else:
-            logger.debug("Setting the i18n type for resource %s." % resource)
-            resources = [resource, ]
-        prj = project.Project(path_to_tx)
-        prj.set_i18n_type(resources, options.i18n_type)
-        prj.save()
-        _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
-    elif options.minimum_perc is not None:
-        _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
-    else:
+    elif options.resource or options.language:
         resource = options.resource
         lang = options.language
-
-        if not resource or not lang:
-            parser.error("You need to specify a resource and a language for the"
-                " translation")
 
         if len(args) != 1:
             parser.error("Please specify a file")
@@ -185,14 +172,18 @@ def cmd_set(argv, path_to_tx):
         if not utils.valid_slug(resource):
             parser.error("Invalid resource slug. The format is <project_slug>"\
                 ".<resource_slug> and the valid characters include [_-\w].")
-
         _set_translation(path_to_tx, resource, lang, path_to_file)
+
+    _set_mode(options.resource, options.mode, path_to_tx)
+    _set_type(options.resource, options.i18n_type, path_to_tx)
+    _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
+
     logger.info("Done.")
     return
 
 
 def _auto_local(path_to_tx, resource, source_language, expression, execute=False,
-                source_file=None, regex=False, i18n_type=None):
+                source_file=None, regex=False):
     """Auto configure local project."""
     # The path everything will be relative to
     curpath = os.path.abspath(os.curdir)
@@ -253,8 +244,6 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
         file_filter = relpath(os.path.join(curpath, expression),
             path_to_tx)
         prj.config.set("%s" % resource, "file_filter", file_filter)
-        if i18n_type is not None:
-            prj.config.set("%s" % resource, "type", i18n_type)
     else:
         for (lang, f_path) in sorted(translation_files.items()):
             logger.info('tx set -r %(res)s -l %(lang)s %(file)s' % {
@@ -555,19 +544,33 @@ def _go_to_dir(path):
 
 
 def _set_minimum_perc(resource, value, path_to_tx):
-    """Set the minimum percentage in the .tx/config file.
+    """Set the minimum percentage in the .tx/config file."""
+    args = (resource, 'minimum_perc', value, path_to_tx, 'set_min_perc')
+    _set_project_option(*args)
 
-    If the resource is None, set the setting as global.
-    """
+
+def _set_mode(resource, value, path_to_tx):
+    """Set the mode in the .tx/config file."""
+    args = (resource, 'mode', value, path_to_tx, 'set_default_mode')
+    _set_project_option(*args)
+
+
+def _set_type(resource, value, path_to_tx):
+    """Set the i18n type in the .tx/config file."""
+    args = (resource, 'type', value, path_to_tx, 'set_i19n_type')
+    _set_project_option(*args)
+
+
+def _set_project_option(resource, name, value, path_to_tx, func_name):
+    """Save the option to the project config file."""
     if value is None:
         return
     if not resource:
-        logger.debug("Setting the minimum percentage for all resources.")
+        logger.debug("Setting the %s for all resources." % name)
         resources = []
     else:
-        msg = "Setting the minimum percentage for resource %s."
-        logger.debug(msg % resource)
+        logger.debug("Setting the %s for resource %s." % (name, resource))
         resources = [resource, ]
     prj = project.Project(path_to_tx)
-    prj.set_min_perc(resources, value)
+    getattr(prj, func_name)(resources, value)
     prj.save()
