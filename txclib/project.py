@@ -398,7 +398,7 @@ class Project(object):
                 }
                 if not self._should_update_translation(**kwargs):
                     msg = "Skipping '%s' translation (file: %s)."
-                    logger.warning(
+                    logger.info(
                         msg % (color_text(remote_lang, "RED"), local_file)
                     )
                     continue
@@ -447,7 +447,7 @@ class Project(object):
                         )
                         if not satisfies_min:
                             msg = "Skipping language %s due to used options."
-                            logger.warning(msg % lang)
+                            logger.info(msg % lang)
                             continue
                     logger.warning(
                         " -> %s: %s" % (color_text(remote_lang, "RED"), local_file)
@@ -568,7 +568,7 @@ class Project(object):
                     }
                     if not self._should_push_translation(**kwargs):
                         msg = "Skipping '%s' translation (file: %s)."
-                        logger.warning(msg % (color_text(lang, "RED"), local_file))
+                        logger.info(msg % (color_text(lang, "RED"), local_file))
                         continue
 
                     msg = "Pushing '%s' translations (file: %s)"
