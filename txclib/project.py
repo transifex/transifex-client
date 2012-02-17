@@ -41,7 +41,7 @@ class Project(object):
             self.txrc_file = self._get_transifex_file()
             self.txrc = self._get_transifex_config(self.txrc_file)
         except ProjectNotInit, e:
-            logger.error('\n'.join([msg, instructions]))
+            logger.error('\n'.join([unicode(e), instructions]))
             raise
 
     def _get_config_file_path(self, root_path):
@@ -93,7 +93,10 @@ class Project(object):
         logger.debug(".transifexrc file is at %s" % directory)
         if not os.path.exists(txrc_file):
             msg = "No authentication data found."
-            raise ProjectNotInit(msg)
+            logger.info(msg)
+            mask = os.umask(077)
+            open(txrc_file, 'w').close()
+            os.umask(mask)
         return txrc_file
 
     def validate_config(self):
