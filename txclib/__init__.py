@@ -8,7 +8,7 @@ For further information visit http://code.indifex.com/transifex-client
 """
 
 
-VERSION = (0, 7, 0, 'final')
+VERSION = (0, 7, 2, 'final')
 
 def get_version():
     version = '%s.%s' % (VERSION[0], VERSION[1])
