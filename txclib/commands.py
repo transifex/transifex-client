@@ -557,7 +557,7 @@ def _set_mode(resource, value, path_to_tx):
 
 def _set_type(resource, value, path_to_tx):
     """Set the i18n type in the .tx/config file."""
-    args = (resource, 'type', value, path_to_tx, 'set_i19n_type')
+    args = (resource, 'type', value, path_to_tx, 'set_i18n_type')
     _set_project_option(*args)
 
 
