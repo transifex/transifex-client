@@ -14,6 +14,7 @@ from txclib.utils import *
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
+from txclib.http_utils import http_response
 
 
 class ProjectNotInit(Exception):
@@ -742,12 +743,11 @@ class Project(object):
         base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
         authheader = "Basic %s" % base64string
         req.add_header("Authorization", authheader)
+        req.add_header("Accept-Encoding", "gzip,deflate")
 
         try:
-            fh = urllib2.urlopen(req)
-            raw = fh.read()
-            fh.close()
-            return raw
+            response = urllib2.urlopen(req)
+            return http_response(response)
         except urllib2.HTTPError, e:
             if e.code in [401, 403, 404]:
                 raise e
@@ -1200,4 +1200,3 @@ class Project(object):
             return
         for r in resources:
             self.config.set(r, key, value)
-
