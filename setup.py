@@ -44,6 +44,7 @@ setup(
     setup_requires = [
     ],
     install_requires = install_requires,
+    tests_require = ["mock", ],
     data_files=[
     ],
     test_suite="tests",
