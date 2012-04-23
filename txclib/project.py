@@ -82,6 +82,14 @@ class Project(object):
         except Exception, e:
             msg = "Cannot read global configuration file: %s" % e
             raise ProjectNotInit(msg)
+        for section in txrc.sections():
+            orig_hostname = txrc.get(section, 'hostname')
+            hostname = visit_hostname(orig_hostname)
+            if hostname != orig_hostname:
+                msg = "Changing hostname %s to %s."
+                logger.info(msg % (orig_hostname, hostname))
+                txrc.set(section, 'hostname', hostname)
+            self._save_txrc_file(txrc)
         return txrc
 
     def _get_transifex_file(self, directory=None):
@@ -728,7 +736,7 @@ class Project(object):
                 host)
 
         # Create the Url
-        kwargs['hostname'] = visit_hostname(hostname)
+        kwargs['hostname'] = hostname
         kwargs.update(self.url_info)
         url = (API_URLS[api_call] % kwargs).encode('UTF-8')
         logger.debug(url)
