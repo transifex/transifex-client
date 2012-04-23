@@ -15,6 +15,7 @@ from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
 from txclib.http_utils import http_response
+from txclib.processors import visit_hostname
 
 
 class ProjectNotInit(Exception):
@@ -717,7 +718,7 @@ class Project(object):
                 host)
 
         # Create the Url
-        kwargs['hostname'] = hostname
+        kwargs['hostname'] = visit_hostname(hostname)
         kwargs.update(self.url_info)
         url = (API_URLS[api_call] % kwargs).encode('UTF-8')
         logger.debug(url)
