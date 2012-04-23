@@ -46,6 +46,7 @@ setup(
     install_requires = install_requires,
     data_files=[
     ],
+    test_suite="tests",
     zip_safe=False,
     packages=find_packages(),
     include_package_data=True,
