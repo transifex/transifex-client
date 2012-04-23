@@ -9,6 +9,7 @@ try:
 except ImportError:
     import simplejson as json
 from mock import Mock, patch
+
 from txclib.project import Project
 from txclib.config import Flipdict
 
