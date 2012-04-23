@@ -287,14 +287,24 @@ class Project(object):
         """
         Store the config dictionary in the .tx/config file of the project.
         """
+        self._save_tx_config()
+        self._save_txrc_file()
+
+    def _save_tx_config(self, config=None):
+        """Save the local config file."""
+        if config is None:
+            config = self.config
         fh = open(self.config_file,"w")
-        self.config.write(fh)
+        config.write(fh)
         fh.close()
 
-        # Writing global configuration file
+    def _save_txrc_file(self, txrc=None):
+        """Save the .transifexrc file."""
+        if txrc is None:
+            txrc = self.txrc
         mask = os.umask(077)
         fh = open(self.txrc_file, 'w')
-        self.txrc.write(fh)
+        txrc.write(fh)
         fh.close()
         os.umask(mask)
 
