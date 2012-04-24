@@ -86,9 +86,14 @@ class Project(object):
             orig_hostname = txrc.get(section, 'hostname')
             hostname = visit_hostname(orig_hostname)
             if hostname != orig_hostname:
-                msg = "Changing hostname %s to %s."
+                msg = "Hostname %s should be changed to %s."
                 logger.info(msg % (orig_hostname, hostname))
-                txrc.set(section, 'hostname', hostname)
+                if sys.stdin.isatty() and confirm('Change it now?', default=True):
+                    txrc.set(section, 'hostname', hostname)
+                    msg = 'Hostname changed'
+                    logger.info(msg)
+                else:
+                    hostname = orig_hostname
             self._save_txrc_file(txrc)
         return txrc
 
