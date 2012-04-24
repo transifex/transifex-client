@@ -746,7 +746,7 @@ class Project(object):
         req.add_header("Accept-Encoding", "gzip,deflate")
 
         try:
-            response = urllib2.urlopen(req, timeout=10)
+            response = urllib2.urlopen(req, timeout=300)
             return http_response(response)
         except urllib2.HTTPError, e:
             if e.code in [401, 403, 404]:
