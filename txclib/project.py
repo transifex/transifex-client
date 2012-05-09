@@ -773,6 +773,7 @@ class Project(object):
         authheader = "Basic %s" % base64string
         req.add_header("Authorization", authheader)
         req.add_header("Accept-Encoding", "gzip,deflate")
+        req.add_header("User-Agent", user_agent_identifier())
 
         try:
             response = urllib2.urlopen(req, timeout=300)
