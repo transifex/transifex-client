@@ -82,6 +82,11 @@ class Project(object):
         except Exception, e:
             msg = "Cannot read global configuration file: %s" % e
             raise ProjectNotInit(msg)
+        self._migrate_txrc_file(txrc)
+        return txrc
+
+    def _migrate_txrc_file(self, txrc):
+        """Migrate the txrc file, if needed."""
         for section in txrc.sections():
             orig_hostname = txrc.get(section, 'hostname')
             hostname = visit_hostname(orig_hostname)
