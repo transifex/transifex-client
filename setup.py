@@ -29,6 +29,16 @@ try:
 except ImportError:
     install_requires.append('simplejson')
 
+extra_args = {}
+import platform
+if platform.system() == 'Windows':
+    import py2exe
+    extra_args = {
+        'console': ['tx'],
+        'options': {'py2exe': {'bundle_files': 1}},
+        'zipfile': None,
+    }
+
 setup(
     name="transifex-client",
     version=get_version(),
@@ -53,4 +63,5 @@ setup(
     include_package_data=True,
     package_data = package_data,
     keywords = ('translation', 'localization', 'internationalization',),
+    **extra_args
 )
