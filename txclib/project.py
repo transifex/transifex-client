@@ -93,7 +93,8 @@ class Project(object):
             if hostname != orig_hostname:
                 msg = "Hostname %s should be changed to %s."
                 logger.info(msg % (orig_hostname, hostname))
-                if sys.stdin.isatty() and confirm('Change it now? ', default=True):
+                if (sys.stdin.isatty() and sys.stdout.isatty() and
+                    confirm('Change it now? ', default=True)):
                     txrc.set(section, 'hostname', hostname)
                     msg = 'Hostname changed'
                     logger.info(msg)
