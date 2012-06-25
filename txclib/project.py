@@ -15,6 +15,7 @@ from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
 from txclib.http_utils import http_response
+from txclib.processors import visit_hostname
 
 
 class ProjectNotInit(Exception):
@@ -81,6 +82,25 @@ class Project(object):
         except Exception, e:
             msg = "Cannot read global configuration file: %s" % e
             raise ProjectNotInit(msg)
+        self._migrate_txrc_file(txrc)
+        return txrc
+
+    def _migrate_txrc_file(self, txrc):
+        """Migrate the txrc file, if needed."""
+        for section in txrc.sections():
+            orig_hostname = txrc.get(section, 'hostname')
+            hostname = visit_hostname(orig_hostname)
+            if hostname != orig_hostname:
+                msg = "Hostname %s should be changed to %s."
+                logger.info(msg % (orig_hostname, hostname))
+                if (sys.stdin.isatty() and sys.stdout.isatty() and
+                    confirm('Change it now? ', default=True)):
+                    txrc.set(section, 'hostname', hostname)
+                    msg = 'Hostname changed'
+                    logger.info(msg)
+                else:
+                    hostname = orig_hostname
+            self._save_txrc_file(txrc)
         return txrc
 
     def _get_transifex_file(self, directory=None):
@@ -286,14 +306,24 @@ class Project(object):
         """
         Store the config dictionary in the .tx/config file of the project.
         """
+        self._save_tx_config()
+        self._save_txrc_file()
+
+    def _save_tx_config(self, config=None):
+        """Save the local config file."""
+        if config is None:
+            config = self.config
         fh = open(self.config_file,"w")
-        self.config.write(fh)
+        config.write(fh)
         fh.close()
 
-        # Writing global configuration file
+    def _save_txrc_file(self, txrc=None):
+        """Save the .transifexrc file."""
+        if txrc is None:
+            txrc = self.txrc
         mask = os.umask(077)
         fh = open(self.txrc_file, 'w')
-        self.txrc.write(fh)
+        txrc.write(fh)
         fh.close()
         os.umask(mask)
 
@@ -744,6 +774,7 @@ class Project(object):
         authheader = "Basic %s" % base64string
         req.add_header("Authorization", authheader)
         req.add_header("Accept-Encoding", "gzip,deflate")
+        req.add_header("User-Agent", user_agent_identifier())
 
         try:
             response = urllib2.urlopen(req, timeout=300)
