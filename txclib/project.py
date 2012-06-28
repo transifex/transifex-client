@@ -552,7 +552,7 @@ class Project(object):
                     )
                 except Exception, e:
                     if not skip:
-                        raise e
+                        raise
                     else:
                         logger.error(e)
             else:
