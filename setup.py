@@ -35,9 +35,9 @@ setup(
     scripts=scripts,
     description="A command line interface for Transifex",
     long_description=long_description,
-    author="Indifex Ltd.",
-    author_email="info@indifex.com",
-    url="http://www.indifex.com",
+    author="Transifex",
+    author_email="info@transifex.com",
+    url="https://www.transifex.com",
     license="GPLv2",
     dependency_links = [
     ],
