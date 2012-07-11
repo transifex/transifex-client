@@ -49,7 +49,7 @@ setup(
     ],
     test_suite="tests",
     zip_safe=False,
-    packages=find_packages(),
+    packages=['txclib', ],
     include_package_data=True,
     package_data = package_data,
     keywords = ('translation', 'localization', 'internationalization',),
