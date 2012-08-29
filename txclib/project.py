@@ -1166,7 +1166,8 @@ class Project(object):
             "slug": fileinfo.split(';')[0],
             "name": fileinfo.split(';')[0],
             "uploaded_file":  open(filename,'rb'),
-            "i18n_type": i18n_type
+            "i18n_type": i18n_type,
+            "source_language_code": self._get_option(resource, 'source_lang')
         }
         urllib2.install_opener(opener)
         req = RequestWithMethod(url=url, data=data, method=method)
