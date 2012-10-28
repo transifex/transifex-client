@@ -202,7 +202,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     for root, dirs, files in os.walk(curpath):
         for f in files:
             f_path = os.path.abspath(os.path.join(root, f))
-            match = expr_rec.match(f_path)
+            match = expr_rec.match(f_path.replace('\\', '/'))
             if match:
                 lang = match.group(1)
                 f_path = os.path.abspath(f_path)
