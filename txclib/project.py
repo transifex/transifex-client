@@ -221,7 +221,7 @@ class Project(object):
             for root, dirs, files in os.walk(self.root):
                 for f in files:
                     f_path = os.path.abspath(os.path.join(root, f))
-                    match = expr_rec.match(f_path)
+                    match = expr_rec.match(f_path.replace('\\', '/'))
                     if match:
                         lang = match.group(1)
                         if lang != source_lang:
