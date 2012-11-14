@@ -351,7 +351,13 @@ class Project(object):
         for resource in resource_list:
             logger.debug("Handling resource %s" % resource)
             self.resource = resource
-            project_slug, resource_slug = resource.split('.')
+            try:
+                project_slug, resource_slug = resource.split('.')
+            except ValueError, e:
+                raise Exception("Error during parsing '%s'. "
+                    "A project or a resource slug cannot contain "
+                    "any dot '.' symbol. May be you mistook a project or "
+                    "a resource name for it's slug." % resource)
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_resource_option(resource, 'source_file')
