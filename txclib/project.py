@@ -239,16 +239,14 @@ class Project(object):
             source_file = self.get_resource_option(resource, 'source_file') or None
             expr_re = regex_from_filefilter(file_filter, self.root)
             expr_rec = re.compile(expr_re)
-            for root, dirs, files in os.walk(self.root):
-                for f in files:
-                    f_path = os.path.abspath(os.path.join(root, f))
-                    match = expr_rec.match(f_path)
-                    if match:
-                        lang = match.group(1)
-                        if lang != source_lang:
-                            f_path = os.path.relpath(f_path, self.root)
-                            if f_path != source_file:
-                                tr_files.update({lang: f_path})
+            for f_path in files_in_project(self.root):
+                match = expr_rec.match(f_path)
+                if match:
+                    lang = match.group(1)
+                    if lang != source_lang:
+                        f_path = os.path.relpath(f_path, self.root)
+                        if f_path != source_file:
+                            tr_files.update({lang: f_path})
 
             for (name, value) in self.config.items(resource):
                 if name.startswith("trans."):

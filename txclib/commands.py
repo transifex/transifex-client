@@ -23,7 +23,7 @@ import ConfigParser
 
 
 from txclib import utils, project
-from txclib.utils import parse_json, compile_json
+from txclib.utils import parse_json, compile_json, files_in_project
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
@@ -199,17 +199,15 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     # First, let's construct a dictionary of all matching files.
     # Note: Only the last matching file of a language will be stored.
     translation_files = {}
-    for root, dirs, files in os.walk(curpath):
-        for f in files:
-            f_path = os.path.abspath(os.path.join(root, f))
-            match = expr_rec.match(f_path)
-            if match:
-                lang = match.group(1)
-                f_path = os.path.abspath(f_path)
-                if lang == source_language and not source_file:
-                    source_file = f_path
-                else:
-                    translation_files[lang] = f_path
+    for f_path in files_in_project(curpath):
+        match = expr_rec.match(f_path)
+        if match:
+            lang = match.group(1)
+            f_path = os.path.abspath(f_path)
+            if lang == source_language and not source_file:
+                source_file = f_path
+            else:
+                translation_files[lang] = f_path
 
     if not source_file:
         raise Exception("Could not find a source language file. Please run"

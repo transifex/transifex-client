@@ -202,3 +202,14 @@ def color_text(text, color_name, bold=False):
             int(bold), COLORS.index(color_name) + 30, text)
     else:
         return text
+
+
+def files_in_project(curpath):
+    """
+    Iterate over the files in the project.
+
+    Return each file under ``curpath`` with its absolute name.
+    """
+    for root, dirs, files in os.walk(curpath):
+        for f in files:
+            yield os.path.abspath(os.path.join(root, f))
