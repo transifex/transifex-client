@@ -16,6 +16,7 @@ from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
 from txclib.http_utils import http_response
 from txclib.processors import visit_hostname
+from txclib.paths import posix_path, native_path, posix_sep
 
 
 class ProjectNotInit(Exception):
@@ -159,7 +160,7 @@ class Project(object):
             self.config.add_section(resource)
 
         p_slug, r_slug = resource.split('.')
-        file_filter = file_filter.replace("<sep>", r"%s" % os.path.sep)
+        file_filter = file_filter.replace("<sep>", r"%s" % posix_sep)
         self.url_info = {
             'host': host,
             'project': p_slug,
@@ -232,10 +233,12 @@ class Project(object):
                 file_filter = "$^"
             source_lang = self.config.get(resource, "source_lang")
             source_file = self.get_resource_option(resource, 'source_file') or None
+            if source_file is not None:
+                source_file = native_path(source_file)
             expr_re = regex_from_filefilter(file_filter, self.root)
             expr_rec = re.compile(expr_re)
             for f_path in files_in_project(self.root):
-                match = expr_rec.match(f_path)
+                match = expr_rec.match(posix_path(f_path))
                 if match:
                     lang = match.group(1)
                     if lang != source_lang:
@@ -245,6 +248,7 @@ class Project(object):
 
             for (name, value) in self.config.items(resource):
                 if name.startswith("trans."):
+                    value = native_path(value)
                     lang = name.split('.')[1]
                     # delete language which has same file
                     if value in tr_files.values():
@@ -321,7 +325,7 @@ class Project(object):
         os.umask(mask)
 
     def get_full_path(self, relpath):
-        if relpath[0] == "/":
+        if relpath[0] == os.path.sep:
             return relpath
         else:
             return os.path.join(self.root, relpath)
@@ -348,6 +352,8 @@ class Project(object):
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_resource_option(resource, 'source_file')
+            if sfile is not None:
+                sfile = native_path(sfile)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
             logger.debug("Language mapping is: %s" % lang_map)
@@ -456,8 +462,13 @@ class Project(object):
                         local_lang = lang
                     remote_lang = lang
                     if file_filter:
-                        local_file = os.path.relpath(os.path.join(self.root,
-                            file_filter.replace('<lang>', local_lang)), os.curdir)
+                        local_file = os.path.relpath(
+                            os.path.join(
+                                self.root, native_path(
+                                    file_filter.replace('<lang>', local_lang)
+                                )
+                            ), os.curdir
+                        )
                     else:
                         trans_dir = os.path.join(self.root, ".tx", resource)
                         if not os.path.exists(trans_dir):
@@ -498,6 +509,8 @@ class Project(object):
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_resource_option(resource, 'source_file')
+            if sfile is not None:
+                sfile = native_path(sfile)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
             logger.debug("Language mapping is: %s" % lang_map)
@@ -522,7 +535,7 @@ class Project(object):
                     return
 
             if source:
-                if sfile == None:
+                if sfile is None:
                     logger.error("You don't seem to have a proper source file"
                         " mapping for resource %s. Try without the --source"
                         " option or set a source file first and then try again." %

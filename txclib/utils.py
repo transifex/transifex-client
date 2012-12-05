@@ -34,9 +34,11 @@ def find_dot_tx(path = os.path.curdir, previous = None):
 def regex_from_filefilter(file_filter, root_path = os.path.curdir):
     """Create proper regex from <lang> expression."""
     # Force expr to be a valid regex expr (escaped) but keep <lang> intact
-    expr_re = re.escape(os.path.join(root_path, file_filter))
+    expr_re = re.escape(
+        posix_path(os.path.join(root_path, native_path(file_filter)))
+    )
     expr_re = expr_re.replace("\\<lang\\>", '<lang>').replace(
-        '<lang>', '([^%(sep)s]+)' % { 'sep': re.escape(os.path.sep)})
+        '<lang>', '([^%(sep)s]+)' % { 'sep': re.escape(posix_sep)})
 
     return "^%s$" % expr_re
 

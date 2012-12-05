@@ -76,7 +76,7 @@ class MultipartPostHandler(urllib2.BaseHandler):
             buf.write('\r\n\r\n' + value + '\r\n')
         for(key, fd) in files:
             file_size = os.fstat(fd.fileno())[stat.ST_SIZE]
-            filename = fd.name.split('/')[-1]
+            filename = fd.name.split(os.path.sep)[-1]
             contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
             buf.write('--%s\r\n' % boundary)
             buf.write('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (key, filename))

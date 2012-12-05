@@ -28,6 +28,7 @@ from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
         status_parser, pull_parser, set_parser, push_parser, init_parser
+from txclib.paths import posix_path
 from txclib.log import logger
 
 
@@ -200,10 +201,9 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     # Note: Only the last matching file of a language will be stored.
     translation_files = {}
     for f_path in files_in_project(curpath):
-        match = expr_rec.match(f_path)
+        match = expr_rec.match(posix_path(f_path))
         if match:
             lang = match.group(1)
-            f_path = os.path.abspath(f_path)
             if lang == source_language and not source_file:
                 source_file = f_path
             else:
@@ -239,8 +239,9 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
         logger.info("Updating file expression for resource %s ( %s )." % (resource,
             expression))
         # Eval file_filter relative to root dir
-        file_filter = os.path.relpath(os.path.join(curpath, expression),
-            path_to_tx)
+        file_filter = posix_path(
+            os.path.relpath(os.path.join(curpath, expression), path_to_tx)
+        )
         prj.config.set("%s" % resource, "file_filter", file_filter)
     else:
         for (lang, f_path) in sorted(translation_files.items()):
@@ -404,10 +405,10 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
         except ConfigParser.NoOptionError:
             pass
     finally:
-        prj.config.set("%s.%s" % (proj, res), "source_file",
-           path_to_file)
-        prj.config.set("%s.%s" % (proj, res), "source_lang",
-            lang)
+        prj.config.set(
+            "%s.%s" % (proj, res), "source_file", posix_path(path_to_file)
+        )
+        prj.config.set("%s.%s" % (proj, res), "source_lang", lang)
 
     prj.save()
 
@@ -445,8 +446,9 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
     logger.info("Updating translations for resource %s ( %s -> %s )." % (resource,
         lang, path_to_file))
     path_to_file = os.path.relpath(path_to_file, root_dir)
-    prj.config.set("%s.%s" % (proj, res), "trans.%s" % lang,
-        path_to_file)
+    prj.config.set(
+        "%s.%s" % (proj, res), "trans.%s" % lang, posix_path(path_to_file)
+    )
 
     prj.save()
 
