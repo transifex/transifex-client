@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import base64
 import copy
 import getpass
@@ -8,7 +9,6 @@ import fnmatch
 import urllib2
 import datetime, time
 import ConfigParser
-
 from txclib.web import *
 from txclib.utils import *
 from txclib.urls import API_URLS
@@ -154,9 +154,7 @@ class Project(object):
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
             file_filter="translations<sep>%(proj)s.%(res)s<sep><lang>.%(extension)s"):
-        """
-        Method to handle the add/conf of a remote resource.
-        """
+        """Method to handle the add/conf of a remote resource."""
         if not self.config.has_section(resource):
             self.config.add_section(resource)
 
@@ -187,9 +185,7 @@ class Project(object):
         return self.config.get('main', 'host')
 
     def get_resource_lang_mapping(self, resource):
-        """
-        Get language mappings for a specific resource.
-        """
+        """Get language mappings for a specific resource."""
         lang_map = Flipdict()
         try:
             args = self.config.get("main", "lang_map")
@@ -217,7 +213,6 @@ class Project(object):
         lang_map.update(res_lang_map)
 
         return lang_map
-
 
     def get_resource_files(self, resource):
         """

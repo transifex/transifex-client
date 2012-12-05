@@ -5,14 +5,14 @@ except ImportError:
     from simplejson import loads as parse_json, dumps as compile_json
 import urllib2 # This should go and instead use do_url_request everywhere
 
-from urls import API_URLS
+from txclib.urls import API_URLS
 from txclib.log import logger
 from txclib.exceptions import UnknownCommandError
+from txclib.paths import posix_path, native_path, posix_sep
 
 
 def find_dot_tx(path = os.path.curdir, previous = None):
-    """
-    Return the path where .tx folder is found.
+    """Return the path where .tx folder is found.
 
     The 'path' should be a DIRECTORY.
     This process is functioning recursively from the current directory to each
@@ -32,9 +32,7 @@ def find_dot_tx(path = os.path.curdir, previous = None):
 # Parse file filter expressions and create regex
 
 def regex_from_filefilter(file_filter, root_path = os.path.curdir):
-    """
-    Create proper regex from <lang> expression
-    """
+    """Create proper regex from <lang> expression."""
     # Force expr to be a valid regex expr (escaped) but keep <lang> intact
     expr_re = re.escape(os.path.join(root_path, file_filter))
     expr_re = expr_re.replace("\\<lang\\>", '<lang>').replace(
@@ -55,13 +53,14 @@ def parse_tx_url(url):
     Try to match given url to any of the valid url patterns specified in
     TX_URLS. If not match is found, we raise exception
     """
-    for type in TX_URLS.keys():
-        pattern = TX_URLS[type]
+    for type_ in TX_URLS.keys():
+        pattern = TX_URLS[type_]
         m = re.match(pattern, url)
         if m:
-            return type, m.groupdict()
-
-    raise Exception("tx: Malformed url given. Please refer to our docs: http://bit.ly/txautor")
+            return type_, m.groupdict()
+    raise Exception(
+        "tx: Malformed url given. Please refer to our docs: http://bit.ly/txautor"
+    )
 
 
 def get_details(api_call, username, password, *args, **kwargs):
