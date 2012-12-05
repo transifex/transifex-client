@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import with_statement
 import unittest
 import contextlib
 import itertools
@@ -528,4 +527,3 @@ class TestStats(unittest.TestCase):
         self.stats.__getitem__.assert_called_with('completed')
         Project._extract_completed(self.stats, 'reviewed')
         self.stats.__getitem__.assert_called_with('reviewed_percentage')
-

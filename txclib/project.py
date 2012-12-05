@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import base64
 import copy
 import getpass
@@ -8,7 +9,6 @@ import fnmatch
 import urllib2
 import datetime, time
 import ConfigParser
-
 from txclib.web import *
 from txclib.utils import *
 from txclib.urls import API_URLS
@@ -16,6 +16,7 @@ from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
 from txclib.http_utils import http_response
 from txclib.processors import visit_hostname
+from txclib.paths import posix_path, native_path, posix_sep
 
 
 class ProjectNotInit(Exception):
@@ -154,14 +155,12 @@ class Project(object):
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
             file_filter="translations<sep>%(proj)s.%(res)s<sep><lang>.%(extension)s"):
-        """
-        Method to handle the add/conf of a remote resource.
-        """
+        """Method to handle the add/conf of a remote resource."""
         if not self.config.has_section(resource):
             self.config.add_section(resource)
 
         p_slug, r_slug = resource.split('.')
-        file_filter = file_filter.replace("<sep>", r"%s" % os.path.sep)
+        file_filter = file_filter.replace("<sep>", r"%s" % posix_sep)
         self.url_info = {
             'host': host,
             'project': p_slug,
@@ -187,9 +186,7 @@ class Project(object):
         return self.config.get('main', 'host')
 
     def get_resource_lang_mapping(self, resource):
-        """
-        Get language mappings for a specific resource.
-        """
+        """Get language mappings for a specific resource."""
         lang_map = Flipdict()
         try:
             args = self.config.get("main", "lang_map")
@@ -218,7 +215,6 @@ class Project(object):
 
         return lang_map
 
-
     def get_resource_files(self, resource):
         """
         Get a dict for all files assigned to a resource. First we calculate the
@@ -237,21 +233,22 @@ class Project(object):
                 file_filter = "$^"
             source_lang = self.config.get(resource, "source_lang")
             source_file = self.get_resource_option(resource, 'source_file') or None
+            if source_file is not None:
+                source_file = native_path(source_file)
             expr_re = regex_from_filefilter(file_filter, self.root)
             expr_rec = re.compile(expr_re)
-            for root, dirs, files in os.walk(self.root):
-                for f in files:
-                    f_path = os.path.abspath(os.path.join(root, f))
-                    match = expr_rec.match(f_path)
-                    if match:
-                        lang = match.group(1)
-                        if lang != source_lang:
-                            f_path = relpath(f_path, self.root)
-                            if f_path != source_file:
-                                tr_files.update({lang: f_path})
+            for f_path in files_in_project(self.root):
+                match = expr_rec.match(posix_path(f_path))
+                if match:
+                    lang = match.group(1)
+                    if lang != source_lang:
+                        f_path = os.path.relpath(f_path, self.root)
+                        if f_path != source_file:
+                            tr_files.update({lang: f_path})
 
             for (name, value) in self.config.items(resource):
                 if name.startswith("trans."):
+                    value = native_path(value)
                     lang = name.split('.')[1]
                     # delete language which has same file
                     if value in tr_files.values():
@@ -328,7 +325,7 @@ class Project(object):
         os.umask(mask)
 
     def get_full_path(self, relpath):
-        if relpath[0] == "/":
+        if relpath[0] == os.path.sep:
             return relpath
         else:
             return os.path.join(self.root, relpath)
@@ -355,6 +352,8 @@ class Project(object):
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_resource_option(resource, 'source_file')
+            if sfile is not None:
+                sfile = native_path(sfile)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
             logger.debug("Language mapping is: %s" % lang_map)
@@ -463,13 +462,18 @@ class Project(object):
                         local_lang = lang
                     remote_lang = lang
                     if file_filter:
-                        local_file = relpath(os.path.join(self.root,
-                            file_filter.replace('<lang>', local_lang)), os.curdir)
+                        local_file = os.path.relpath(
+                            os.path.join(
+                                self.root, native_path(
+                                    file_filter.replace('<lang>', local_lang)
+                                )
+                            ), os.curdir
+                        )
                     else:
                         trans_dir = os.path.join(self.root, ".tx", resource)
                         if not os.path.exists(trans_dir):
                             os.mkdir(trans_dir)
-                        local_file = relpath(os.path.join(trans_dir, '%s_translation' %
+                        local_file = os.path.relpath(os.path.join(trans_dir, '%s_translation' %
                             local_lang, os.curdir))
 
                     if lang != slang:
@@ -505,6 +509,8 @@ class Project(object):
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_resource_option(resource, 'source_file')
+            if sfile is not None:
+                sfile = native_path(sfile)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
             logger.debug("Language mapping is: %s" % lang_map)
@@ -529,7 +535,7 @@ class Project(object):
                     return
 
             if source:
-                if sfile == None:
+                if sfile is None:
                     logger.error("You don't seem to have a proper source file"
                         " mapping for resource %s. Try without the --source"
                         " option or set a source file first and then try again." %

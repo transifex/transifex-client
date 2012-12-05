@@ -23,11 +23,12 @@ import ConfigParser
 
 
 from txclib import utils, project
-from txclib.utils import parse_json, compile_json, relpath
+from txclib.utils import parse_json, compile_json, files_in_project
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
         status_parser, pull_parser, set_parser, push_parser, init_parser
+from txclib.paths import posix_path
 from txclib.log import logger
 
 
@@ -151,7 +152,7 @@ def cmd_set(argv, path_to_tx):
 
         file = args[0]
         # Calculate relative path
-        path_to_file = relpath(file, path_to_tx)
+        path_to_file = os.path.relpath(file, path_to_tx)
         _set_source_file(path_to_tx, resource, options.language, path_to_file)
     elif options.resource or options.language:
         resource = options.resource
@@ -161,7 +162,7 @@ def cmd_set(argv, path_to_tx):
             parser.error("Please specify a file")
 
         # Calculate relative path
-        path_to_file = relpath(args[0], path_to_tx)
+        path_to_file = os.path.relpath(args[0], path_to_tx)
 
         try:
             _go_to_dir(path_to_tx)
@@ -199,17 +200,14 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     # First, let's construct a dictionary of all matching files.
     # Note: Only the last matching file of a language will be stored.
     translation_files = {}
-    for root, dirs, files in os.walk(curpath):
-        for f in files:
-            f_path = os.path.abspath(os.path.join(root, f))
-            match = expr_rec.match(f_path)
-            if match:
-                lang = match.group(1)
-                f_path = os.path.abspath(f_path)
-                if lang == source_language and not source_file:
-                    source_file = f_path
-                else:
-                    translation_files[lang] = f_path
+    for f_path in files_in_project(curpath):
+        match = expr_rec.match(posix_path(f_path))
+        if match:
+            lang = match.group(1)
+            if lang == source_language and not source_file:
+                source_file = f_path
+            else:
+                translation_files[lang] = f_path
 
     if not source_file:
         raise Exception("Could not find a source language file. Please run"
@@ -217,14 +215,14 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
             " the source file with the -s flag.")
     if execute:
         logger.info("Updating source for resource %s ( %s -> %s )." % (resource,
-            source_language, relpath(source_file, path_to_tx)))
+            source_language, os.path.relpath(source_file, path_to_tx)))
         _set_source_file(path_to_tx, resource, source_language,
-            relpath(source_file, path_to_tx))
+            os.path.relpath(source_file, path_to_tx))
     else:
         logger.info('\ntx set --source -r %(res)s -l %(lang)s %(file)s\n' % {
             'res': resource,
             'lang': source_language,
-            'file': relpath(source_file, curpath)})
+            'file': os.path.relpath(source_file, curpath)})
 
     prj = project.Project(path_to_tx)
     root_dir = os.path.abspath(path_to_tx)
@@ -241,15 +239,16 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
         logger.info("Updating file expression for resource %s ( %s )." % (resource,
             expression))
         # Eval file_filter relative to root dir
-        file_filter = relpath(os.path.join(curpath, expression),
-            path_to_tx)
+        file_filter = posix_path(
+            os.path.relpath(os.path.join(curpath, expression), path_to_tx)
+        )
         prj.config.set("%s" % resource, "file_filter", file_filter)
     else:
         for (lang, f_path) in sorted(translation_files.items()):
             logger.info('tx set -r %(res)s -l %(lang)s %(file)s' % {
                 'res': resource,
                 'lang': lang,
-                'file': relpath(f_path, curpath)})
+                'file': os.path.relpath(f_path, curpath)})
 
     if execute:
         prj.save()
@@ -393,7 +392,7 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     logger.info("Setting source file for resource %s.%s ( %s -> %s )." % (
         proj, res, lang, path_to_file))
 
-    path_to_file = relpath(path_to_file, root_dir)
+    path_to_file = os.path.relpath(path_to_file, root_dir)
 
     prj = project.Project(path_to_tx)
 
@@ -406,10 +405,10 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
         except ConfigParser.NoOptionError:
             pass
     finally:
-        prj.config.set("%s.%s" % (proj, res), "source_file",
-           path_to_file)
-        prj.config.set("%s.%s" % (proj, res), "source_lang",
-            lang)
+        prj.config.set(
+            "%s.%s" % (proj, res), "source_file", posix_path(path_to_file)
+        )
+        prj.config.set("%s.%s" % (proj, res), "source_lang", lang)
 
     prj.save()
 
@@ -446,9 +445,10 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
     logger.info("Updating translations for resource %s ( %s -> %s )." % (resource,
         lang, path_to_file))
-    path_to_file = relpath(path_to_file, root_dir)
-    prj.config.set("%s.%s" % (proj, res), "trans.%s" % lang,
-        path_to_file)
+    path_to_file = os.path.relpath(path_to_file, root_dir)
+    prj.config.set(
+        "%s.%s" % (proj, res), "trans.%s" % lang, posix_path(path_to_file)
+    )
 
     prj.save()
 

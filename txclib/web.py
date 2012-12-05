@@ -7,6 +7,7 @@ from txclib import get_version
 # Helper class to enable urllib2 to handle PUT/DELETE requests as well
 class RequestWithMethod(urllib2.Request):
     """Workaround for using DELETE with urllib2"""
+
     def __init__(self, url, method, data=None, headers={},
         origin_req_host=None, unverifiable=False):
         self._method = method
@@ -16,9 +17,11 @@ class RequestWithMethod(urllib2.Request):
     def get_method(self):
         return self._method
 
+
 import urllib
 import os, stat
 from cStringIO import StringIO
+
 
 class Callable:
     def __init__(self, anycallable):
@@ -27,6 +30,7 @@ class Callable:
 # Controls how sequences are uncoded. If true, elements may be given multiple
 # values by assigning a sequence.
 doseq = 1
+
 
 class MultipartPostHandler(urllib2.BaseHandler):
     handler_order = urllib2.HTTPHandler.handler_order - 10 # needs to run first
@@ -37,7 +41,7 @@ class MultipartPostHandler(urllib2.BaseHandler):
             v_files = []
             v_vars = []
             try:
-                 for(key, value) in data.items():
+                 for (key, value) in data.items():
                      if type(value) == file:
                          v_files.append((key, value))
                      else:
@@ -72,7 +76,7 @@ class MultipartPostHandler(urllib2.BaseHandler):
             buf.write('\r\n\r\n' + value + '\r\n')
         for(key, fd) in files:
             file_size = os.fstat(fd.fileno())[stat.ST_SIZE]
-            filename = fd.name.split('/')[-1]
+            filename = fd.name.split(os.path.sep)[-1]
             contenttype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
             buf.write('--%s\r\n' % boundary)
             buf.write('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (key, filename))

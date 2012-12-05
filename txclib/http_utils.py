@@ -4,7 +4,6 @@
 HTTP-related utility functions.
 """
 
-from __future__ import with_statement
 import gzip
 try:
     import cStringIO as StringIO
