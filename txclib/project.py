@@ -246,7 +246,7 @@ class Project(object):
                     if match:
                         lang = match.group(1)
                         if lang != source_lang:
-                            f_path = relpath(f_path, self.root)
+                            f_path = os.path.relpath(f_path, self.root)
                             if f_path != source_file:
                                 tr_files.update({lang: f_path})
 
@@ -463,13 +463,13 @@ class Project(object):
                         local_lang = lang
                     remote_lang = lang
                     if file_filter:
-                        local_file = relpath(os.path.join(self.root,
+                        local_file = os.path.relpath(os.path.join(self.root,
                             file_filter.replace('<lang>', local_lang)), os.curdir)
                     else:
                         trans_dir = os.path.join(self.root, ".tx", resource)
                         if not os.path.exists(trans_dir):
                             os.mkdir(trans_dir)
-                        local_file = relpath(os.path.join(trans_dir, '%s_translation' %
+                        local_file = os.path.relpath(os.path.join(trans_dir, '%s_translation' %
                             local_lang, os.curdir))
 
                     if lang != slang:

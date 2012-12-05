@@ -23,7 +23,7 @@ import ConfigParser
 
 
 from txclib import utils, project
-from txclib.utils import parse_json, compile_json, relpath
+from txclib.utils import parse_json, compile_json
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
@@ -151,7 +151,7 @@ def cmd_set(argv, path_to_tx):
 
         file = args[0]
         # Calculate relative path
-        path_to_file = relpath(file, path_to_tx)
+        path_to_file = os.path.relpath(file, path_to_tx)
         _set_source_file(path_to_tx, resource, options.language, path_to_file)
     elif options.resource or options.language:
         resource = options.resource
@@ -161,7 +161,7 @@ def cmd_set(argv, path_to_tx):
             parser.error("Please specify a file")
 
         # Calculate relative path
-        path_to_file = relpath(args[0], path_to_tx)
+        path_to_file = os.path.relpath(args[0], path_to_tx)
 
         try:
             _go_to_dir(path_to_tx)
@@ -217,14 +217,14 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
             " the source file with the -s flag.")
     if execute:
         logger.info("Updating source for resource %s ( %s -> %s )." % (resource,
-            source_language, relpath(source_file, path_to_tx)))
+            source_language, os.path.relpath(source_file, path_to_tx)))
         _set_source_file(path_to_tx, resource, source_language,
-            relpath(source_file, path_to_tx))
+            os.path.relpath(source_file, path_to_tx))
     else:
         logger.info('\ntx set --source -r %(res)s -l %(lang)s %(file)s\n' % {
             'res': resource,
             'lang': source_language,
-            'file': relpath(source_file, curpath)})
+            'file': os.path.relpath(source_file, curpath)})
 
     prj = project.Project(path_to_tx)
     root_dir = os.path.abspath(path_to_tx)
@@ -241,7 +241,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
         logger.info("Updating file expression for resource %s ( %s )." % (resource,
             expression))
         # Eval file_filter relative to root dir
-        file_filter = relpath(os.path.join(curpath, expression),
+        file_filter = os.path.relpath(os.path.join(curpath, expression),
             path_to_tx)
         prj.config.set("%s" % resource, "file_filter", file_filter)
     else:
@@ -249,7 +249,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
             logger.info('tx set -r %(res)s -l %(lang)s %(file)s' % {
                 'res': resource,
                 'lang': lang,
-                'file': relpath(f_path, curpath)})
+                'file': os.path.relpath(f_path, curpath)})
 
     if execute:
         prj.save()
@@ -393,7 +393,7 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     logger.info("Setting source file for resource %s.%s ( %s -> %s )." % (
         proj, res, lang, path_to_file))
 
-    path_to_file = relpath(path_to_file, root_dir)
+    path_to_file = os.path.relpath(path_to_file, root_dir)
 
     prj = project.Project(path_to_tx)
 
@@ -446,7 +446,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
     logger.info("Updating translations for resource %s ( %s -> %s )." % (resource,
         lang, path_to_file))
-    path_to_file = relpath(path_to_file, root_dir)
+    path_to_file = os.path.relpath(path_to_file, root_dir)
     prj.config.set("%s.%s" % (proj, res), "trans.%s" % lang,
         path_to_file)
 
