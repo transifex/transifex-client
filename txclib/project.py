@@ -42,7 +42,10 @@ class Project(object):
             self.config_file = self._get_config_file_path(self.root)
             self.config = self._read_config_file(self.config_file)
             self.txrc_file = self._get_transifex_file()
-            self.txrc = self._get_transifex_config(self.txrc_file)
+            local_txrc_file = self._get_transifex_file(os.getcwd())
+            self.txrc = self._get_transifex_config([self.txrc_file, local_txrc_file])
+            if os.path.exists(local_txrc_file):
+              self.txrc_file = local_txrc_file
         except ProjectNotInit, e:
             logger.error('\n'.join([unicode(e), instructions]))
             raise
@@ -75,19 +78,21 @@ class Project(object):
             raise ProjectNotInit(msg)
         return config
 
-    def _get_transifex_config(self, txrc_file):
-        """Read the configuration from the .transifexrc file."""
+    def _get_transifex_config(self, txrc_files):
+        """Read the configuration from the .transifexrc files."""
         txrc = OrderedRawConfigParser()
         try:
-            txrc.read(txrc_file)
+            txrc.read(txrc_files)
         except Exception, e:
-            msg = "Cannot read global configuration file: %s" % e
+            msg = "Cannot read configuration file: %s" % e
             raise ProjectNotInit(msg)
         self._migrate_txrc_file(txrc)
         return txrc
 
     def _migrate_txrc_file(self, txrc):
         """Migrate the txrc file, if needed."""
+        if not os.path.exists(self.txrc_file):
+          return txrc
         for section in txrc.sections():
             orig_hostname = txrc.get(section, 'hostname')
             hostname = visit_hostname(orig_hostname)
@@ -107,18 +112,18 @@ class Project(object):
     def _get_transifex_file(self, directory=None):
         """Fetch the path of the .transifexrc file.
 
-        It is in the home directory ofthe user by default.
+        It is in the home directory of the user by default.
         """
         if directory is None:
             directory = os.path.expanduser('~')
         txrc_file = os.path.join(directory, ".transifexrc")
         logger.debug(".transifexrc file is at %s" % directory)
         if not os.path.exists(txrc_file):
-            msg = "No authentication data found."
+            msg = "%s not found." % (txrc_file)
             logger.info(msg)
-            mask = os.umask(077)
-            open(txrc_file, 'w').close()
-            os.umask(mask)
+            #mask = os.umask(077)
+            #open(txrc_file, 'w').close()
+            #os.umask(mask)
         return txrc_file
 
     def validate_config(self):
