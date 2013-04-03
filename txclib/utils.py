@@ -211,6 +211,6 @@ def files_in_project(curpath):
 
     Return each file under ``curpath`` with its absolute name.
     """
-    for root, dirs, files in os.walk(curpath):
+    for root, dirs, files in os.walk(curpath, followlinks=True):
         for f in files:
             yield os.path.abspath(os.path.join(root, f))
