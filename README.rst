@@ -14,7 +14,7 @@ managers can also use it to handle large volumes of translation files
 easily and without much hassle.
 
 Check the full documentation at
-http://help.transifex.com/user-guide/client/
+http://support.transifex.com/customer/portal/topics/440187-transifex-client/articles.
 
 
 Installing
@@ -26,5 +26,4 @@ You can also install the `in-development version`_ of transifex-client
 with ``pip install transifex-client==dev`` or ``easy_install
 transifex-client==dev``.
 
-.. _in-development version: http://code.transifex.com/transifex-client/
-
+.. _in-development version: http://github.com/transifex/transifex-client/tarball/master#egg=transifex-client-dev

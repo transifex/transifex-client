@@ -46,7 +46,7 @@ setup(
     description="A command line interface for Transifex",
     long_description=long_description,
     author="Transifex",
-    author_email="info@transifex.com",
+    author_email="admin@transifex.com",
     url="https://www.transifex.com",
     license="GPLv2",
     dependency_links = [
