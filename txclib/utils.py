@@ -9,6 +9,7 @@ from txclib.urls import API_URLS
 from txclib.log import logger
 from txclib.exceptions import UnknownCommandError
 from txclib.paths import posix_path, native_path, posix_sep
+from txclib.web import verify_ssl
 
 
 def find_dot_tx(path = os.path.curdir, previous = None):
@@ -73,6 +74,7 @@ def get_details(api_call, username, password, *args, **kwargs):
     """
     import base64
     url = (API_URLS[api_call] % (kwargs)).encode('UTF-8')
+    verify_ssl(url)
 
     req = urllib2.Request(url=url)
     base64string = base64.encodestring('%s:%s' % (username, password))[:-1]

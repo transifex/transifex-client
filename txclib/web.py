@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
+
+import os
 import urllib2
-import itertools, mimetools, mimetypes
+import socket
+import ssl
+import urlparse
+import mimetools
+import mimetypes
 import platform
 from txclib import get_version
+from txclib.packages.ssl_match_hostname import match_hostname
+
 
 # Helper class to enable urllib2 to handle PUT/DELETE requests as well
 class RequestWithMethod(urllib2.Request):
@@ -19,7 +27,7 @@ class RequestWithMethod(urllib2.Request):
 
 
 import urllib
-import os, stat
+import stat
 from cStringIO import StringIO
 
 
@@ -96,3 +104,35 @@ def user_agent_identifier():
     """Return the user agent for the client."""
     client_info = (get_version(), platform.system(), platform.machine())
     return "txclient/%s (%s %s)" % client_info
+
+
+def _verify_ssl(hostname, port=443):
+    """Verify the SSL certificate of the given host."""
+    sock = socket.create_connection((hostname, port))
+    try:
+        ssl_sock = ssl.wrap_socket(
+            sock, cert_reqs=ssl.CERT_REQUIRED, ca_certs=certs_file()
+        )
+        match_hostname(ssl_sock.getpeercert(), hostname)
+    finally:
+        sock.close()
+
+
+def certs_file():
+    return os.path.join(os.path.dirname(__file__), 'cacert.pem')
+
+
+def verify_ssl(host):
+    parts = urlparse.urlparse(host)
+    if parts.scheme != 'https':
+        return
+
+    if ':' in parts.netloc:
+        hostname, port = parts.netloc.split(':')
+    else:
+        hostname = parts.netloc
+        if parts.port is not None:
+            port = parts.port
+        else:
+            port = 443
+    _verify_ssl(hostname, port)

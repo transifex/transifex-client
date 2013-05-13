@@ -18,7 +18,7 @@ if long_description.startswith(BOM):
 long_description = long_description.decode('utf-8')
 
 package_data = {
-    '': ['LICENSE', 'README.rst'],
+    '': ['LICENSE', 'README.rst', 'txclib/cacert.pem'],
 }
 
 scripts = ['tx']
@@ -59,7 +59,7 @@ setup(
     ],
     test_suite="tests",
     zip_safe=False,
-    packages=['txclib', ],
+    packages=['txclib', 'txclib.packages', 'txclib.packages.ssl_match_hostname'],
     include_package_data=True,
     package_data = package_data,
     keywords = ('translation', 'localization', 'internationalization',),

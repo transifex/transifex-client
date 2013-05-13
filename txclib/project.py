@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import base64
-import copy
 import getpass
 import os
 import re
 import fnmatch
 import urllib2
-import datetime, time
+import datetime
+import time
 import ConfigParser
 from txclib.web import *
 from txclib.utils import *
@@ -365,6 +365,7 @@ class Project(object):
                 sfile = native_path(sfile)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
+            verify_ssl(host)
             logger.debug("Language mapping is: %s" % lang_map)
             if mode is None:
                 mode = self._get_option(resource, 'mode')
@@ -522,6 +523,7 @@ class Project(object):
                 sfile = native_path(sfile)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
+            verify_ssl(host)
             logger.debug("Language mapping is: %s" % lang_map)
             logger.debug("Using host %s" % host)
             self.url_info = {
@@ -650,6 +652,7 @@ class Project(object):
         for resource in resource_list:
             project_slug, resource_slug = resource.split('.')
             host = self.get_resource_host(resource)
+            verify_ssl(host)
             self.url_info = {
                 'host': host,
                 'project': project_slug,
