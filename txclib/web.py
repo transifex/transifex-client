@@ -8,6 +8,7 @@ import urlparse
 import mimetools
 import mimetypes
 import platform
+from pkg_resources import resource_filename, resource_string
 from txclib import get_version
 from txclib.packages.ssl_match_hostname import match_hostname
 
@@ -119,7 +120,22 @@ def _verify_ssl(hostname, port=443):
 
 
 def certs_file():
-    return os.path.join(os.path.dirname(__file__), 'cacert.pem')
+    if platform.system() == 'Windows':
+        # Workaround py2exe and resource_filename incompatibility.
+        # Store the content in the filesystem permanently.
+        app_dir = os.path.join(
+            os.getenv('appdata', os.path.expanduser('~')), 'transifex-client'
+        )
+        if not os.path.exists(app_dir):
+            os.mkdir(app_dir)
+        ca_file = os.path.join(app_dir, 'cacert.pem')
+        if not os.path.exists(ca_file):
+            content = resource_string(__name__, 'cacert.pem')
+            with open(ca_file, 'w') as f:
+                f.write(content)
+        return ca_file
+    else:
+        return resource_filename(__name__, 'cacert.pem')
 
 
 def verify_ssl(host):
