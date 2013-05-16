@@ -4,21 +4,28 @@
 
 import re
 
-__version__ = '3.2.2'
+__version__ = '3.2.3'                             # Transifex-fixed
 
 
 class CertificateError(ValueError):
     pass
 
 
-def _dnsname_to_pat(dn):
+def _dnsname_to_pat(dn, max_wildcards=2):
+    # See also http://bugs.python.org/issue17980
     pats = []
     for frag in dn.split(r'.'):
+        if frag.count('*') > max_wildcards:
+            raise CertificateError(
+                "too many wildcards in certificate name: " + repr(dn)
+            )
         if frag == '*':
             # When '*' is a fragment by itself, it matches a non-empty dotless
             # fragment.
             pats.append('[^.]+')
         else:
+            if frag.count('*') > 2:
+                raise CertificateError('Invalid hostname in the certificate')
             # Otherwise, '*' matches any dotless fragment.
             frag = re.escape(frag)
             pats.append(frag.replace(r'\*', '[^.]*'))
