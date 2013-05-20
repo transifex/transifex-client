@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
+
+import os
 import urllib2
-import itertools, mimetools, mimetypes
+import socket
+import ssl
+import urlparse
+import mimetools
+import mimetypes
 import platform
+from pkg_resources import resource_filename, resource_string
 from txclib import get_version
+from txclib.packages.ssl_match_hostname import match_hostname
+
 
 # Helper class to enable urllib2 to handle PUT/DELETE requests as well
 class RequestWithMethod(urllib2.Request):
@@ -19,7 +28,7 @@ class RequestWithMethod(urllib2.Request):
 
 
 import urllib
-import os, stat
+import stat
 from cStringIO import StringIO
 
 
@@ -96,3 +105,72 @@ def user_agent_identifier():
     """Return the user agent for the client."""
     client_info = (get_version(), platform.system(), platform.machine())
     return "txclient/%s (%s %s)" % client_info
+
+
+def _verify_ssl(hostname, port=443):
+    """Verify the SSL certificate of the given host."""
+    sock = socket.create_connection((hostname, port))
+    try:
+        ssl_sock = ssl.wrap_socket(
+            sock, cert_reqs=ssl.CERT_REQUIRED, ca_certs=certs_file()
+        )
+        match_hostname(ssl_sock.getpeercert(), hostname)
+    finally:
+        sock.close()
+
+
+def certs_file():
+    if platform.system() == 'Windows':
+        # Workaround py2exe and resource_filename incompatibility.
+        # Store the content in the filesystem permanently.
+        app_dir = os.path.join(
+            os.getenv('appdata', os.path.expanduser('~')), 'transifex-client'
+        )
+        if not os.path.exists(app_dir):
+            os.mkdir(app_dir)
+        ca_file = os.path.join(app_dir, 'cacert.pem')
+        if not os.path.exists(ca_file):
+            content = resource_string(__name__, 'cacert.pem')
+            with open(ca_file, 'w') as f:
+                f.write(content)
+        return ca_file
+    else:
+        POSSIBLE_CA_BUNDLE_PATHS = [
+            # Red Hat, CentOS, Fedora and friends
+            # (provided by the ca-certificates package):
+            '/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem',
+            '/etc/ssl/certs/ca-bundle.crt',
+            '/etc/pki/tls/certs/ca-bundle.crt',
+            # Ubuntu, Debian, and friends
+            # (provided by the ca-certificates package):
+            '/etc/ssl/certs/ca-certificates.crt',
+            # FreeBSD (provided by the ca_root_nss package):
+            '/usr/local/share/certs/ca-root-nss.crt',
+            # openSUSE (provided by the ca-certificates package),
+            # the 'certs' directory is the
+            # preferred way but may not be supported by the SSL module,
+            # thus it has 'ca-bundle.pem'
+            # as a fallback (which is generated from pem files in the
+            # 'certs' directory):
+            '/etc/ssl/ca-bundle.pem',
+        ]
+        for path in POSSIBLE_CA_BUNDLE_PATHS:
+            if os.path.exists(path):
+                return path
+        return resource_filename(__name__, 'cacert.pem')
+
+
+def verify_ssl(host):
+    parts = urlparse.urlparse(host)
+    if parts.scheme != 'https':
+        return
+
+    if ':' in parts.netloc:
+        hostname, port = parts.netloc.split(':')
+    else:
+        hostname = parts.netloc
+        if parts.port is not None:
+            port = parts.port
+        else:
+            port = 443
+    _verify_ssl(hostname, port)
