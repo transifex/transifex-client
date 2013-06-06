@@ -182,6 +182,7 @@ class Project(object):
             resource, 'file_filter',
             file_filter % {'proj': p_slug, 'res': r_slug, 'extension': extension}
         )
+        self.config.set(resource, 'type', i18n_type)
         if host != self.config.get('main', 'host'):
             self.config.set(resource, 'host', host)
 
