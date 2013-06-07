@@ -182,6 +182,7 @@ class Project(object):
             resource, 'file_filter',
             file_filter % {'proj': p_slug, 'res': r_slug, 'extension': extension}
         )
+        self.config.set(resource, 'type', i18n_type)
         if host != self.config.get('main', 'host'):
             self.config.set(resource, 'host', host)
 
@@ -224,6 +225,25 @@ class Project(object):
 
         return lang_map
 
+    def get_source_file(self, resource):
+        """
+        Get source file for a resource.
+        """
+        if self.config.has_section(resource):
+            source_lang = self.config.get(resource, "source_lang")
+            source_file = self.get_resource_option(resource, 'source_file') or None
+
+            if source_file is None:
+                try:
+                    file_filter = self.config.get(resource, "file_filter")
+                    filename = file_filter.replace('<lang>', source_lang)
+                    if os.path.exists(filename):
+                        return native_path(filename)
+                except ConfigParser.NoOptionError:
+                    pass
+            else:
+                return native_path(source_file)
+
     def get_resource_files(self, resource):
         """
         Get a dict for all files assigned to a resource. First we calculate the
@@ -241,9 +261,7 @@ class Project(object):
             except ConfigParser.NoOptionError:
                 file_filter = "$^"
             source_lang = self.config.get(resource, "source_lang")
-            source_file = self.get_resource_option(resource, 'source_file') or None
-            if source_file is not None:
-                source_file = native_path(source_file)
+            source_file = self.get_source_file(resource)
             expr_re = regex_from_filefilter(file_filter, self.root)
             expr_rec = re.compile(expr_re)
             for f_path in files_in_project(self.root):
@@ -360,9 +378,7 @@ class Project(object):
             project_slug, resource_slug = resource.split('.')
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
-            sfile = self.get_resource_option(resource, 'source_file')
-            if sfile is not None:
-                sfile = native_path(sfile)
+            sfile = self.get_source_file(resource)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
             verify_ssl(host)
@@ -377,7 +393,6 @@ class Project(object):
             logger.debug("URL data are: %s" % self.url_info)
 
             stats = self._get_stats_for_resource()
-
 
             try:
                 file_filter = self.config.get(resource, 'file_filter')
@@ -518,9 +533,7 @@ class Project(object):
             project_slug, resource_slug = resource.split('.')
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
-            sfile = self.get_resource_option(resource, 'source_file')
-            if sfile is not None:
-                sfile = native_path(sfile)
+            sfile = self.get_source_file(resource)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
             verify_ssl(host)
