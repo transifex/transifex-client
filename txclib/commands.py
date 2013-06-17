@@ -344,6 +344,7 @@ def cmd_pull(argv, path_to_tx):
     resources = parse_csv_option(options.resources)
     skip = options.skip_errors
     minimum_perc = options.minimum_perc or None
+    escape_utf = options.escape_utf
 
     try:
         _go_to_dir(path_to_tx)
@@ -357,7 +358,7 @@ def cmd_pull(argv, path_to_tx):
         languages=languages, resources=resources, overwrite=options.overwrite,
         fetchall=options.fetchall, fetchsource=options.fetchsource,
         force=options.force, skip=skip, minimum_perc=minimum_perc,
-        mode=options.mode
+        mode=options.mode, escape_utf=escape_utf
     )
     logger.info("Done.")
 
