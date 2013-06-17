@@ -112,6 +112,11 @@ def pull_parser():
             "'reviewed'). See http://bit.ly/txcmod1 for available values."
         )
     )
+    parser.add_option("--escape-utf", action="store_true",
+            dest="escape_utf", default=False, help="If you need ASCII files"\
+            " including utf characters, this option escapes them using "\
+            "\\uXXXX representation.")
+
     return parser
 
 

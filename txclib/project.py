@@ -357,8 +357,28 @@ class Project(object):
         else:
             return os.path.join(self.root, relpath)
 
+    # Get the remote language file and if necessary escae the utf characters
+    # using \uXXXX format
+    def _get_language_file(self, url, remote_lang, escape_utf=False):
+        r = self.do_url_request(url, language=remote_lang)
+        if escape_utf:
+            r = r.decode('iso-8859-1')
+            def encode_str(unistring):
+                def encode_char(unicodechar):
+                    code = ord(unicodechar)
+                    if code < 128:
+                        return str(unicodechar)
+                    return '\\u' + ('%04x' % code).upper()
+                return ''.join(encode_char(c) for c in unistring)
+            r = encode_str(r).replace('\\:', ':').replace('\\!', '!')
+            r = r.replace('\\=', '=').replace('\\#', '#')
+        return r
+
+
+    # Add one more parameter (command line) to escape utf-8 characters
     def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
-        fetchsource=False, force=False, skip=False, minimum_perc=0, mode=None):
+            fetchsource=False, force=False, skip=False, minimum_perc=0,
+            mode=None, escape_utf=False):
         """Pull all translations file from transifex server."""
         self.minimum_perc = minimum_perc
         resource_list = self.get_chosen_resources(resources)
@@ -464,7 +484,7 @@ class Project(object):
                     " -> %s: %s" % (color_text(remote_lang, "RED"), local_file)
                 )
                 try:
-                    r = self.do_url_request(url, language=remote_lang)
+                    r = self._get_language_file(url, remote_lang, escape_utf)
                 except Exception,e:
                     if not skip:
                         raise e
@@ -512,8 +532,8 @@ class Project(object):
                     logger.warning(
                         " -> %s: %s" % (color_text(remote_lang, "RED"), local_file)
                     )
-                    r = self.do_url_request(url, language=remote_lang)
-
+                    r = self._get_language_file(url, remote_lang, escape_utf)
+                    
                     base_dir = os.path.split(local_file)[0]
                     mkdir_p(base_dir)
                     fd = open(local_file, 'wb')
