@@ -116,7 +116,8 @@ def cmd_set(argv, path_to_tx):
         _auto_local(path_to_tx, options.resource,
             source_language=options.source_language,
             expression = expression, source_file=options.source_file,
-            execute=options.execute, regex=False)
+            execute=options.execute, regex=False,
+            source_name=options.source_name)
         if options.execute:
             _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
             _set_mode(options.resource, options.mode, path_to_tx)
@@ -184,7 +185,7 @@ def cmd_set(argv, path_to_tx):
 
 
 def _auto_local(path_to_tx, resource, source_language, expression, execute=False,
-                source_file=None, regex=False):
+                source_file=None, regex=False, source_name=None):
     """Auto configure local project."""
     # The path everything will be relative to
     curpath = os.path.abspath(os.curdir)
@@ -217,7 +218,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
         logger.info("Updating source for resource %s ( %s -> %s )." % (resource,
             source_language, os.path.relpath(source_file, path_to_tx)))
         _set_source_file(path_to_tx, resource, source_language,
-            os.path.relpath(source_file, path_to_tx))
+            os.path.relpath(source_file, path_to_tx), source_name=source_name)
     else:
         logger.info('\ntx set --source -r %(res)s -l %(lang)s %(file)s\n' % {
             'res': resource,
@@ -362,7 +363,8 @@ def cmd_pull(argv, path_to_tx):
     logger.info("Done.")
 
 
-def _set_source_file(path_to_tx, resource, lang, path_to_file):
+def _set_source_file(path_to_tx, resource, lang, path_to_file,
+                     source_name=None):
     """Reusable method to set source file."""
     proj, res = resource.split('.')
     if not proj or not res:
@@ -397,19 +399,14 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     prj = project.Project(path_to_tx)
 
     # FIXME: Check also if the path to source file already exists.
-    try:
-        try:
-            prj.config.get("%s.%s" % (proj, res), "source_file")
-        except ConfigParser.NoSectionError:
-            prj.config.add_section("%s.%s" % (proj, res))
-        except ConfigParser.NoOptionError:
-            pass
-    finally:
-        prj.config.set(
-            "%s.%s" % (proj, res), "source_file", posix_path(path_to_file)
-        )
-        prj.config.set("%s.%s" % (proj, res), "source_lang", lang)
+    section_name = "{0}.{1}".format(proj, res)
+    if not prj.config.has_section(section_name):
+        prj.config.add_section(section_name)
 
+    prj.config.set(section_name, "source_file", posix_path(path_to_file))
+    prj.config.set(section_name, "source_lang", lang)
+    if source_name:
+        prj.config.set(section_name, "source_name", source_name)
     prj.save()
 
 

@@ -520,8 +520,8 @@ class Project(object):
                     fd.write(r)
                     fd.close()
 
-    def push(self, source=False, translations=False, force=False, resources=[], languages=[],
-        skip=False, no_interactive=False):
+    def push(self, source=False, translations=False, force=False, resources=[],
+             languages=[], skip=False, no_interactive=False):
         """
         Push all the resources
         """
@@ -533,6 +533,7 @@ class Project(object):
             project_slug, resource_slug = resource.split('.')
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
+            sname = self.get_resource_option(resource, 'source_name')
             sfile = self.get_source_file(resource)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
@@ -570,13 +571,13 @@ class Project(object):
                     logger.warning("Pushing source file (%s)" % sfile)
                     if not self._resource_exists(stats):
                         logger.info("Resource does not exist.  Creating...")
-                        fileinfo = "%s;%s" % (resource_slug, slang)
+                        fileinfo = "%s;%s;%s" % (resource_slug, slang, sname)
                         filename = self.get_full_path(sfile)
                         self._create_resource(resource, project_slug, fileinfo, filename)
                     self.do_url_request(
                         'push_source', multipart=True, method="PUT",
                         files=[(
-                                "%s;%s" % (resource_slug, slang)
+                                "%s;%s;%s" % (resource_slug, slang, sname)
                                 , self.get_full_path(sfile)
                         )],
                     )
@@ -790,9 +791,17 @@ class Project(object):
         if multipart:
             opener = urllib2.build_opener(MultipartPostHandler)
             for info,filename in files:
-                data = { "resource" : info.split(';')[0],
-                         "language" : info.split(';')[1],
-                         "uploaded_file" :  open(filename,'rb') }
+                data = {"uploaded_file": open(filename,'rb')}
+                try:
+                    language, resource, name = info.split(';')
+                    data.update(
+                        language=language, resource=resource, name=name
+                    )
+                except ValueError:
+                    language, resource = into.split(';')
+                    data.update(
+                        language=language, resource=resource
+                    )
 
             urllib2.install_opener(opener)
             req = RequestWithMethod(url=url, data=data, method=method)
@@ -1193,9 +1202,13 @@ class Project(object):
             )
 
         opener = urllib2.build_opener(MultipartPostHandler)
+        try:
+            slug, slang, sname = fileinfo.split(';')
+        except ValueError:
+            slug = sname = fileinfo.split(';')[0]
         data = {
-            "slug": fileinfo.split(';')[0],
-            "name": fileinfo.split(';')[0],
+            "slug": slug,
+            "name": sname,
             "uploaded_file":  open(filename,'rb'),
             "i18n_type": i18n_type
         }

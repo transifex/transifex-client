@@ -218,6 +218,9 @@ def set_parser():
         " --auto-local].")
     group.add_option("--execute", action="store_true", dest="execute",
         default=False, help="Execute commands [requires --auto-local].")
+    group.add_option("-n","--source-name", action="store", dest="source_name",
+        default=None, help="Specify the source name of a resource [requires"
+        " --auto-local] to use remotely.")
     parser.add_option_group(group)
     return parser
 
