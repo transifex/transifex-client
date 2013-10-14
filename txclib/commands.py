@@ -111,8 +111,11 @@ def cmd_set(argv, path_to_tx):
         if not '<lang>' in expression:
             parser.error("The expression you have provided is not valid.")
         if not utils.valid_slug(options.resource):
-            parser.error("Invalid resource slug. The format is <project_slug>"\
-                ".<resource_slug> and the valid characters include [_-\w].")
+            parser.error(
+                "Invalid resource slug({0}). The format is <project_slug>"
+                ".<resource_slug> and the valid characters include [_-\w]."
+                .format(options.resource)
+            )
         _auto_local(path_to_tx, options.resource,
             source_language=options.source_language,
             expression = expression, source_file=options.source_file,
