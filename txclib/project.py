@@ -641,8 +641,10 @@ class Project(object):
                         self.do_url_request(
                             'push_translation', multipart=True, method='PUT',
                             files=[(
-                                    "%s;%s" % (resource_slug, remote_lang),
-                                    self.get_full_path(local_file)
+                                "%s;%s;%s" % (resource_slug,
+                                              remote_lang,
+                                              sname),
+                                self.get_full_path(local_file)
                             )], language=remote_lang
                         )
                         logger.debug("Translation %s pushed." % remote_lang)
@@ -830,7 +832,6 @@ class Project(object):
         except urllib2.URLError, e:
             error = e.args[0]
             raise Exception("Remote server replied: %s" % error[1])
-
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
                                    mode=None):
