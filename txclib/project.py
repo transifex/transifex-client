@@ -573,13 +573,15 @@ class Project(object):
                         logger.info("Resource does not exist.  Creating...")
                         fileinfo = "%s;%s;%s" % (resource_slug, slang, sname)
                         filename = self.get_full_path(sfile)
-                        self._create_resource(resource, project_slug, fileinfo, filename)
+                        self._create_resource(
+                            resource, project_slug, fileinfo, filename
+                        )
                     self.do_url_request(
                         'push_source', multipart=True, method="PUT",
                         files=[(
-                                "%s;%s;%s" % (resource_slug, slang, sname)
-                                , self.get_full_path(sfile)
-                        )],
+                            "%s;%s;%s" % (resource_slug, slang, sname),
+                            self.get_full_path(sfile)
+                        )]
                     )
                 except Exception, e:
                     if not skip:
@@ -763,8 +765,8 @@ class Project(object):
             if not self.skip:
                 raise
 
-    def do_url_request(self, api_call, multipart=False, data=None,
-                       files=[], encoding=None, method="GET", **kwargs):
+    def do_url_request(self, api_call, multipart=False, data=None, files=[],
+                       encoding=None, method="GET", attempts=3, **kwargs):
         """
         Issues a url request.
         """
@@ -818,20 +820,30 @@ class Project(object):
         req.add_header("Accept-Encoding", "gzip,deflate")
         req.add_header("User-Agent", user_agent_identifier())
 
-        try:
-            response = urllib2.urlopen(req, timeout=300)
-            return http_response(response)
-        except urllib2.HTTPError, e:
-            if e.code in [401, 403, 404]:
-                raise e
-            elif 200 <= e.code < 300:
-                return None
-            else:
-                # For other requests, we should print the message as well
-                raise Exception("Remote server replied: %s" % e.read())
-        except urllib2.URLError, e:
-            error = e.args[0]
-            raise Exception("Remote server replied: %s" % error[1])
+        while True:
+            if not attempts:
+                raise Exception(
+                    "No valid response was obtained from the server"
+                )
+            attempts -= 1
+            try:
+                response = urllib2.urlopen(req, timeout=300)
+                return http_response(response)
+            except urllib2.HTTPError, e:
+                if attempts:
+                    continue
+                if e.code in [401, 403, 404]:
+                    raise e
+                elif 200 <= e.code < 300:
+                    return None
+                else:
+                    # For other requests, we should print the message as well
+                    raise Exception("Remote server replied: %s" % e.read())
+            except urllib2.URLError, e:
+                if attempts:
+                    continue
+                error = e.args[0]
+                raise Exception("Remote server replied: %s" % error[1])
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
                                    mode=None):
