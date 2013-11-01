@@ -8,10 +8,10 @@ import datetime
 import time
 import ConfigParser
 import ssl
-import urllib3
 
 from txclib.web import *
 from txclib.utils import *
+from txclib.packages import urllib3
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger

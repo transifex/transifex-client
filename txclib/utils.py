@@ -4,8 +4,8 @@ try:
     from json import loads as parse_json, dumps as compile_json
 except ImportError:
     from simplejson import loads as parse_json, dumps as compile_json
-import urllib3
 
+from txclib.packages import urllib3
 from txclib.urls import API_URLS
 from txclib.exceptions import UnknownCommandError
 from txclib.paths import posix_path, native_path, posix_sep
