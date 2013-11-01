@@ -1,18 +1,19 @@
 import os, sys, re, errno
+import ssl
 try:
     from json import loads as parse_json, dumps as compile_json
 except ImportError:
     from simplejson import loads as parse_json, dumps as compile_json
-import urllib2 # This should go and instead use do_url_request everywhere
+import urllib3
 
 from txclib.urls import API_URLS
-from txclib.log import logger
 from txclib.exceptions import UnknownCommandError
 from txclib.paths import posix_path, native_path, posix_sep
-from txclib.web import verify_ssl
+from txclib.web import user_agent_identifier
+from txclib.log import logger
 
 
-def find_dot_tx(path = os.path.curdir, previous = None):
+def find_dot_tx(path=os.path.curdir, previous=None):
     """Return the path where .tx folder is found.
 
     The 'path' should be a DIRECTORY.
@@ -72,31 +73,24 @@ def get_details(api_call, username, password, *args, **kwargs):
 
     This function can also be used to check the existence of a project.
     """
-    import base64
     url = (API_URLS[api_call] % (kwargs)).encode('UTF-8')
-    verify_ssl(url)
-
-    req = urllib2.Request(url=url)
-    base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
-    authheader = "Basic %s" % base64string
-    req.add_header("Authorization", authheader)
-
+    conn = urllib3.connection_from_url(kwargs['hostname'])
+    headers = urllib3.util.make_headers(
+        basic_auth='{0}:{1}'.format(username, password),
+        accept_encoding=True,
+        user_agent=user_agent_identifier(),
+    )
     try:
-        fh = urllib2.urlopen(req)
-        raw = fh.read()
-        fh.close()
-        remote_project = parse_json(raw)
-    except urllib2.HTTPError, e:
-        if e.code in [401, 403, 404]:
-            raise e
-        else:
-            # For other requests, we should print the message as well
-            raise Exception("Remote server replied: %s" % e.read())
-    except urllib2.URLError, e:
-        error = e.args[0]
-        raise Exception("Remote server replied: %s" % error[1])
-
-    return remote_project
+        r = conn.request('GET', url, headers=headers)
+        remote_project = parse_json(r.data)
+        r.close()
+        return remote_project
+    except ssl.SSLError:
+        logger.error("Invalid SSL certificate")
+        raise
+    except Exception, e:
+        logger.debug(unicode(e))
+        raise
 
 
 def valid_slug(slug):
