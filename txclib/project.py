@@ -1,21 +1,20 @@
-
 # -*- coding: utf-8 -*-
 
-import base64
 import getpass
 import os
 import re
 import fnmatch
-import urllib2
 import datetime
 import time
 import ConfigParser
+import ssl
+
 from txclib.web import *
 from txclib.utils import *
+from txclib.packages import urllib3
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
-from txclib.http_utils import http_response
 from txclib.processors import visit_hostname
 from txclib.paths import posix_path, native_path, posix_sep
 
@@ -50,6 +49,8 @@ class Project(object):
         except ProjectNotInit, e:
             logger.error('\n'.join([unicode(e), instructions]))
             raise
+        host = self.config.get('main', 'host')
+        self.conn = urllib3.connection_from_url(host)
 
     def _get_config_file_path(self, root_path):
         """Check the .tx/config file exists."""
@@ -191,8 +192,6 @@ class Project(object):
         Returns the host that the resource is configured to use. If there is no
         such option we return the default one
         """
-        if self.config.has_option(resource, 'host'):
-            return self.config.get(resource, 'host')
         return self.config.get('main', 'host')
 
     def get_resource_lang_mapping(self, resource):
@@ -381,7 +380,6 @@ class Project(object):
             sfile = self.get_source_file(resource)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
-            verify_ssl(host)
             logger.debug("Language mapping is: %s" % lang_map)
             if mode is None:
                 mode = self._get_option(resource, 'mode')
@@ -465,7 +463,7 @@ class Project(object):
                 )
                 try:
                     r = self.do_url_request(url, language=remote_lang)
-                except Exception,e:
+                except Exception, e:
                     if not skip:
                         raise e
                     else:
@@ -536,7 +534,6 @@ class Project(object):
             sfile = self.get_source_file(resource)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
-            verify_ssl(host)
             logger.debug("Language mapping is: %s" % lang_map)
             logger.debug("Using host %s" % host)
             self.url_info = {
@@ -665,7 +662,6 @@ class Project(object):
         for resource in resource_list:
             project_slug, resource_slug = resource.split('.')
             host = self.get_resource_host(resource)
-            verify_ssl(host)
             self.url_info = {
                 'host': host,
                 'project': project_slug,
@@ -761,7 +757,7 @@ class Project(object):
                 raise
 
     def do_url_request(self, api_call, multipart=False, data=None,
-                       files=[], encoding=None, method="GET", **kwargs):
+                       files=[], method="GET", **kwargs):
         """
         Issues a url request.
         """
@@ -783,45 +779,37 @@ class Project(object):
         url = (API_URLS[api_call] % kwargs).encode('UTF-8')
         logger.debug(url)
 
-        opener = None
-        headers = None
-        req = None
-
         if multipart:
-            opener = urllib2.build_opener(MultipartPostHandler)
-            for info,filename in files:
-                data = { "resource" : info.split(';')[0],
-                         "language" : info.split(';')[1],
-                         "uploaded_file" :  open(filename,'rb') }
-
-            urllib2.install_opener(opener)
-            req = RequestWithMethod(url=url, data=data, method=method)
+            for info, filename in files:
+                data = {
+                    "resource": info.split(';')[0],
+                    "language": info.split(';')[1],
+                    "uploaded_file": (filename, open(filename, 'rb').read())
+                }
+            headers = urllib3.util.make_headers(
+                basic_auth='{0}:{1}'.format(username, passwd),
+                accept_encoding=True,
+                user_agent=user_agent_identifier(),
+                keep_alive=True
+            )
+            r = self.conn.request(
+                method, url, fields=data, headers=headers
+            )
         else:
-            req = RequestWithMethod(url=url, data=data, method=method)
-            if encoding:
-                req.add_header("Content-Type",encoding)
+            headers = urllib3.util.make_headers(
+                basic_auth='{0}:{1}'.format(username, passwd),
+                accept_encoding=True,
+                user_agent=user_agent_identifier(),
+                keep_alive=True
+            )
+            r = self.conn.request(
+                method, url, fields=data, headers=headers
+            )
 
-        base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
-        authheader = "Basic %s" % base64string
-        req.add_header("Authorization", authheader)
-        req.add_header("Accept-Encoding", "gzip,deflate")
-        req.add_header("User-Agent", user_agent_identifier())
-
-        try:
-            response = urllib2.urlopen(req, timeout=300)
-            return http_response(response)
-        except urllib2.HTTPError, e:
-            if e.code in [401, 403, 404]:
-                raise e
-            elif 200 <= e.code < 300:
-                return None
-            else:
-                # For other requests, we should print the message as well
-                raise Exception("Remote server replied: %s" % e.read())
-        except urllib2.URLError, e:
-            error = e.args[0]
-            raise Exception("Remote server replied: %s" % error[1])
-
+        r.close()
+        if r.status < 200 or r.status >= 400:
+            raise Exception(r.data)
+        return r.data
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
                                    mode=None):
@@ -1061,11 +1049,11 @@ class Project(object):
             r = self.do_url_request('resource_stats')
             logger.debug("Statistics response is %s" % r)
             stats = parse_json(r)
-        except urllib2.HTTPError, e:
-            logger.debug("Resource not found: %s" % e)
-            stats = {}
-        except Exception,e:
-            logger.debug("Network error: %s" % e)
+        except ssl.SSLError:
+            logger.error("Invalid SSL certificate")
+            raise
+        except Exception, e:
+            logger.debug(unicode(e))
             raise
         return stats
 
@@ -1135,7 +1123,7 @@ class Project(object):
         try:
             res = parse_json(self.do_url_request('formats'))
             return res[i18n_type]['file-extensions'].split(',')[0]
-        except Exception,e:
+        except Exception, e:
             logger.error(e)
             return ''
 
@@ -1181,9 +1169,7 @@ class Project(object):
         kwargs['project'] = pslug
         url = (API_URLS[api_call] % kwargs).encode('UTF-8')
 
-        opener = None
         headers = None
-        req = None
 
         i18n_type = self._get_option(resource, 'type')
         if i18n_type is None:
@@ -1192,35 +1178,24 @@ class Project(object):
                 " More info: http://bit.ly/txcl-rt"
             )
 
-        opener = urllib2.build_opener(MultipartPostHandler)
+        headers = urllib3.util.make_headers(
+            basic_auth='{0}:{1}'.format(username, passwd),
+            accept_encoding=True,
+            user_agent=user_agent_identifier(),
+            keep_alive=True
+        )
         data = {
             "slug": fileinfo.split(';')[0],
             "name": fileinfo.split(';')[0],
-            "uploaded_file":  open(filename,'rb'),
+            "uploaded_file": (filename, open(filename, 'rb').read()),
             "i18n_type": i18n_type
         }
-        urllib2.install_opener(opener)
-        req = RequestWithMethod(url=url, data=data, method=method)
-
-        base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
-        authheader = "Basic %s" % base64string
-        req.add_header("Authorization", authheader)
-
         try:
-            fh = urllib2.urlopen(req)
-        except urllib2.HTTPError, e:
-            if e.code in [401, 403, 404]:
-                raise e
-            else:
-                # For other requests, we should print the message as well
-                raise Exception("Remote server replied: %s" % e.read())
-        except urllib2.URLError, e:
-            error = e.args[0]
-            raise Exception("Remote server replied: %s" % error[1])
-
-        raw = fh.read()
-        fh.close()
-        return raw
+            r = self.conn.request(method, url, fields=data, headers=headers)
+        except ssl.SSLError:
+            logger.error("Invalid SSL certificate")
+        r.close()
+        return r.data
 
     def _get_option(self, resource, option):
         """Get the value for the option in the config file.
