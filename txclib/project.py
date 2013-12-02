@@ -169,7 +169,7 @@ class Project(object):
         if not self.config.has_section(resource):
             self.config.add_section(resource)
 
-        p_slug, r_slug = resource.split('.')
+        p_slug, r_slug = resource.split('.', 1)
         file_filter = file_filter.replace("<sep>", r"%s" % posix_sep)
         self.url_info = {
             'host': host,
