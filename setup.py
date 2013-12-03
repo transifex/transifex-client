@@ -63,19 +63,25 @@ setup(
     author_email="admin@transifex.com",
     url="https://www.transifex.com",
     license="GPLv2",
-    dependency_links = [
+    dependency_links=[
     ],
-    setup_requires = [
+    setup_requires=[
     ],
-    install_requires = install_requires,
-    tests_require = ["mock", ],
+    install_requires=install_requires,
+    tests_require=["mock", ],
     data_files=[
     ],
     test_suite="tests",
     zip_safe=False,
     packages=['txclib', 'txclib.packages', 'txclib.packages.ssl_match_hostname'],
     include_package_data=True,
-    package_data = package_data,
-    keywords = ('translation', 'localization', 'internationalization',),
+    package_data=package_data,
+    keywords=('translation', 'localization', 'internationalization',),
+    classifiers=[
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+    ],
     **extra_args
 )
