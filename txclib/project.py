@@ -374,7 +374,7 @@ class Project(object):
         for resource in resource_list:
             logger.debug("Handling resource %s" % resource)
             self.resource = resource
-            project_slug, resource_slug = resource.split('.')
+            project_slug, resource_slug = resource.split('.', 1)
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_source_file(resource)
@@ -528,7 +528,7 @@ class Project(object):
         self.force = force
         for resource in resource_list:
             push_languages = []
-            project_slug, resource_slug = resource.split('.')
+            project_slug, resource_slug = resource.split('.', 1)
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_source_file(resource)
@@ -660,7 +660,7 @@ class Project(object):
             delete_func = self._delete_translations
 
         for resource in resource_list:
-            project_slug, resource_slug = resource.split('.')
+            project_slug, resource_slug = resource.split('.', 1)
             host = self.get_resource_host(resource)
             self.url_info = {
                 'host': host,
@@ -677,7 +677,7 @@ class Project(object):
 
     def _delete_resource(self, project_details, resource, stats, *args):
         """Delete a resource from Transifex."""
-        project_slug, resource_slug = resource.split('.')
+        project_slug, resource_slug = resource.split('.', 1)
         project_resource_slugs = [
             r['slug'] for r in project_details['resources']
         ]
@@ -720,7 +720,7 @@ class Project(object):
 
     def _delete_translation(self, project_details, resource, stats, language):
         """Delete a specific translation from the specified resource."""
-        project_slug, resource_slug = resource.split('.')
+        project_slug, resource_slug = resource.split('.', 1)
         if language not in stats:
             if not self.skip:
                 msg = "Skipping %s: Translation does not exist."
