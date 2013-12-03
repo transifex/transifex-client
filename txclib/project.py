@@ -356,8 +356,13 @@ class Project(object):
         else:
             return os.path.join(self.root, relpath)
 
+    def _get_pseudo_file(self, slang, resource, file_filter):
+        pseudo_file = file_filter.replace('<lang>', '%s_pseudo' % slang)
+        return native_path(pseudo_file)
+
     def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
-        fetchsource=False, force=False, skip=False, minimum_perc=0, mode=None):
+        fetchsource=False, force=False, skip=False, minimum_perc=0, mode=None,
+        pseudo=False):
         """Pull all translations file from transifex server."""
         self.minimum_perc = minimum_perc
         resource_list = self.get_chosen_resources(resources)
@@ -400,6 +405,17 @@ class Project(object):
             # Pull source file
             pull_languages = set([])
             new_translations = set([])
+
+            if pseudo:
+                pseudo_file = self._get_pseudo_file(
+                    slang, resource, file_filter
+                )
+                if self._should_download(slang, stats, local_file=pseudo_file):
+                    msg = "Pulling pseudo file for resource %s." % resource
+                    logger.info(msg)
+                    self._download_pseudo(
+                        project_slug, resource_slug, pseudo_file
+                    )
 
             if fetchall:
                 new_translations = self._new_translations_to_add(
@@ -1020,6 +1036,20 @@ class Project(object):
             return stats['last_update']
         except KeyError, e:
             return None
+
+    def _download_pseudo(self, project_slug, resource_slug, pseudo_file):
+        response = self.do_url_request(
+            'pull_pseudo_file',
+            resource_slug=resource_slug,
+            project_slug=project_slug
+        )
+        response = parse_json(response)
+
+        base_dir = os.path.split(pseudo_file)[0]
+        mkdir_p(base_dir)
+
+        with open(pseudo_file, "wb") as fd:
+            fd.write(response['content'])
 
     def _new_translations_to_add(self, files, slang, lang_map,
                                  stats, force=False):

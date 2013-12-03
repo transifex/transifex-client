@@ -106,6 +106,9 @@ def pull_parser():
         dest="minimum_perc", default=0,
         help="Specify the minimum acceptable percentage of a translation "
              "in order to download it.")
+    parser.add_option("--pseudo", action="store_true", dest="pseudo",
+        default=False,
+        help="Apply this option to download a pseudo file.")
     parser.add_option(
         "--mode", action="store", dest="mode", help=(
             "Specify the mode of the translation file to pull (e.g. "

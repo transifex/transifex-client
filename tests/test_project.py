@@ -350,6 +350,15 @@ class TestProjectPull(unittest.TestCase):
                     )
                     self.assertEquals(res, set(['el']))
 
+    def test_get_pseudo_file(self):
+        slang = 'en'
+        resource = 'adriana'
+        file_filter = 'adriana/<lang>.po'
+
+        pseudo_file = self.p._get_pseudo_file(slang, resource, file_filter)
+
+        self.assertEquals(pseudo_file, 'adriana/en_pseudo.po')
+
     def test_languages_to_pull_empty_initial_list(self):
         """Test determining the languages to pull, when the initial
         list is empty.
