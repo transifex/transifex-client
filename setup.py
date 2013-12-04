@@ -56,6 +56,8 @@ setup(
     packages=[
         'txclib', 'txclib.packages', 'txclib.packages.urllib3',
         'txclib.packages.urllib3.contrib',
+        'txclib.packages.urllib3.packages',
+        'txclib.packages.urllib3.packages.ssl_match_hostname',
     ],
     include_package_data=True,
     package_data=package_data,
