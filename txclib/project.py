@@ -797,10 +797,11 @@ class Project(object):
 
         if multipart:
             for info, filename in files:
+                name = os.path.basename(filename)
                 data = {
                     "resource": info.split(';')[0],
                     "language": info.split(';')[1],
-                    "uploaded_file": (filename, open(filename, 'rb').read())
+                    "uploaded_file": (name, open(filename, 'rb').read())
                 }
             headers = urllib3.util.make_headers(
                 basic_auth='{0}:{1}'.format(username, passwd),
