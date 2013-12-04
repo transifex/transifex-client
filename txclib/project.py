@@ -415,8 +415,10 @@ class Project(object):
                     slang, resource, file_filter
                 )
                 if self._should_download(slang, stats, local_file=pseudo_file):
-                    msg = "Pulling pseudo file for resource %s." % resource
-                    logger.info(msg)
+                    logger.info("Pulling pseudo file for resource %s (%s)." % (
+                        resource,
+                        color_text(pseudo_file, "RED")
+                    ))
                     self._download_pseudo(
                         project_slug, resource_slug, pseudo_file
                     )
