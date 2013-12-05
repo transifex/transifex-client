@@ -82,8 +82,9 @@ def get_details(api_call, username, password, *args, **kwargs):
     )
     try:
         r = conn.request('GET', url, headers=headers)
+        if r.status < 200 or r.status >= 400:
+            raise Exception(r.data)
         remote_project = parse_json(r.data)
-        r.close()
         return remote_project
     except ssl.SSLError:
         logger.error("Invalid SSL certificate")
@@ -91,6 +92,8 @@ def get_details(api_call, username, password, *args, **kwargs):
     except Exception, e:
         logger.debug(unicode(e))
         raise
+    finally:
+        r.close()
 
 
 def valid_slug(slug):
