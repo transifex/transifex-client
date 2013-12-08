@@ -3,6 +3,8 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
+from txclib.packages.urllib3.packages import six
+
 
 class OrderedRawConfigParser(configparser.RawConfigParser):
     """
@@ -42,7 +44,7 @@ class Flipdict(dict):
     def __init__(self, *args, **kw):
         self._flip = dict.__new__(self.__class__)
         setattr(self._flip, "_flip", self)
-        for key, val in dict(*args, **kw).iteritems():
+        for key, val in six.iteritems(dict(*args, **kw)):
             self[key] = val
 
     @property
@@ -87,8 +89,8 @@ class Flipdict(dict):
         # Make progressively weaker assumptions about "other"
         if other is None:
             pass
-        elif hasattr(other, 'iteritems'):  # iteritems saves memory and lookups
-            for k, v in other.iteritems():
+        elif hasattr(other, 'items'):
+            for k, v in six.iteritems(other):
                 self[k] = v
         elif hasattr(other, 'keys'):
             for k in other.keys():

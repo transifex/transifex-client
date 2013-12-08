@@ -18,6 +18,7 @@ except ImportError:
 from txclib.web import *
 from txclib.utils import *
 from txclib.packages import urllib3
+from txclib.packages.urllib3.packages import six
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
@@ -285,7 +286,7 @@ class Project(object):
                     # delete language which has same file
                     if value in tr_files.values():
                         keys = []
-                        for k, v in tr_files.iteritems():
+                        for k, v in six.iteritems(tr_files):
                             if v == value:
                                 keys.append(k)
                         if len(keys) == 1:
