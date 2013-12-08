@@ -6,8 +6,14 @@ import re
 import fnmatch
 import datetime
 import time
-import ConfigParser
 import ssl
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser
+
+
 
 from txclib.web import *
 from txclib.utils import *
@@ -145,7 +151,7 @@ class Project(object):
         try:
             username = self.txrc.get(host, 'username')
             passwd = self.txrc.get(host, 'password')
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (configparser.NoOptionError, configparser.NoSectionError):
             logger.info("No entry found for host %s. Creating..." % host)
             username = user or raw_input("Please enter your transifex username: ")
             while (not username):
@@ -202,7 +208,7 @@ class Project(object):
             for arg in args.replace(' ', '').split(','):
                 k,v = arg.split(":")
                 lang_map.update({k:v})
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             pass
         except (ValueError, KeyError):
             raise Exception("Your lang map configuration is not correct.")
@@ -214,7 +220,7 @@ class Project(object):
                 for arg in args.replace(' ', '').split(','):
                     k,v = arg.split(":")
                     res_lang_map.update({k:v})
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 pass
             except (ValueError, KeyError):
                 raise Exception("Your lang map configuration is not correct.")
@@ -238,7 +244,7 @@ class Project(object):
                     filename = file_filter.replace('<lang>', source_lang)
                     if os.path.exists(filename):
                         return native_path(filename)
-                except ConfigParser.NoOptionError:
+                except configparser.NoOptionError:
                     pass
             else:
                 return native_path(source_file)
@@ -257,7 +263,7 @@ class Project(object):
         if self.config.has_section(resource):
             try:
                 file_filter = self.config.get(resource, "file_filter")
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 file_filter = "$^"
             source_lang = self.config.get(resource, "source_lang")
             source_file = self.get_source_file(resource)
@@ -399,7 +405,7 @@ class Project(object):
 
             try:
                 file_filter = self.config.get(resource, 'file_filter')
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 file_filter = None
 
             # Pull source file
@@ -784,7 +790,7 @@ class Project(object):
             passwd = self.txrc.get(host, 'password')
             token = self.txrc.get(host, 'token')
             hostname = self.txrc.get(host, 'hostname')
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             raise Exception("No user credentials found for host %s. Edit"
                 " ~/.transifexrc and add the appropriate info in there." %
                 host)
@@ -1189,7 +1195,7 @@ class Project(object):
             passwd = self.txrc.get(host, 'password')
             token = self.txrc.get(host, 'token')
             hostname = self.txrc.get(host, 'hostname')
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             raise Exception("No user credentials found for host %s. Edit"
                 " ~/.transifexrc and add the appropriate info in there." %
                 host)

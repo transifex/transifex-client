@@ -1,7 +1,10 @@
-import ConfigParser
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 
-class OrderedRawConfigParser( ConfigParser.RawConfigParser ):
+class OrderedRawConfigParser(configparser.RawConfigParser):
     """
     Overload standard Class ConfigParser.RawConfigParser
     """

@@ -19,7 +19,11 @@ import os
 import re, shutil
 import sys
 from optparse import OptionParser, OptionGroup
-import ConfigParser
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 
 from txclib import utils, project
@@ -230,7 +234,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     if execute:
         try:
             prj.config.get("%s" % resource, "source_file")
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             raise Exception("No resource with slug \"%s\" was found.\nRun 'tx set --auto"
                 "-local -r %s \"expression\"' to do the initial configuration." % resource)
 
@@ -401,9 +405,9 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     try:
         try:
             prj.config.get("%s.%s" % (proj, res), "source_file")
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             prj.config.add_section("%s.%s" % (proj, res))
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             pass
     finally:
         prj.config.set(
