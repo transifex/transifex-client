@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-import contextlib
 import itertools
 try:
     import json
@@ -485,20 +484,18 @@ class TestOptions(unittest.TestCase):
 
     def test_get_option(self):
         """Test _get_option method."""
-        with contextlib.nested(
-            patch.object(self.p, 'get_resource_option'),
-            patch.object(self.p, 'config', create=True)
-        ) as (rmock, cmock):
-            rmock.return_value = 'resource'
-            cmock.has_option.return_value = 'main'
-            cmock.get.return_value = 'main'
-            self.assertEqual(self.p._get_option(None, None), 'resource')
-            rmock.return_value = None
-            cmock.has_option.return_value = 'main'
-            cmock.get.return_value = 'main'
-            self.assertEqual(self.p._get_option(None, None), 'main')
-            cmock.has_option.return_value = None
-            self.assertIs(self.p._get_option(None, None), None)
+        with patch.object(self.p, 'get_resource_option') as rmock:
+            with patch.object(self.p, 'config', create=True) as cmock:
+                rmock.return_value = 'resource'
+                cmock.has_option.return_value = 'main'
+                cmock.get.return_value = 'main'
+                self.assertEqual(self.p._get_option(None, None), 'resource')
+                rmock.return_value = None
+                cmock.has_option.return_value = 'main'
+                cmock.get.return_value = 'main'
+                self.assertEqual(self.p._get_option(None, None), 'main')
+                cmock.has_option.return_value = None
+                self.assertIs(self.p._get_option(None, None), None)
 
 
 class TestConfigurationOptions(unittest.TestCase):
