@@ -7,6 +7,7 @@ except ImportError:
 
 from txclib.packages import urllib3
 from txclib.packages.urllib3.packages import six
+from txclib.packages.urllib3.packages.six.moves import input
 from txclib.urls import API_URLS
 from txclib.exceptions import UnknownCommandError
 from txclib.paths import posix_path, native_path, posix_sep
@@ -172,9 +173,9 @@ def confirm(prompt='Continue?', default=True):
         prompt = prompt + '[y/N]'
         valid_no.append('')
 
-    ans = raw_input(prompt)
+    ans = input(prompt)
     while (ans not in valid_yes and ans not in valid_no):
-        ans = raw_input(prompt)
+        ans = input(prompt)
 
     return ans in valid_yes
 

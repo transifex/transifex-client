@@ -154,9 +154,9 @@ class Project(object):
             passwd = self.txrc.get(host, 'password')
         except (configparser.NoOptionError, configparser.NoSectionError):
             logger.info("No entry found for host %s. Creating..." % host)
-            username = user or raw_input("Please enter your transifex username: ")
+            username = user or input("Please enter your transifex username: ")
             while (not username):
-                username = raw_input("Please enter your transifex username: ")
+                username = input("Please enter your transifex username: ")
             passwd = password
             while (not passwd):
                 passwd = getpass.getpass()
@@ -570,7 +570,7 @@ class Project(object):
             stats = self._get_stats_for_resource()
 
             if force and not no_interactive:
-                answer = raw_input("Warning: By using --force, the uploaded"
+                answer = input("Warning: By using --force, the uploaded"
                     " files will overwrite remote translations, even if they"
                     " are newer than your uploaded files.\nAre you sure you"
                     " want to continue? [y/N] ")
