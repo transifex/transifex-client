@@ -292,7 +292,7 @@ def _auto_remote(path_to_tx, url):
         logger.info("Getting details for resource %s" % vars['resource'])
         resources = [ '.'.join([vars['project'], vars['resource']]) ]
     else:
-        raise("Url '%s' is not recognized." % url)
+        raise Exception("Url '%s' is not recognized." % url)
 
     for resource in resources:
         logger.info("Configuring resource %s." % resource)
