@@ -54,7 +54,7 @@ class Project(object):
             if os.path.exists(local_txrc_file):
                 self.txrc_file = local_txrc_file
         except ProjectNotInit as e:
-            logger.error('\n'.join([unicode(e), instructions]))
+            logger.error('\n'.join([six.u(e), instructions]))
             raise
         host = self.config.get('main', 'host')
         self.conn = urllib3.connection_from_url(host)
@@ -1091,7 +1091,7 @@ class Project(object):
             logger.error("Invalid SSL certificate")
             raise
         except Exception as e:
-            logger.debug(unicode(e))
+            logger.debug(six.u(e))
             raise
         return stats
 

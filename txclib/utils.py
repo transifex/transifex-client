@@ -6,6 +6,7 @@ except ImportError:
     from simplejson import loads as parse_json, dumps as compile_json
 
 from txclib.packages import urllib3
+from txclib.packages.urllib3.packages import six
 from txclib.urls import API_URLS
 from txclib.exceptions import UnknownCommandError
 from txclib.paths import posix_path, native_path, posix_sep
@@ -90,7 +91,7 @@ def get_details(api_call, username, password, *args, **kwargs):
         logger.error("Invalid SSL certificate")
         raise
     except Exception as e:
-        logger.debug(unicode(e))
+        logger.debug(six.u(e))
         raise
     finally:
         r.close()
