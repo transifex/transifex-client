@@ -477,11 +477,11 @@ def cmd_status(argv, path_to_tx):
         logger.info(" - %s: %s (%s)" % (utils.color_text(slang, "RED"),
             sfile, utils.color_text("source", "YELLOW")))
         files = prj.get_resource_files(res)
-        fkeys = files.keys()
+        fkeys = list(files.keys())
         fkeys.sort()
         for lang in fkeys:
             local_lang = lang
-            if lang in lang_map.values():
+            if lang in list(lang_map.values()):
                 local_lang = lang_map.flip[lang]
             logger.info(" - %s: %s" % (utils.color_text(local_lang, "RED"),
                 files[lang]))
@@ -509,7 +509,7 @@ def cmd_help(argv, path_to_tx):
     # the code below will only be executed if the KeyError exception is thrown
     # becuase in all other cases the function called with --help will exit
     # instead of return here
-    keys = fns.keys()
+    keys = list(fns.keys())
     keys.sort()
 
     logger.info("Transifex command line client.\n")

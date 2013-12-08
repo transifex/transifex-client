@@ -93,7 +93,7 @@ class Flipdict(dict):
             for k, v in six.iteritems(other):
                 self[k] = v
         elif hasattr(other, 'keys'):
-            for k in other.keys():
+            for k in list(other.keys()):
                 self[k] = other[k]
         else:
             for k, v in other:

@@ -59,7 +59,7 @@ def parse_tx_url(url):
     Try to match given url to any of the valid url patterns specified in
     TX_URLS. If not match is found, we raise exception
     """
-    for type_ in TX_URLS.keys():
+    for type_ in list(TX_URLS.keys()):
         pattern = TX_URLS[type_]
         m = re.match(pattern, url)
         if m:

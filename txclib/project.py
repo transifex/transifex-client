@@ -284,7 +284,7 @@ class Project(object):
                     value = native_path(value)
                     lang = name.split('.')[1]
                     # delete language which has same file
-                    if value in tr_files.values():
+                    if value in list(tr_files.values()):
                         keys = []
                         for k, v in six.iteritems(tr_files):
                             if v == value:
@@ -452,7 +452,7 @@ class Project(object):
 
             for lang in pull_languages:
                 local_lang = lang
-                if lang in lang_map.values():
+                if lang in list(lang_map.values()):
                     remote_lang = lang_map.flip[lang]
                 else:
                     remote_lang = lang
@@ -502,7 +502,7 @@ class Project(object):
                 msg = "Pulling new translations for resource %s (source: %s)"
                 logger.info(msg % (resource, sfile))
                 for lang in new_translations:
-                    if lang in lang_map.keys():
+                    if lang in list(lang_map.keys()):
                         local_lang = lang_map[lang]
                     else:
                         local_lang = lang
@@ -618,12 +618,12 @@ class Project(object):
             if translations:
                 # Check if given language codes exist
                 if not languages:
-                    push_languages = files.keys()
+                    push_languages = list(files.keys())
                 else:
                     push_languages = []
-                    f_langs = files.keys()
+                    f_langs = list(files.keys())
                     for l in languages:
-                        if l in lang_map.keys():
+                        if l in list(lang_map.keys()):
                             l = lang_map[l]
                         push_languages.append(l)
                         if l not in f_langs:
@@ -634,7 +634,7 @@ class Project(object):
                 # Push translation files one by one
                 for lang in push_languages:
                     local_lang = lang
-                    if lang in lang_map.values():
+                    if lang in list(lang_map.values()):
                         remote_lang = lang_map.flip[lang]
                     else:
                         remote_lang = lang
@@ -1066,14 +1066,14 @@ class Project(object):
         """
         new_translations = []
         timestamp = time.time()
-        langs = stats.keys()
+        langs = list(stats.keys())
         logger.debug("Available languages are: %s" % langs)
 
         for lang in langs:
-            lang_exists = lang in files.keys()
+            lang_exists = lang in list(files.keys())
             lang_is_source = lang == slang
             mapped_lang_exists = (
-                lang in lang_map and lang_map[lang] in files.keys()
+                lang in lang_map and lang_map[lang] in list(files.keys())
             )
             if lang_exists or lang_is_source or mapped_lang_exists:
                 continue
@@ -1145,13 +1145,13 @@ class Project(object):
         else:
             pull_languages = []
             new_translations = []
-            f_langs = files.keys()
+            f_langs = list(files.keys())
             for l in languages:
                 if l not in f_langs and not (l in lang_map and lang_map[l] in f_langs):
                     if self._should_add_translation(l, stats, force):
                         new_translations.append(l)
                 else:
-                    if l in lang_map.keys():
+                    if l in list(lang_map.keys()):
                         l = lang_map[l]
                     pull_languages.append(l)
             return (set(pull_languages), set(new_translations))

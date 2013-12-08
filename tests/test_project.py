@@ -164,7 +164,7 @@ class TestProjectFilters(unittest.TestCase):
                 'completed': '70%', 'last_update': '2011-11-01 15:00:00',
             },
         }
-        self.langs = self.stats.keys()
+        self.langs = list(self.stats.keys())
 
     def test_add_translation(self):
         """Test filters for adding translations.
@@ -307,8 +307,8 @@ class TestProjectPull(unittest.TestCase):
                 'completed': '70%', 'last_update': '2011-11-01 15:00:00',
             },
         }
-        self.langs = self.stats.keys()
-        self.files = dict(zip(self.langs, itertools.repeat(None)))
+        self.langs = list(self.stats.keys())
+        self.files = dict(list(zip(self.langs, itertools.repeat(None))))
         self.details = {'available_languages': []}
         for lang in self.langs:
             self.details['available_languages'].append({'code': lang})
