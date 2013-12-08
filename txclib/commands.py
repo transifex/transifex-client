@@ -283,7 +283,7 @@ def _auto_remote(path_to_tx, url):
             project = vars['project'], release = vars['release'])
         resources = []
         for r in rel_info['resources']:
-            if r.has_key('project'):
+            if 'project' in r:
                 resources.append('.'.join([r['project']['slug'], r['slug']]))
             else:
                 resources.append('.'.join([vars['project'], r['slug']]))
