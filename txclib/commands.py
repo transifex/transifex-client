@@ -170,7 +170,7 @@ def cmd_set(argv, path_to_tx):
 
         try:
             _go_to_dir(path_to_tx)
-        except UnInitializedError, e:
+        except UnInitializedError as e:
             utils.logger.error(e)
             return
 
@@ -352,7 +352,7 @@ def cmd_pull(argv, path_to_tx):
 
     try:
         _go_to_dir(path_to_tx)
-    except UnInitializedError, e:
+    except UnInitializedError as e:
         utils.logger.error(e)
         return
 
@@ -379,7 +379,7 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
 
     try:
         _go_to_dir(path_to_tx)
-    except UnInitializedError, e:
+    except UnInitializedError as e:
         utils.logger.error(e)
         return
 
@@ -429,7 +429,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
     try:
         _go_to_dir(path_to_tx)
-    except UnInitializedError, e:
+    except UnInitializedError as e:
         utils.logger.error(e)
         return
 

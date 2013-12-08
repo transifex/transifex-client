@@ -89,7 +89,7 @@ def get_details(api_call, username, password, *args, **kwargs):
     except ssl.SSLError:
         logger.error("Invalid SSL certificate")
         raise
-    except Exception, e:
+    except Exception as e:
         logger.debug(unicode(e))
         raise
     finally:
@@ -147,7 +147,7 @@ def mkdir_p(path):
     try:
         if path:
             os.makedirs(path)
-    except OSError, exc: # Python >2.5
+    except OSError as exc:
         if exc.errno == errno.EEXIST:
             pass
         else:

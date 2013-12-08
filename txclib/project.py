@@ -52,7 +52,7 @@ class Project(object):
             self.txrc = self._get_transifex_config([self.txrc_file, local_txrc_file])
             if os.path.exists(local_txrc_file):
                 self.txrc_file = local_txrc_file
-        except ProjectNotInit, e:
+        except ProjectNotInit as e:
             logger.error('\n'.join([unicode(e), instructions]))
             raise
         host = self.config.get('main', 'host')
@@ -81,7 +81,7 @@ class Project(object):
         config = OrderedRawConfigParser()
         try:
             config.read(config_file)
-        except Exception, err:
+        except Exception as err:
             msg = "Cannot open/parse .tx/config file: %s" % err
             raise ProjectNotInit(msg)
         return config
@@ -91,7 +91,7 @@ class Project(object):
         txrc = OrderedRawConfigParser()
         try:
             txrc.read(txrc_files)
-        except Exception, e:
+        except Exception as e:
             msg = "Cannot read configuration file: %s" % e
             raise ProjectNotInit(msg)
         self._migrate_txrc_file(txrc)
@@ -485,7 +485,7 @@ class Project(object):
                 )
                 try:
                     r = self.do_url_request(url, language=remote_lang)
-                except Exception, e:
+                except Exception as e:
                     if not skip:
                         raise e
                     else:
@@ -599,7 +599,7 @@ class Project(object):
                                 , self.get_full_path(sfile)
                         )],
                     )
-                except Exception, e:
+                except Exception as e:
                     if not skip:
                         raise
                     else:
@@ -607,7 +607,7 @@ class Project(object):
             else:
                 try:
                     self.do_url_request('resource_details')
-                except Exception, e:
+                except Exception as e:
                     code = getattr(e, 'code', None)
                     if code == 404:
                         msg = "Resource %s doesn't exist on the server."
@@ -664,7 +664,7 @@ class Project(object):
                             )], language=remote_lang
                         )
                         logger.debug("Translation %s pushed." % remote_lang)
-                    except Exception, e:
+                    except Exception as e:
                         if not skip:
                             raise e
                         else:
@@ -728,7 +728,7 @@ class Project(object):
             self.save()
             msg = "Deleted resource %s of project %s."
             logger.info(msg % (resource_slug, project_slug))
-        except Exception, e:
+        except Exception as e:
             msg = "Unable to delete resource %s of project %s."
             logger.error(msg % (resource_slug, project_slug))
             if not self.skip:
@@ -772,7 +772,7 @@ class Project(object):
             )
             msg = "Deleted language %s from resource %s of project %s."
             logger.info(msg % (language, resource_slug, project_slug))
-        except Exception, e:
+        except Exception as e:
             msg = "Unable to delete translation %s"
             logger.error(msg % language)
             if not self.skip:
@@ -882,7 +882,7 @@ class Project(object):
         """
         try:
             lang_stats = stats[lang]
-        except KeyError, e:
+        except KeyError as e:
             logger.debug("No lang %s in statistics" % lang)
             return False
 
@@ -923,7 +923,7 @@ class Project(object):
             return True
         try:
             lang_stats = stats[lang]
-        except KeyError, e:
+        except KeyError as e:
             logger.debug("Language %s does not exist in Transifex." % lang)
             return True
         if local_file is not None:
@@ -1027,7 +1027,7 @@ class Project(object):
             key = 'completed'
         try:
             return int(stats[key][:-1])
-        except KeyError, e:
+        except KeyError as e:
             return 0
 
     @classmethod
@@ -1041,7 +1041,7 @@ class Project(object):
         """
         try:
             return stats['last_update']
-        except KeyError, e:
+        except KeyError as e:
             return None
 
     def _download_pseudo(self, project_slug, resource_slug, pseudo_file):
@@ -1089,7 +1089,7 @@ class Project(object):
         except ssl.SSLError:
             logger.error("Invalid SSL certificate")
             raise
-        except Exception, e:
+        except Exception as e:
             logger.debug(unicode(e))
             raise
         return stats
@@ -1160,7 +1160,7 @@ class Project(object):
         try:
             res = parse_json(self.do_url_request('formats'))
             return res[i18n_type]['file-extensions'].split(',')[0]
-        except Exception, e:
+        except Exception as e:
             logger.error(e)
             return ''
 
