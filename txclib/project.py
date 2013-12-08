@@ -132,7 +132,7 @@ class Project(object):
         if not os.path.exists(txrc_file):
             msg = "%s not found." % (txrc_file)
             logger.info(msg)
-            mask = os.umask(077)
+            mask = os.umask(0o077)
             open(txrc_file, 'w').close()
             os.umask(mask)
         return txrc_file
@@ -350,7 +350,7 @@ class Project(object):
         """Save the .transifexrc file."""
         if txrc is None:
             txrc = self.txrc
-        mask = os.umask(077)
+        mask = os.umask(0o077)
         fh = open(self.txrc_file, 'w')
         txrc.write(fh)
         fh.close()
