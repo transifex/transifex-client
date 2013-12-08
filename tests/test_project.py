@@ -76,7 +76,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         self.p.minimum_perc = 20
         results = itertools.cycle([80, 90 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -88,7 +88,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test only global option."""
         results = itertools.cycle([80, None ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -100,7 +100,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test the case where the local option is lower than the global."""
         results = itertools.cycle([80, 70 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -113,7 +113,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test the case where the local option is lower than the global."""
         results = itertools.cycle([60, 70 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -126,7 +126,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test the case where the local option is lower than the global."""
         results = itertools.cycle([None, 70 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -139,7 +139,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """"Test the case there is nothing defined."""
         results = itertools.cycle([None, None ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -215,7 +215,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 14:00:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
@@ -230,7 +230,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 15:01:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
@@ -261,7 +261,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 14:00:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
@@ -276,7 +276,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 15:01:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
