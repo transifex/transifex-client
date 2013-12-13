@@ -11,8 +11,7 @@ import ssl
 try:
     import configparser
 except ImportError:
-    import ConfigParser
-
+    import ConfigParser as configparser
 
 
 from txclib.web import *
