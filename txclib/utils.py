@@ -6,6 +6,8 @@ except ImportError:
     from simplejson import loads as parse_json, dumps as compile_json
 
 from txclib.packages import urllib3
+from txclib.packages.urllib3.packages import six
+from txclib.packages.urllib3.packages.six.moves import input
 from txclib.urls import API_URLS
 from txclib.exceptions import UnknownCommandError
 from txclib.paths import posix_path, native_path, posix_sep
@@ -57,7 +59,7 @@ def parse_tx_url(url):
     Try to match given url to any of the valid url patterns specified in
     TX_URLS. If not match is found, we raise exception
     """
-    for type_ in TX_URLS.keys():
+    for type_ in list(TX_URLS.keys()):
         pattern = TX_URLS[type_]
         m = re.match(pattern, url)
         if m:
@@ -89,8 +91,8 @@ def get_details(api_call, username, password, *args, **kwargs):
     except ssl.SSLError:
         logger.error("Invalid SSL certificate")
         raise
-    except Exception, e:
-        logger.debug(unicode(e))
+    except Exception as e:
+        logger.debug(six.u(e))
         raise
     finally:
         r.close()
@@ -147,7 +149,7 @@ def mkdir_p(path):
     try:
         if path:
             os.makedirs(path)
-    except OSError, exc: # Python >2.5
+    except OSError as exc:
         if exc.errno == errno.EEXIST:
             pass
         else:
@@ -171,9 +173,9 @@ def confirm(prompt='Continue?', default=True):
         prompt = prompt + '[y/N]'
         valid_no.append('')
 
-    ans = raw_input(prompt)
+    ans = input(prompt)
     while (ans not in valid_yes and ans not in valid_no):
-        ans = raw_input(prompt)
+        ans = input(prompt)
 
     return ans in valid_yes
 

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-import contextlib
 import itertools
 try:
     import json
@@ -76,7 +75,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         self.p.minimum_perc = 20
         results = itertools.cycle([80, 90 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -88,7 +87,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test only global option."""
         results = itertools.cycle([80, None ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -100,7 +99,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test the case where the local option is lower than the global."""
         results = itertools.cycle([80, 70 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -113,7 +112,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test the case where the local option is lower than the global."""
         results = itertools.cycle([60, 70 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -126,7 +125,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test the case where the local option is lower than the global."""
         results = itertools.cycle([None, 70 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -139,7 +138,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """"Test the case there is nothing defined."""
         results = itertools.cycle([None, None ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -165,7 +164,7 @@ class TestProjectFilters(unittest.TestCase):
                 'completed': '70%', 'last_update': '2011-11-01 15:00:00',
             },
         }
-        self.langs = self.stats.keys()
+        self.langs = list(self.stats.keys())
 
     def test_add_translation(self):
         """Test filters for adding translations.
@@ -215,7 +214,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 14:00:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
@@ -230,7 +229,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 15:01:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
@@ -261,7 +260,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 14:00:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
@@ -276,7 +275,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 15:01:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
@@ -308,8 +307,8 @@ class TestProjectPull(unittest.TestCase):
                 'completed': '70%', 'last_update': '2011-11-01 15:00:00',
             },
         }
-        self.langs = self.stats.keys()
-        self.files = dict(zip(self.langs, itertools.repeat(None)))
+        self.langs = list(self.stats.keys())
+        self.files = dict(list(zip(self.langs, itertools.repeat(None))))
         self.details = {'available_languages': []}
         for lang in self.langs:
             self.details['available_languages'].append({'code': lang})
@@ -485,20 +484,18 @@ class TestOptions(unittest.TestCase):
 
     def test_get_option(self):
         """Test _get_option method."""
-        with contextlib.nested(
-            patch.object(self.p, 'get_resource_option'),
-            patch.object(self.p, 'config', create=True)
-        ) as (rmock, cmock):
-            rmock.return_value = 'resource'
-            cmock.has_option.return_value = 'main'
-            cmock.get.return_value = 'main'
-            self.assertEqual(self.p._get_option(None, None), 'resource')
-            rmock.return_value = None
-            cmock.has_option.return_value = 'main'
-            cmock.get.return_value = 'main'
-            self.assertEqual(self.p._get_option(None, None), 'main')
-            cmock.has_option.return_value = None
-            self.assertIs(self.p._get_option(None, None), None)
+        with patch.object(self.p, 'get_resource_option') as rmock:
+            with patch.object(self.p, 'config', create=True) as cmock:
+                rmock.return_value = 'resource'
+                cmock.has_option.return_value = 'main'
+                cmock.get.return_value = 'main'
+                self.assertEqual(self.p._get_option(None, None), 'resource')
+                rmock.return_value = None
+                cmock.has_option.return_value = 'main'
+                cmock.get.return_value = 'main'
+                self.assertEqual(self.p._get_option(None, None), 'main')
+                cmock.has_option.return_value = None
+                self.assertIs(self.p._get_option(None, None), None)
 
 
 class TestConfigurationOptions(unittest.TestCase):
