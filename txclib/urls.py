@@ -4,7 +4,6 @@ API_URLS = {
     'get_resources': '/api/2/project/%(project)s/resources/',
     'project_details': '/api/2/project/%(project)s/?details',
     'resource_details': '/api/2/project/%(project)s/resource/%(resource)s/',
-    'release_details': '/api/2/project/%(project)s/release/%(release)s/',
     'pull_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file',
     'pull_pseudo_file': '/api/2/project/%(project)s/resource/%(resource)s/pseudo/?pseudo_type=MIXED',
     'pull_reviewed_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=reviewed',

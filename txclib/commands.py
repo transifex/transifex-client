@@ -256,7 +256,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
 
 def _auto_remote(path_to_tx, url):
     """
-    Initialize a remote release/project/resource to the current directory.
+    Initialize a remote project/resource to the current directory.
     """
     logger.info("Auto configuring local project from remote URL...")
 
@@ -270,18 +270,6 @@ def _auto_remote(path_to_tx, url):
             username, password,
             hostname = vars['hostname'], project = vars['project'])
         resources = [ '.'.join([vars['project'], r['slug']]) for r in proj_info['resources'] ]
-        logger.info("%s resources found. Configuring..." % len(resources))
-    elif type == 'release':
-        logger.info("Getting details for release %s" % vars['release'])
-        rel_info = utils.get_details('release_details',
-            username, password, hostname = vars['hostname'],
-            project = vars['project'], release = vars['release'])
-        resources = []
-        for r in rel_info['resources']:
-            if r.has_key('project'):
-                resources.append('.'.join([r['project']['slug'], r['slug']]))
-            else:
-                resources.append('.'.join([vars['project'], r['slug']]))
         logger.info("%s resources found. Configuring..." % len(resources))
     elif type == 'resource':
         logger.info("Getting details for resource %s" % vars['resource'])

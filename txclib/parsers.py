@@ -166,7 +166,7 @@ def set_parser():
         " To set a specific file as a source and auto detect translations:\n"\
         "  $ tx set --auto-local -r project.resource 'expr' --source-lang en"\
         " --source-file <file>\n\n"\
-        " To set a remote release/resource/project:\n"\
+        " To set a remote resource/project:\n"\
         "  $ tx set --auto-remote <transifex-url>\n"
     parser = EpilogParser(usage=usage, description=description, epilog=epilog)
     parser.add_option("--auto-local", action="store_true", dest="local",
