@@ -17,13 +17,10 @@ from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
 from txclib.processors import visit_hostname
 from txclib.paths import posix_path, native_path, posix_sep
+from txclib.packages.urllib3.exceptions import SSLError
 
 
 class ProjectNotInit(Exception):
-    pass
-
-
-class HttpNotFound(Exception):
     pass
 
 
@@ -54,7 +51,9 @@ class Project(object):
             logger.error('\n'.join([unicode(e), instructions]))
             raise
         host = self.config.get('main', 'host')
-        self.conn = urllib3.connection_from_url(host)
+        self.conn = urllib3.connection_from_url(
+            host, cert_reqs=ssl.CERT_REQUIRED, ca_certs=certs_file()
+        )
 
     def _get_config_file_path(self, root_path):
         """Check the .tx/config file exists."""
@@ -487,6 +486,9 @@ class Project(object):
                 )
                 try:
                     r = self.do_url_request(url, language=remote_lang)
+                except SSLError:
+                    logger.error("Invalid SSL certificate")
+                    raise
                 except Exception, e:
                     if not skip:
                         raise e
@@ -534,7 +536,11 @@ class Project(object):
                     logger.warning(
                         " -> %s: %s" % (color_text(remote_lang, "RED"), local_file)
                     )
-                    r = self.do_url_request(url, language=remote_lang)
+                    try:
+                        r = self.do_url_request(url, language=remote_lang)
+                    except SSLError:
+                        logger.error("Invalid SSL certificate")
+                        raise
 
                     base_dir = os.path.split(local_file)[0]
                     mkdir_p(base_dir)
@@ -601,6 +607,9 @@ class Project(object):
                                 , self.get_full_path(sfile)
                         )],
                     )
+                except SSLError:
+                    logger.error("Invalid SSL certificate")
+                    raise
                 except Exception, e:
                     if not skip:
                         raise
@@ -609,6 +618,9 @@ class Project(object):
             else:
                 try:
                     self.do_url_request('resource_details')
+                except SSLError:
+                    logger.error("Invalid SSL certificate")
+                    raise
                 except Exception, e:
                     code = getattr(e, 'code', None)
                     if code == 404:
@@ -666,6 +678,9 @@ class Project(object):
                             )], language=remote_lang
                         )
                         logger.debug("Translation %s pushed." % remote_lang)
+                    except SSLError:
+                        logger.error("Invalid SSL certificate")
+                        raise
                     except Exception, e:
                         if not skip:
                             raise e
@@ -692,9 +707,13 @@ class Project(object):
                 'resource': resource_slug
             }
             logger.debug("URL data are: %s" % self.url_info)
-            project_details = parse_json(
-                self.do_url_request('project_details', project=self)
-            )
+            try:
+                project_details = parse_json(
+                    self.do_url_request('project_details', project=self)
+                )
+            except SSLError:
+                logger.error("Invalid SSL certificate")
+                raise
             teams = project_details['teams']
             stats = self._get_stats_for_resource()
             delete_func(project_details, resource, stats, languages)
@@ -730,6 +749,9 @@ class Project(object):
             self.save()
             msg = "Deleted resource %s of project %s."
             logger.info(msg % (resource_slug, project_slug))
+        except SSLError:
+            logger.error("Invalid SSL certificate")
+            raise
         except Exception, e:
             msg = "Unable to delete resource %s of project %s."
             logger.error(msg % (resource_slug, project_slug))
@@ -774,6 +796,9 @@ class Project(object):
             )
             msg = "Deleted language %s from resource %s of project %s."
             logger.info(msg % (language, resource_slug, project_slug))
+        except SSLError:
+            logger.error("Invalid SSL certificate")
+            raise
         except Exception, e:
             msg = "Unable to delete translation %s"
             logger.error(msg % language)
@@ -833,10 +858,7 @@ class Project(object):
 
         r.close()
         if r.status < 200 or r.status >= 400:
-            if r.status == 404:
-                raise HttpNotFound(r.data)
-            else:
-                raise Exception(r.data)
+            raise Exception(r.data)
         return r.data
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
@@ -1050,11 +1072,15 @@ class Project(object):
             return None
 
     def _download_pseudo(self, project_slug, resource_slug, pseudo_file):
-        response = self.do_url_request(
-            'pull_pseudo_file',
-            resource_slug=resource_slug,
-            project_slug=project_slug
-        )
+        try:
+            response = self.do_url_request(
+                'pull_pseudo_file',
+                resource_slug=resource_slug,
+                project_slug=project_slug
+            )
+        except SSLError:
+            logger.error("Invalid SSL certificate")
+            raise
         response = parse_json(response)
 
         base_dir = os.path.split(pseudo_file)[0]
@@ -1091,10 +1117,7 @@ class Project(object):
             r = self.do_url_request('resource_stats')
             logger.debug("Statistics response is %s" % r)
             stats = parse_json(r)
-        except HttpNotFound:
-            logger.debug("Resource not found, creating...")
-            stats = {}
-        except ssl.SSLError:
+        except SSLError:
             logger.error("Invalid SSL certificate")
             raise
         except Exception, e:
@@ -1168,6 +1191,9 @@ class Project(object):
         try:
             res = parse_json(self.do_url_request('formats'))
             return res[i18n_type]['file-extensions'].split(',')[0]
+        except SSLError:
+            logger.error("Invalid SSL certificate")
+            raise
         except Exception, e:
             logger.error(e)
             return ''
@@ -1237,7 +1263,7 @@ class Project(object):
         }
         try:
             r = self.conn.request(method, url, fields=data, headers=headers)
-        except ssl.SSLError:
+        except SSLError:
             logger.error("Invalid SSL certificate")
         r.close()
         return r.data

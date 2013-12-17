@@ -9,8 +9,9 @@ from txclib.packages import urllib3
 from txclib.urls import API_URLS
 from txclib.exceptions import UnknownCommandError
 from txclib.paths import posix_path, native_path, posix_sep
-from txclib.web import user_agent_identifier
+from txclib.web import user_agent_identifier, certs_file
 from txclib.log import logger
+from txclib.packages.urllib3.exceptions import SSLError
 
 
 def find_dot_tx(path=os.path.curdir, previous=None):
@@ -73,7 +74,9 @@ def get_details(api_call, username, password, *args, **kwargs):
     This function can also be used to check the existence of a project.
     """
     url = (API_URLS[api_call] % (kwargs)).encode('UTF-8')
-    conn = urllib3.connection_from_url(kwargs['hostname'])
+    conn = urllib3.connection_from_url(
+        kwargs['hostname'], cert_reqs=ssl.CERT_REQUIRED, ca_certs=certs_file()
+    )
     headers = urllib3.util.make_headers(
         basic_auth='{0}:{1}'.format(username, password),
         accept_encoding=True,
@@ -84,15 +87,14 @@ def get_details(api_call, username, password, *args, **kwargs):
         if r.status < 200 or r.status >= 400:
             raise Exception(r.data)
         remote_project = parse_json(r.data)
+        r.close()
         return remote_project
-    except ssl.SSLError:
+    except SSLError:
         logger.error("Invalid SSL certificate")
         raise
     except Exception, e:
         logger.debug(unicode(e))
         raise
-    finally:
-        r.close()
 
 
 def valid_slug(slug):
