@@ -422,6 +422,8 @@ class Project(object):
                     self._download_pseudo(
                         project_slug, resource_slug, pseudo_file
                     )
+                if not languages:
+                    continue
 
             if fetchall:
                 new_translations = self._new_translations_to_add(
