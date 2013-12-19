@@ -23,6 +23,10 @@ class ProjectNotInit(Exception):
     pass
 
 
+class HttpNotFound(Exception):
+    pass
+
+
 class Project(object):
     """
     Represents an association between the local and remote project instances.
@@ -825,7 +829,10 @@ class Project(object):
 
         r.close()
         if r.status < 200 or r.status >= 400:
-            raise Exception(r.data)
+            if r.status == 404:
+                raise HttpNotFound(r.data)
+            else:
+                raise Exception(r.data)
         return r.data
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
@@ -1080,6 +1087,9 @@ class Project(object):
             r = self.do_url_request('resource_stats')
             logger.debug("Statistics response is %s" % r)
             stats = parse_json(r)
+        except HttpNotFound:
+            logger.debug("Resource not found, creating...")
+            stats = {}
         except ssl.SSLError:
             logger.error("Invalid SSL certificate")
             raise
