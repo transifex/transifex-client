@@ -163,8 +163,10 @@ class Project(object):
         return username, passwd
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
-            file_filter="translations<sep>%(proj)s.%(res)s<sep><lang>.%(extension)s"):
+                            file_filter=None):
         """Method to handle the add/conf of a remote resource."""
+        if file_filter is None:
+            file_filter = "translations<sep>%(proj)s.%(res)s<sep><lang>.%(extension)s"
         if not self.config.has_section(resource):
             self.config.add_section(resource)
 
