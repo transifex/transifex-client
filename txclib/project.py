@@ -51,9 +51,14 @@ class Project(object):
             logger.error('\n'.join([unicode(e), instructions]))
             raise
         host = self.config.get('main', 'host')
-        self.conn = urllib3.connection_from_url(
-            host, cert_reqs=ssl.CERT_REQUIRED, ca_certs=certs_file()
-        )
+        if host.lower().startswith('https://'):
+            self.conn = urllib3.connection_from_url(
+                host,
+                cert_reqs=ssl.CERT_REQUIRED,
+                ca_certs=certs_file()
+            )
+        else:
+            self.conn = urllib3.connection_from_url(host)
 
     def _get_config_file_path(self, root_path):
         """Check the .tx/config file exists."""

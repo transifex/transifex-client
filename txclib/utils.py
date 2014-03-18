@@ -73,10 +73,16 @@ def get_details(api_call, username, password, *args, **kwargs):
 
     This function can also be used to check the existence of a project.
     """
+    host = kwargs['hostname']
+    if host.lower().startswith('https://'):
+        conn = urllib3.connection_from_url(
+            host,
+            cert_reqs=ssl.CERT_REQUIRED,
+            ca_certs=certs_file()
+        )
+    else:
+        conn = urllib3.connection_from_url(host)
     url = (API_URLS[api_call] % (kwargs)).encode('UTF-8')
-    conn = urllib3.connection_from_url(
-        kwargs['hostname'], cert_reqs=ssl.CERT_REQUIRED, ca_certs=certs_file()
-    )
     headers = urllib3.util.make_headers(
         basic_auth='{0}:{1}'.format(username, password),
         accept_encoding=True,
