@@ -1,19 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
-from codecs import BOM
-
+import io
 from setuptools import setup
 
 from txclib import get_version
 
-readme_file = open(u'README.rst')
+readme_file = io.open('README.rst', 'rt', encoding='UTF-8')
 long_description = readme_file.read()
 readme_file.close()
-if long_description.startswith(BOM):
-    long_description = long_description.lstrip(BOM)
-long_description = long_description.decode('utf-8')
 
 package_data = {
     '': ['LICENSE', 'README.rst'],
@@ -80,6 +75,7 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.3',
     ],
     **extra_args
 )

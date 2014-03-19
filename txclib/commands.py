@@ -19,7 +19,11 @@ import os
 import re, shutil
 import sys
 from optparse import OptionParser, OptionGroup
-import ConfigParser
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 
 from txclib import utils, project
@@ -30,6 +34,7 @@ from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
         status_parser, pull_parser, set_parser, push_parser, init_parser
 from txclib.paths import posix_path
 from txclib.log import logger
+from txclib.packages.urllib3.packages.six.moves import input
 
 
 def cmd_init(argv, path_to_tx):
@@ -45,9 +50,9 @@ def cmd_init(argv, path_to_tx):
 
     if os.path.isdir(os.path.join(path_to_tx,".tx")):
         logger.info("tx: There is already a tx folder!")
-        reinit = raw_input("Do you want to delete it and reinit the project? [y/N]: ")
+        reinit = input("Do you want to delete it and reinit the project? [y/N]: ")
         while (reinit != 'y' and reinit != 'Y' and reinit != 'N' and reinit != 'n' and reinit != ''):
-            reinit = raw_input("Do you want to delete it and reinit the project? [y/N]: ")
+            reinit = input("Do you want to delete it and reinit the project? [y/N]: ")
         if not reinit or reinit in ['N', 'n', 'NO', 'no', 'No']:
             return
         # Clean the old settings
@@ -65,7 +70,7 @@ def cmd_init(argv, path_to_tx):
     config = OrderedRawConfigParser()
 
     default_transifex = "https://www.transifex.com"
-    transifex_host = options.host or raw_input("Transifex instance [%s]: " % default_transifex)
+    transifex_host = options.host or input("Transifex instance [%s]: " % default_transifex)
 
     if not transifex_host:
         transifex_host = default_transifex
@@ -166,7 +171,7 @@ def cmd_set(argv, path_to_tx):
 
         try:
             _go_to_dir(path_to_tx)
-        except UnInitializedError, e:
+        except UnInitializedError as e:
             utils.logger.error(e)
             return
 
@@ -230,7 +235,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
     if execute:
         try:
             prj.config.get("%s" % resource, "source_file")
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             raise Exception("No resource with slug \"%s\" was found.\nRun 'tx set --auto"
                 "-local -r %s \"expression\"' to do the initial configuration." % resource)
 
@@ -271,11 +276,23 @@ def _auto_remote(path_to_tx, url):
             hostname = vars['hostname'], project = vars['project'])
         resources = [ '.'.join([vars['project'], r['slug']]) for r in proj_info['resources'] ]
         logger.info("%s resources found. Configuring..." % len(resources))
+    elif type == 'release':
+        logger.info("Getting details for release %s" % vars['release'])
+        rel_info = utils.get_details('release_details',
+            username, password, hostname = vars['hostname'],
+            project = vars['project'], release = vars['release'])
+        resources = []
+        for r in rel_info['resources']:
+            if 'project' in r:
+                resources.append('.'.join([r['project']['slug'], r['slug']]))
+            else:
+                resources.append('.'.join([vars['project'], r['slug']]))
+        logger.info("%s resources found. Configuring..." % len(resources))
     elif type == 'resource':
         logger.info("Getting details for resource %s" % vars['resource'])
         resources = [ '.'.join([vars['project'], vars['resource']]) ]
     else:
-        raise("Url '%s' is not recognized." % url)
+        raise Exception("Url '%s' is not recognized." % url)
 
     for resource in resources:
         logger.info("Configuring resource %s." % resource)
@@ -336,7 +353,7 @@ def cmd_pull(argv, path_to_tx):
 
     try:
         _go_to_dir(path_to_tx)
-    except UnInitializedError, e:
+    except UnInitializedError as e:
         utils.logger.error(e)
         return
 
@@ -363,7 +380,7 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
 
     try:
         _go_to_dir(path_to_tx)
-    except UnInitializedError, e:
+    except UnInitializedError as e:
         utils.logger.error(e)
         return
 
@@ -389,9 +406,9 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     try:
         try:
             prj.config.get("%s.%s" % (proj, res), "source_file")
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             prj.config.add_section("%s.%s" % (proj, res))
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             pass
     finally:
         prj.config.set(
@@ -413,7 +430,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
     try:
         _go_to_dir(path_to_tx)
-    except UnInitializedError, e:
+    except UnInitializedError as e:
         utils.logger.error(e)
         return
 
@@ -460,11 +477,11 @@ def cmd_status(argv, path_to_tx):
         logger.info(" - %s: %s (%s)" % (utils.color_text(slang, "RED"),
             sfile, utils.color_text("source", "YELLOW")))
         files = prj.get_resource_files(res)
-        fkeys = files.keys()
+        fkeys = list(files.keys())
         fkeys.sort()
         for lang in fkeys:
             local_lang = lang
-            if lang in lang_map.values():
+            if lang in list(lang_map.values()):
                 local_lang = lang_map.flip[lang]
             logger.info(" - %s: %s" % (utils.color_text(local_lang, "RED"),
                 files[lang]))
@@ -492,13 +509,14 @@ def cmd_help(argv, path_to_tx):
     # the code below will only be executed if the KeyError exception is thrown
     # becuase in all other cases the function called with --help will exit
     # instead of return here
-    keys = fns.keys()
+    keys = list(fns.keys())
     keys.sort()
 
     logger.info("Transifex command line client.\n")
     logger.info("Available commands are:")
     for key in keys:
-        logger.info("  %-15s\t%s" % (key, fns[key].func_doc))
+        logger.info("  %-15s\t%s" % (key, getattr(fns[key], '__doc__',
+                                                  fns[key].func_doc)))
     logger.info("\nFor more information run %s command --help" % sys.argv[0])
 
 
