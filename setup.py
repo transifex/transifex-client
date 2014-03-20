@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import os.path
 import io
 from setuptools import setup
 
@@ -21,7 +21,6 @@ install_requires = []
 extra_args = {}
 import platform
 if platform.system() == 'Windows':
-    import py2exe
     from py2exe.build_exe import py2exe as build_exe
 
     class MediaCollector(build_exe):

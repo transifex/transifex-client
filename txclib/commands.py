@@ -515,8 +515,7 @@ def cmd_help(argv, path_to_tx):
     logger.info("Transifex command line client.\n")
     logger.info("Available commands are:")
     for key in keys:
-        logger.info("  %-15s\t%s" % (key, getattr(fns[key], '__doc__',
-                                                  fns[key].func_doc)))
+        logger.info("  %-15s\t%s" % (key, getattr(fns[key], '__doc__')))
     logger.info("\nFor more information run %s command --help" % sys.argv[0])
 
 
