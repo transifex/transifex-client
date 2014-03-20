@@ -5,3 +5,6 @@ include txclib/cacert.pem
 include LICENSE README.rst
 recursive-include docs *
 
+# Tests
+recursive-include tests *
+
