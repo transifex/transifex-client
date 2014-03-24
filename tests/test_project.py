@@ -325,7 +325,7 @@ class TestProjectPull(unittest.TestCase):
                 res = new_trans(
                     self.files, self.slang, self.lang_map, self.stats, force
                 )
-                self.assertEquals(res, set([]))
+                self.assertEqual(res, set([]))
 
             with patch.object(self.p, '_should_add_translation') as filter_mock:
                 filter_mock.return_value = True
@@ -333,12 +333,12 @@ class TestProjectPull(unittest.TestCase):
                     res = new_trans(
                         {'el': None}, self.slang, self.lang_map, self.stats, force
                     )
-                    self.assertEquals(res, set(['pt']))
+                    self.assertEqual(res, set(['pt']))
                 for force in [True, False]:
                     res = new_trans(
                         {}, self.slang, self.lang_map, self.stats, force
                     )
-                    self.assertEquals(res, set(['el', 'pt']))
+                    self.assertEqual(res, set(['el', 'pt']))
 
                 files = {}
                 files['pt_PT'] = None
@@ -347,7 +347,7 @@ class TestProjectPull(unittest.TestCase):
                     res = new_trans(
                         files, self.slang, lang_map, self.stats, force
                     )
-                    self.assertEquals(res, set(['el']))
+                    self.assertEqual(res, set(['el']))
 
     def test_get_pseudo_file(self):
         slang = 'en'
@@ -356,7 +356,7 @@ class TestProjectPull(unittest.TestCase):
 
         pseudo_file = self.p._get_pseudo_file(slang, resource, file_filter)
 
-        self.assertEquals(pseudo_file, 'adriana/en_pseudo.po')
+        self.assertEqual(pseudo_file, 'adriana/en_pseudo.po')
 
     def test_languages_to_pull_empty_initial_list(self):
         """Test determining the languages to pull, when the initial
@@ -370,7 +370,7 @@ class TestProjectPull(unittest.TestCase):
         )
         existing = res[0]
         new = res[1]
-        self.assertEquals(existing, set(['el', 'en', 'pt']))
+        self.assertEqual(existing, set(['el', 'en', 'pt']))
         self.assertFalse(new)
 
         del self.files['el']
@@ -381,7 +381,7 @@ class TestProjectPull(unittest.TestCase):
         )
         existing = res[0]
         new = res[1]
-        self.assertEquals(existing, set(['el', 'en', 'pt']))
+        self.assertEqual(existing, set(['el', 'en', 'pt']))
         self.assertFalse(new)
 
     def test_languages_to_pull_with_initial_list(self):
@@ -401,7 +401,7 @@ class TestProjectPull(unittest.TestCase):
             )
             existing = res[0]
             new = res[1]
-            self.assertEquals(existing, set(['en', 'el-gr', ]))
+            self.assertEqual(existing, set(['en', 'el-gr', ]))
             self.assertFalse(new)
 
             mock.return_value = False
@@ -410,7 +410,7 @@ class TestProjectPull(unittest.TestCase):
             )
             existing = res[0]
             new = res[1]
-            self.assertEquals(existing, set(['en', 'el-gr', ]))
+            self.assertEqual(existing, set(['en', 'el-gr', ]))
             self.assertFalse(new)
 
             del self.files['el-gr']
@@ -420,8 +420,8 @@ class TestProjectPull(unittest.TestCase):
             )
             existing = res[0]
             new = res[1]
-            self.assertEquals(existing, set(['en', ]))
-            self.assertEquals(new, set(['el', ]))
+            self.assertEqual(existing, set(['en', ]))
+            self.assertEqual(new, set(['el', ]))
 
             mock.return_value = False
             res = self.p._languages_to_pull(
@@ -429,8 +429,8 @@ class TestProjectPull(unittest.TestCase):
             )
             existing = res[0]
             new = res[1]
-            self.assertEquals(existing, set(['en', ]))
-            self.assertEquals(new, set([]))
+            self.assertEqual(existing, set(['en', ]))
+            self.assertEqual(new, set([]))
 
     def test_in_combination_with_force_option(self):
         """Test the minumum-perc option along with -f."""
@@ -438,22 +438,22 @@ class TestProjectPull(unittest.TestCase):
             mock.return_value = 70
 
             res = self.p._should_download('de', self.stats, None, False)
-            self.assertEquals(res, False)
+            self.assertEqual(res, False)
             res = self.p._should_download('el', self.stats, None, False)
-            self.assertEquals(res, False)
+            self.assertEqual(res, False)
             res = self.p._should_download('el', self.stats, None, True)
-            self.assertEquals(res, False)
+            self.assertEqual(res, False)
             res = self.p._should_download('en', self.stats, None, False)
-            self.assertEquals(res, True)
+            self.assertEqual(res, True)
             res = self.p._should_download('en', self.stats, None, True)
-            self.assertEquals(res, True)
+            self.assertEqual(res, True)
 
             with patch.object(self.p, '_remote_is_newer') as local_file_mock:
                 local_file_mock = False
                 res = self.p._should_download('pt', self.stats, None, False)
-                self.assertEquals(res, True)
+                self.assertEqual(res, True)
                 res = self.p._should_download('pt', self.stats, None, True)
-                self.assertEquals(res, True)
+                self.assertEqual(res, True)
 
 
 class TestFormats(unittest.TestCase):
@@ -473,7 +473,7 @@ class TestFormats(unittest.TestCase):
             mock.return_value = json.dumps(sample_formats)
             for (type_, ext) in zip(['PO', 'QT', 'NONE', ], extensions):
                 extension = self.p._extension_for(type_)
-                self.assertEquals(extension, ext)
+                self.assertEqual(extension, ext)
 
 
 class TestOptions(unittest.TestCase):
@@ -508,15 +508,15 @@ class TestConfigurationOptions(unittest.TestCase):
         with patch.object(p, 'config', create=True) as config_mock:
             p.set_i18n_type([], i18n_type)
             calls = config_mock.method_calls
-            self.assertEquals('set', calls[0][0])
-            self.assertEquals('main', calls[0][1][0])
+            self.assertEqual('set', calls[0][0])
+            self.assertEqual('main', calls[0][1][0])
             p.set_i18n_type(['transifex.txo'], 'PO')
             calls = config_mock.method_calls
-            self.assertEquals('set', calls[0][0])
+            self.assertEqual('set', calls[0][0])
             p.set_i18n_type(['transifex.txo', 'transifex.txn'], 'PO')
             calls = config_mock.method_calls
-            self.assertEquals('set', calls[0][0])
-            self.assertEquals('set', calls[1][0])
+            self.assertEqual('set', calls[0][0])
+            self.assertEqual('set', calls[1][0])
 
 
 class TestStats(unittest.TestCase):
