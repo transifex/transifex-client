@@ -1078,6 +1078,9 @@ class Project(object):
             r = self.do_url_request('resource_stats')
             logger.debug("Statistics response is %s" % r)
             stats = parse_json(r)
+        except HttpNotFound:
+            logger.debug("Resource not found, creating...")
+            stats = {}
         except Exception as e:
             logger.debug(six.u(e))
             raise
@@ -1209,7 +1212,7 @@ class Project(object):
             "i18n_type": i18n_type
         }
 
-        return request(method, hostname, url, username, passwd, data)
+        return make_request(method, hostname, url, username, passwd, data)
 
     def _get_option(self, resource, option):
         """Get the value for the option in the config file.

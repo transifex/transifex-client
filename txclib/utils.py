@@ -4,7 +4,7 @@ import ssl
 try:
     from json import loads as parse_json, dumps as compile_json
 except ImportError:
-    from simplejson import loads as parse_json, dumps as compile_json
+    from simplejson import loads as packagesrse_json, dumps as compile_json
 from txclib.packages import urllib3
 from txclib.packages.urllib3.packages import six
 from txclib.packages.urllib3.packages.six.moves import input
@@ -14,6 +14,10 @@ from txclib.paths import posix_path, native_path, posix_sep
 from txclib.web import user_agent_identifier, certs_file
 from txclib.log import logger
 from txclib.packages.urllib3.exceptions import SSLError
+
+
+class HttpNotFound(Exception):
+    pass
 
 
 def find_dot_tx(path=os.path.curdir, previous=None):
@@ -91,7 +95,10 @@ def make_request(method, host, url, username, password, fields=None):
         if isinstance(data, bytes):
             data = data.decode("utf-8")
         if r.status < 200 or r.status >= 400:
-            raise Exception(data)
+            if r.status == 404:
+                raise HttpNotFound(data)
+            else:
+                raise Exception(data)
         return data
     except SSLError:
         logger.error("Invalid SSL certificate")
