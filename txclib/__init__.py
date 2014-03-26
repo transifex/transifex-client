@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-VERSION = (0, 10, 0, 'final')
+VERSION = (0, 11, 0, 'alpha')
 
 
 def get_version():
