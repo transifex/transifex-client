@@ -678,6 +678,9 @@ class Project(object):
                             )], language=remote_lang
                         )
                         logger.debug("Translation %s pushed." % remote_lang)
+                    except HttpNotFound:
+                        if not source:
+                            logger.error("Resource hasn't been created. Try pushing source file.")
                     except Exception as e:
                         if isinstance(e, SSLError) or not skip:
                             raise
@@ -1200,7 +1203,7 @@ class Project(object):
 
         i18n_type = self._get_option(resource, 'type')
         if i18n_type is None:
-            logger.error(
+            raise Exception(
                 "Please define the resource type in .tx/config (eg. type = PO)."
                 " More info: http://bit.ly/txcl-rt"
             )

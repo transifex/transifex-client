@@ -4,7 +4,7 @@ import ssl
 try:
     from json import loads as parse_json, dumps as compile_json
 except ImportError:
-    from simplejson import loads as packagesrse_json, dumps as compile_json
+    from simplejson import loads as parse_json, dumps as compile_json
 from txclib.packages import urllib3
 from txclib.packages.urllib3.packages import six
 from txclib.packages.urllib3.packages.six.moves import input
