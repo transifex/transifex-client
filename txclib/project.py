@@ -6,12 +6,18 @@ import re
 import fnmatch
 import datetime
 import time
-import ConfigParser
 import ssl
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
+
 
 from txclib.web import *
 from txclib.utils import *
 from txclib.packages import urllib3
+from txclib.packages.urllib3.packages import six
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
@@ -47,8 +53,8 @@ class Project(object):
             self.txrc = self._get_transifex_config([self.txrc_file, local_txrc_file])
             if os.path.exists(local_txrc_file):
                 self.txrc_file = local_txrc_file
-        except ProjectNotInit, e:
-            logger.error('\n'.join([unicode(e), instructions]))
+        except ProjectNotInit as e:
+            logger.error('\n'.join([six.u(e), instructions]))
             raise
         host = self.config.get('main', 'host')
         if host.lower().startswith('https://'):
@@ -83,7 +89,7 @@ class Project(object):
         config = OrderedRawConfigParser()
         try:
             config.read(config_file)
-        except Exception, err:
+        except Exception as err:
             msg = "Cannot open/parse .tx/config file: %s" % err
             raise ProjectNotInit(msg)
         return config
@@ -93,7 +99,7 @@ class Project(object):
         txrc = OrderedRawConfigParser()
         try:
             txrc.read(txrc_files)
-        except Exception, e:
+        except Exception as e:
             msg = "Cannot read configuration file: %s" % e
             raise ProjectNotInit(msg)
         self._migrate_txrc_file(txrc)
@@ -134,7 +140,7 @@ class Project(object):
         if not os.path.exists(txrc_file):
             msg = "%s not found." % (txrc_file)
             logger.info(msg)
-            mask = os.umask(077)
+            mask = os.umask(0o077)
             open(txrc_file, 'w').close()
             os.umask(mask)
         return txrc_file
@@ -153,11 +159,11 @@ class Project(object):
         try:
             username = self.txrc.get(host, 'username')
             passwd = self.txrc.get(host, 'password')
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (configparser.NoOptionError, configparser.NoSectionError):
             logger.info("No entry found for host %s. Creating..." % host)
-            username = user or raw_input("Please enter your transifex username: ")
+            username = user or input("Please enter your transifex username: ")
             while (not username):
-                username = raw_input("Please enter your transifex username: ")
+                username = input("Please enter your transifex username: ")
             passwd = password
             while (not passwd):
                 passwd = getpass.getpass()
@@ -210,7 +216,7 @@ class Project(object):
             for arg in args.replace(' ', '').split(','):
                 k,v = arg.split(":")
                 lang_map.update({k:v})
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             pass
         except (ValueError, KeyError):
             raise Exception("Your lang map configuration is not correct.")
@@ -222,7 +228,7 @@ class Project(object):
                 for arg in args.replace(' ', '').split(','):
                     k,v = arg.split(":")
                     res_lang_map.update({k:v})
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 pass
             except (ValueError, KeyError):
                 raise Exception("Your lang map configuration is not correct.")
@@ -246,7 +252,7 @@ class Project(object):
                     filename = file_filter.replace('<lang>', source_lang)
                     if os.path.exists(filename):
                         return native_path(filename)
-                except ConfigParser.NoOptionError:
+                except configparser.NoOptionError:
                     pass
             else:
                 return native_path(source_file)
@@ -265,7 +271,7 @@ class Project(object):
         if self.config.has_section(resource):
             try:
                 file_filter = self.config.get(resource, "file_filter")
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 file_filter = "$^"
             source_lang = self.config.get(resource, "source_lang")
             source_file = self.get_source_file(resource)
@@ -285,9 +291,9 @@ class Project(object):
                     value = native_path(value)
                     lang = name.split('.')[1]
                     # delete language which has same file
-                    if value in tr_files.values():
+                    if value in list(tr_files.values()):
                         keys = []
-                        for k, v in tr_files.iteritems():
+                        for k, v in six.iteritems(tr_files):
                             if v == value:
                                 keys.append(k)
                         if len(keys) == 1:
@@ -352,7 +358,7 @@ class Project(object):
         """Save the .transifexrc file."""
         if txrc is None:
             txrc = self.txrc
-        mask = os.umask(077)
+        mask = os.umask(0o077)
         fh = open(self.txrc_file, 'w')
         txrc.write(fh)
         fh.close()
@@ -407,7 +413,7 @@ class Project(object):
 
             try:
                 file_filter = self.config.get(resource, 'file_filter')
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 file_filter = None
 
             # Pull source file
@@ -457,7 +463,7 @@ class Project(object):
 
             for lang in pull_languages:
                 local_lang = lang
-                if lang in lang_map.values():
+                if lang in list(lang_map.values()):
                     remote_lang = lang_map.flip[lang]
                 else:
                     remote_lang = lang
@@ -491,26 +497,23 @@ class Project(object):
                 )
                 try:
                     r = self.do_url_request(url, language=remote_lang)
-                except SSLError:
-                    logger.error("Invalid SSL certificate")
-                    raise
-                except Exception, e:
-                    if not skip:
-                        raise e
+                except Exception as e:
+                    if isinstance(e, SSLError) or not skip:
+                        raise
                     else:
                         logger.error(e)
                         continue
                 base_dir = os.path.split(local_file)[0]
                 mkdir_p(base_dir)
                 fd = open(local_file, 'wb')
-                fd.write(r)
+                fd.write(r.encode("utf-8"))
                 fd.close()
 
             if new_translations:
                 msg = "Pulling new translations for resource %s (source: %s)"
                 logger.info(msg % (resource, sfile))
                 for lang in new_translations:
-                    if lang in lang_map.keys():
+                    if lang in list(lang_map.keys()):
                         local_lang = lang_map[lang]
                     else:
                         local_lang = lang
@@ -541,16 +544,12 @@ class Project(object):
                     logger.warning(
                         " -> %s: %s" % (color_text(remote_lang, "RED"), local_file)
                     )
-                    try:
-                        r = self.do_url_request(url, language=remote_lang)
-                    except SSLError:
-                        logger.error("Invalid SSL certificate")
-                        raise
 
+                    r = self.do_url_request(url, language=remote_lang)
                     base_dir = os.path.split(local_file)[0]
                     mkdir_p(base_dir)
                     fd = open(local_file, 'wb')
-                    fd.write(r)
+                    fd.write(r.encode("utf-8"))
                     fd.close()
 
     def push(self, source=False, translations=False, force=False, resources=[], languages=[],
@@ -582,7 +581,7 @@ class Project(object):
             stats = self._get_stats_for_resource()
 
             if force and not no_interactive:
-                answer = raw_input("Warning: By using --force, the uploaded"
+                answer = input("Warning: By using --force, the uploaded"
                     " files will overwrite remote translations, even if they"
                     " are newer than your uploaded files.\nAre you sure you"
                     " want to continue? [y/N] ")
@@ -612,21 +611,17 @@ class Project(object):
                                 , self.get_full_path(sfile)
                         )],
                     )
-                except SSLError:
-                    logger.error("Invalid SSL certificate")
-                    raise
-                except Exception, e:
-                    if not skip:
+                except Exception as e:
+                    if isinstance(e, SSLError) or not skip:
                         raise
                     else:
                         logger.error(e)
             else:
                 try:
                     self.do_url_request('resource_details')
-                except SSLError:
-                    logger.error("Invalid SSL certificate")
-                    raise
-                except Exception, e:
+                except Exception as e:
+                    if isinstance(e, SSLError):
+                        raise
                     code = getattr(e, 'code', None)
                     if code == 404:
                         msg = "Resource %s doesn't exist on the server."
@@ -636,12 +631,12 @@ class Project(object):
             if translations:
                 # Check if given language codes exist
                 if not languages:
-                    push_languages = files.keys()
+                    push_languages = list(files.keys())
                 else:
                     push_languages = []
-                    f_langs = files.keys()
+                    f_langs = list(files.keys())
                     for l in languages:
-                        if l in lang_map.keys():
+                        if l in list(lang_map.keys()):
                             l = lang_map[l]
                         push_languages.append(l)
                         if l not in f_langs:
@@ -652,7 +647,7 @@ class Project(object):
                 # Push translation files one by one
                 for lang in push_languages:
                     local_lang = lang
-                    if lang in lang_map.values():
+                    if lang in list(lang_map.values()):
                         remote_lang = lang_map.flip[lang]
                     else:
                         remote_lang = lang
@@ -683,12 +678,9 @@ class Project(object):
                             )], language=remote_lang
                         )
                         logger.debug("Translation %s pushed." % remote_lang)
-                    except SSLError:
-                        logger.error("Invalid SSL certificate")
-                        raise
-                    except Exception, e:
-                        if not skip:
-                            raise e
+                    except Exception as e:
+                        if isinstance(e, SSLError) or not skip:
+                            raise
                         else:
                             logger.error(e)
 
@@ -712,13 +704,9 @@ class Project(object):
                 'resource': resource_slug
             }
             logger.debug("URL data are: %s" % self.url_info)
-            try:
-                project_details = parse_json(
-                    self.do_url_request('project_details', project=self)
-                )
-            except SSLError:
-                logger.error("Invalid SSL certificate")
-                raise
+            project_details = parse_json(
+                self.do_url_request('project_details', project=self)
+            )
             teams = project_details['teams']
             stats = self._get_stats_for_resource()
             delete_func(project_details, resource, stats, languages)
@@ -754,13 +742,10 @@ class Project(object):
             self.save()
             msg = "Deleted resource %s of project %s."
             logger.info(msg % (resource_slug, project_slug))
-        except SSLError:
-            logger.error("Invalid SSL certificate")
-            raise
-        except Exception, e:
+        except Exception as e:
             msg = "Unable to delete resource %s of project %s."
             logger.error(msg % (resource_slug, project_slug))
-            if not self.skip:
+            if isinstance(e, SSLError) or not self.skip:
                 raise
 
     def _delete_translations(self, project_details, resource, stats, languages):
@@ -801,13 +786,10 @@ class Project(object):
             )
             msg = "Deleted language %s from resource %s of project %s."
             logger.info(msg % (language, resource_slug, project_slug))
-        except SSLError:
-            logger.error("Invalid SSL certificate")
-            raise
-        except Exception, e:
+        except Exception as e:
             msg = "Unable to delete translation %s"
             logger.error(msg % language)
-            if not self.skip:
+            if isinstance(e, SSLError) or not self.skip:
                 raise
 
     def do_url_request(self, api_call, multipart=False, data=None,
@@ -822,7 +804,7 @@ class Project(object):
             passwd = self.txrc.get(host, 'password')
             token = self.txrc.get(host, 'token')
             hostname = self.txrc.get(host, 'hostname')
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             raise Exception("No user credentials found for host %s. Edit"
                 " ~/.transifexrc and add the appropriate info in there." %
                 host)
@@ -830,41 +812,19 @@ class Project(object):
         # Create the Url
         kwargs['hostname'] = hostname
         kwargs.update(self.url_info)
-        url = (API_URLS[api_call] % kwargs).encode('UTF-8')
-        logger.debug(url)
+        url = API_URLS[api_call] % kwargs
 
         if multipart:
             for info, filename in files:
+                #FIXME: It works because we only pass to files argument
+                #only one item
                 name = os.path.basename(filename)
                 data = {
                     "resource": info.split(';')[0],
                     "language": info.split(';')[1],
                     "uploaded_file": (name, open(filename, 'rb').read())
                 }
-            headers = urllib3.util.make_headers(
-                basic_auth='{0}:{1}'.format(username, passwd),
-                accept_encoding=True,
-                user_agent=user_agent_identifier(),
-                keep_alive=True
-            )
-            r = self.conn.request(
-                method, url, fields=data, headers=headers
-            )
-        else:
-            headers = urllib3.util.make_headers(
-                basic_auth='{0}:{1}'.format(username, passwd),
-                accept_encoding=True,
-                user_agent=user_agent_identifier(),
-                keep_alive=True
-            )
-            r = self.conn.request(
-                method, url, fields=data, headers=headers
-            )
-
-        r.close()
-        if r.status < 200 or r.status >= 400:
-            raise Exception(r.data)
-        return r.data
+        return make_request(method, hostname, url, username, passwd, data)
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
                                    mode=None):
@@ -914,7 +874,7 @@ class Project(object):
         """
         try:
             lang_stats = stats[lang]
-        except KeyError, e:
+        except KeyError as e:
             logger.debug("No lang %s in statistics" % lang)
             return False
 
@@ -955,7 +915,7 @@ class Project(object):
             return True
         try:
             lang_stats = stats[lang]
-        except KeyError, e:
+        except KeyError as e:
             logger.debug("Language %s does not exist in Transifex." % lang)
             return True
         if local_file is not None:
@@ -1059,7 +1019,7 @@ class Project(object):
             key = 'completed'
         try:
             return int(stats[key][:-1])
-        except KeyError, e:
+        except KeyError as e:
             return 0
 
     @classmethod
@@ -1073,26 +1033,22 @@ class Project(object):
         """
         try:
             return stats['last_update']
-        except KeyError, e:
+        except KeyError as e:
             return None
 
     def _download_pseudo(self, project_slug, resource_slug, pseudo_file):
-        try:
-            response = self.do_url_request(
-                'pull_pseudo_file',
-                resource_slug=resource_slug,
-                project_slug=project_slug
-            )
-        except SSLError:
-            logger.error("Invalid SSL certificate")
-            raise
+        response = self.do_url_request(
+            'pull_pseudo_file',
+            resource_slug=resource_slug,
+            project_slug=project_slug
+        )
         response = parse_json(response)
 
         base_dir = os.path.split(pseudo_file)[0]
         mkdir_p(base_dir)
 
         with open(pseudo_file, "wb") as fd:
-            fd.write(response['content'])
+            fd.write(response['content'].encode("utf-8"))
 
     def _new_translations_to_add(self, files, slang, lang_map,
                                  stats, force=False):
@@ -1101,14 +1057,14 @@ class Project(object):
         """
         new_translations = []
         timestamp = time.time()
-        langs = stats.keys()
+        langs = list(stats.keys())
         logger.debug("Available languages are: %s" % langs)
 
         for lang in langs:
-            lang_exists = lang in files.keys()
+            lang_exists = lang in list(files.keys())
             lang_is_source = lang == slang
             mapped_lang_exists = (
-                lang in lang_map and lang_map[lang] in files.keys()
+                lang in lang_map and lang_map[lang] in list(files.keys())
             )
             if lang_exists or lang_is_source or mapped_lang_exists:
                 continue
@@ -1122,11 +1078,8 @@ class Project(object):
             r = self.do_url_request('resource_stats')
             logger.debug("Statistics response is %s" % r)
             stats = parse_json(r)
-        except SSLError:
-            logger.error("Invalid SSL certificate")
-            raise
-        except Exception, e:
-            logger.debug(unicode(e))
+        except Exception as e:
+            logger.debug(six.u(e))
             raise
         return stats
 
@@ -1180,13 +1133,13 @@ class Project(object):
         else:
             pull_languages = []
             new_translations = []
-            f_langs = files.keys()
+            f_langs = list(files.keys())
             for l in languages:
                 if l not in f_langs and not (l in lang_map and lang_map[l] in f_langs):
                     if self._should_add_translation(l, stats, force):
                         new_translations.append(l)
                 else:
-                    if l in lang_map.keys():
+                    if l in list(lang_map.keys()):
                         l = lang_map[l]
                     pull_languages.append(l)
             return (set(pull_languages), set(new_translations))
@@ -1196,10 +1149,7 @@ class Project(object):
         try:
             res = parse_json(self.do_url_request('formats'))
             return res[i18n_type]['file-extensions'].split(',')[0]
-        except SSLError:
-            logger.error("Invalid SSL certificate")
-            raise
-        except Exception, e:
+        except Exception as e:
             logger.error(e)
             return ''
 
@@ -1234,7 +1184,7 @@ class Project(object):
             passwd = self.txrc.get(host, 'password')
             token = self.txrc.get(host, 'token')
             hostname = self.txrc.get(host, 'hostname')
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             raise Exception("No user credentials found for host %s. Edit"
                 " ~/.transifexrc and add the appropriate info in there." %
                 host)
@@ -1245,8 +1195,6 @@ class Project(object):
         kwargs['project'] = pslug
         url = (API_URLS[api_call] % kwargs).encode('UTF-8')
 
-        headers = None
-
         i18n_type = self._get_option(resource, 'type')
         if i18n_type is None:
             logger.error(
@@ -1254,24 +1202,14 @@ class Project(object):
                 " More info: http://bit.ly/txcl-rt"
             )
 
-        headers = urllib3.util.make_headers(
-            basic_auth='{0}:{1}'.format(username, passwd),
-            accept_encoding=True,
-            user_agent=user_agent_identifier(),
-            keep_alive=True
-        )
         data = {
             "slug": fileinfo.split(';')[0],
             "name": fileinfo.split(';')[0],
             "uploaded_file": (filename, open(filename, 'rb').read()),
             "i18n_type": i18n_type
         }
-        try:
-            r = self.conn.request(method, url, fields=data, headers=headers)
-        except SSLError:
-            logger.error("Invalid SSL certificate")
-        r.close()
-        return r.data
+
+        return request(method, hostname, url, username, passwd, data)
 
     def _get_option(self, resource, option):
         """Get the value for the option in the config file.

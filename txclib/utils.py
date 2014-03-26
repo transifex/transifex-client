@@ -1,11 +1,13 @@
+from __future__ import unicode_literals
 import os, sys, re, errno
 import ssl
 try:
     from json import loads as parse_json, dumps as compile_json
 except ImportError:
     from simplejson import loads as parse_json, dumps as compile_json
-
 from txclib.packages import urllib3
+from txclib.packages.urllib3.packages import six
+from txclib.packages.urllib3.packages.six.moves import input
 from txclib.urls import API_URLS
 from txclib.exceptions import UnknownCommandError
 from txclib.paths import posix_path, native_path, posix_sep
@@ -57,7 +59,7 @@ def parse_tx_url(url):
     Try to match given url to any of the valid url patterns specified in
     TX_URLS. If not match is found, we raise exception
     """
-    for type_ in TX_URLS.keys():
+    for type_ in list(TX_URLS.keys()):
         pattern = TX_URLS[type_]
         m = re.match(pattern, url)
         if m:
@@ -67,39 +69,50 @@ def parse_tx_url(url):
     )
 
 
+def make_request(method, host, url, username, password, fields=None):
+    if host.lower().startswith('https://'):
+        connection = urllib3.connection_from_url(
+            host,
+            cert_reqs=ssl.CERT_REQUIRED,
+            ca_certs=certs_file()
+        )
+    else:
+        connection = urllib3.connection_from_url(host)
+    headers = urllib3.util.make_headers(
+        basic_auth='{0}:{1}'.format(username, password),
+        accept_encoding=True,
+        user_agent=user_agent_identifier(),
+        keep_alive=True
+    )
+    r = None
+    try:
+        r = connection.request(method, url, headers=headers, fields=fields)
+        data = r.data
+        if isinstance(data, bytes):
+            data = data.decode("utf-8")
+        if r.status < 200 or r.status >= 400:
+            raise Exception(data)
+        return data
+    except SSLError:
+        logger.error("Invalid SSL certificate")
+        raise
+    finally:
+        if not r is None:
+            r.close()
+
+
 def get_details(api_call, username, password, *args, **kwargs):
     """
     Get the tx project info through the API.
 
     This function can also be used to check the existence of a project.
     """
-    host = kwargs['hostname']
-    if host.lower().startswith('https://'):
-        conn = urllib3.connection_from_url(
-            host,
-            cert_reqs=ssl.CERT_REQUIRED,
-            ca_certs=certs_file()
-        )
-    else:
-        conn = urllib3.connection_from_url(host)
-    url = (API_URLS[api_call] % (kwargs)).encode('UTF-8')
-    headers = urllib3.util.make_headers(
-        basic_auth='{0}:{1}'.format(username, password),
-        accept_encoding=True,
-        user_agent=user_agent_identifier(),
-    )
+    url = API_URLS[api_call] % kwargs
     try:
-        r = conn.request('GET', url, headers=headers)
-        if r.status < 200 or r.status >= 400:
-            raise Exception(r.data)
-        remote_project = parse_json(r.data)
-        r.close()
-        return remote_project
-    except SSLError:
-        logger.error("Invalid SSL certificate")
-        raise
-    except Exception, e:
-        logger.debug(unicode(e))
+        data = make_request('GET', kwargs['hostname'], url, username, password)
+        return parse_json(data)
+    except Exception as e:
+        logger.debug(six.u(e))
         raise
 
 
@@ -154,7 +167,7 @@ def mkdir_p(path):
     try:
         if path:
             os.makedirs(path)
-    except OSError, exc: # Python >2.5
+    except OSError as exc:
         if exc.errno == errno.EEXIST:
             pass
         else:
@@ -178,9 +191,9 @@ def confirm(prompt='Continue?', default=True):
         prompt = prompt + '[y/N]'
         valid_no.append('')
 
-    ans = raw_input(prompt)
+    ans = input(prompt)
     while (ans not in valid_yes and ans not in valid_no):
-        ans = raw_input(prompt)
+        ans = input(prompt)
 
     return ans in valid_yes
 
