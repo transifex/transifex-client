@@ -16,6 +16,10 @@ from txclib.log import logger
 from txclib.packages.urllib3.exceptions import SSLError
 
 
+class HttpNotFound(Exception):
+    pass
+
+
 def find_dot_tx(path=os.path.curdir, previous=None):
     """Return the path where .tx folder is found.
 
@@ -91,7 +95,10 @@ def make_request(method, host, url, username, password, fields=None):
         if isinstance(data, bytes):
             data = data.decode("utf-8")
         if r.status < 200 or r.status >= 400:
-            raise Exception(data)
+            if r.status == 404:
+                raise HttpNotFound(data)
+            else:
+                raise Exception(data)
         return data
     except SSLError:
         logger.error("Invalid SSL certificate")

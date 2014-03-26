@@ -678,6 +678,9 @@ class Project(object):
                             )], language=remote_lang
                         )
                         logger.debug("Translation %s pushed." % remote_lang)
+                    except HttpNotFound:
+                        if not source:
+                            logger.error("Resource hasn't been created. Try pushing source file.")
                     except Exception as e:
                         if isinstance(e, SSLError) or not skip:
                             raise
@@ -1078,6 +1081,9 @@ class Project(object):
             r = self.do_url_request('resource_stats')
             logger.debug("Statistics response is %s" % r)
             stats = parse_json(r)
+        except HttpNotFound:
+            logger.debug("Resource not found, creating...")
+            stats = {}
         except Exception as e:
             logger.debug(six.u(e))
             raise
@@ -1197,7 +1203,7 @@ class Project(object):
 
         i18n_type = self._get_option(resource, 'type')
         if i18n_type is None:
-            logger.error(
+            raise Exception(
                 "Please define the resource type in .tx/config (eg. type = PO)."
                 " More info: http://bit.ly/txcl-rt"
             )
@@ -1209,7 +1215,7 @@ class Project(object):
             "i18n_type": i18n_type
         }
 
-        return request(method, hostname, url, username, passwd, data)
+        return make_request(method, hostname, url, username, passwd, data)
 
     def _get_option(self, resource, option):
         """Get the value for the option in the config file.
