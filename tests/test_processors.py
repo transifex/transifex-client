@@ -5,7 +5,7 @@ Unit tests for processor functions.
 """
 
 import unittest
-from urlparse import urlparse
+
 from txclib.processors import hostname_tld_migration, hostname_ssl_migration
 
 

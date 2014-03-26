@@ -10,7 +10,6 @@ from txclib import get_version
 from txclib.log import set_log_level, logger
 from txclib.packages.urllib3.exceptions import SSLError
 
-reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
 
 # This block ensures that ^C interrupts are handled quietly.
 try:
@@ -29,9 +28,12 @@ try:
 except KeyboardInterrupt:
     sys.exit(1)
 
-# When we open file with f = codecs.open we specifi FROM what encoding to read
-# This sets the encoding for the strings which are created with f.read()
-sys.setdefaultencoding('utf-8')
+# In python 3 default encoding is utf-8
+if sys.version_info < (3,0):
+    reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
+    # When we open file with f = codecs.open we specifi FROM what encoding to read
+    # This sets the encoding for the strings which are created with f.read()
+    sys.setdefaultencoding('utf-8')
 
 
 def main(argv):

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-import contextlib
 import itertools
 try:
     import json
@@ -76,7 +75,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         self.p.minimum_perc = 20
         results = itertools.cycle([80, 90 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -88,7 +87,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test only global option."""
         results = itertools.cycle([80, None ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -100,7 +99,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test the case where the local option is lower than the global."""
         results = itertools.cycle([80, 70 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -113,7 +112,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test the case where the local option is lower than the global."""
         results = itertools.cycle([60, 70 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -126,7 +125,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """Test the case where the local option is lower than the global."""
         results = itertools.cycle([None, 70 ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -139,7 +138,7 @@ class TestProjectMinimumPercent(unittest.TestCase):
         """"Test the case there is nothing defined."""
         results = itertools.cycle([None, None ])
         def side_effect(*args):
-            return results.next()
+            return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
@@ -165,7 +164,7 @@ class TestProjectFilters(unittest.TestCase):
                 'completed': '70%', 'last_update': '2011-11-01 15:00:00',
             },
         }
-        self.langs = self.stats.keys()
+        self.langs = list(self.stats.keys())
 
     def test_add_translation(self):
         """Test filters for adding translations.
@@ -215,7 +214,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 14:00:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
@@ -230,7 +229,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 15:01:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
@@ -261,7 +260,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 14:00:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
@@ -276,7 +275,7 @@ class TestProjectFilters(unittest.TestCase):
             local_times = [self.p._generate_timestamp('2011-11-01 15:01:59')]
             results = itertools.cycle(local_times)
             def side_effect(*args):
-                return results.next()
+                return next(results)
 
             with patch.object(self.p, "_get_time_of_local_file") as time_mock:
                 time_mock.side_effect = side_effect
@@ -308,8 +307,8 @@ class TestProjectPull(unittest.TestCase):
                 'completed': '70%', 'last_update': '2011-11-01 15:00:00',
             },
         }
-        self.langs = self.stats.keys()
-        self.files = dict(zip(self.langs, itertools.repeat(None)))
+        self.langs = list(self.stats.keys())
+        self.files = dict(list(zip(self.langs, itertools.repeat(None))))
         self.details = {'available_languages': []}
         for lang in self.langs:
             self.details['available_languages'].append({'code': lang})
@@ -326,7 +325,7 @@ class TestProjectPull(unittest.TestCase):
                 res = new_trans(
                     self.files, self.slang, self.lang_map, self.stats, force
                 )
-                self.assertEquals(res, set([]))
+                self.assertEqual(res, set([]))
 
             with patch.object(self.p, '_should_add_translation') as filter_mock:
                 filter_mock.return_value = True
@@ -334,12 +333,12 @@ class TestProjectPull(unittest.TestCase):
                     res = new_trans(
                         {'el': None}, self.slang, self.lang_map, self.stats, force
                     )
-                    self.assertEquals(res, set(['pt']))
+                    self.assertEqual(res, set(['pt']))
                 for force in [True, False]:
                     res = new_trans(
                         {}, self.slang, self.lang_map, self.stats, force
                     )
-                    self.assertEquals(res, set(['el', 'pt']))
+                    self.assertEqual(res, set(['el', 'pt']))
 
                 files = {}
                 files['pt_PT'] = None
@@ -348,7 +347,7 @@ class TestProjectPull(unittest.TestCase):
                     res = new_trans(
                         files, self.slang, lang_map, self.stats, force
                     )
-                    self.assertEquals(res, set(['el']))
+                    self.assertEqual(res, set(['el']))
 
     def test_get_pseudo_file(self):
         slang = 'en'
@@ -357,7 +356,7 @@ class TestProjectPull(unittest.TestCase):
 
         pseudo_file = self.p._get_pseudo_file(slang, resource, file_filter)
 
-        self.assertEquals(pseudo_file, 'adriana/en_pseudo.po')
+        self.assertEqual(pseudo_file, 'adriana/en_pseudo.po')
 
     def test_languages_to_pull_empty_initial_list(self):
         """Test determining the languages to pull, when the initial
@@ -371,7 +370,7 @@ class TestProjectPull(unittest.TestCase):
         )
         existing = res[0]
         new = res[1]
-        self.assertEquals(existing, set(['el', 'en', 'pt']))
+        self.assertEqual(existing, set(['el', 'en', 'pt']))
         self.assertFalse(new)
 
         del self.files['el']
@@ -382,7 +381,7 @@ class TestProjectPull(unittest.TestCase):
         )
         existing = res[0]
         new = res[1]
-        self.assertEquals(existing, set(['el', 'en', 'pt']))
+        self.assertEqual(existing, set(['el', 'en', 'pt']))
         self.assertFalse(new)
 
     def test_languages_to_pull_with_initial_list(self):
@@ -402,7 +401,7 @@ class TestProjectPull(unittest.TestCase):
             )
             existing = res[0]
             new = res[1]
-            self.assertEquals(existing, set(['en', 'el-gr', ]))
+            self.assertEqual(existing, set(['en', 'el-gr', ]))
             self.assertFalse(new)
 
             mock.return_value = False
@@ -411,7 +410,7 @@ class TestProjectPull(unittest.TestCase):
             )
             existing = res[0]
             new = res[1]
-            self.assertEquals(existing, set(['en', 'el-gr', ]))
+            self.assertEqual(existing, set(['en', 'el-gr', ]))
             self.assertFalse(new)
 
             del self.files['el-gr']
@@ -421,8 +420,8 @@ class TestProjectPull(unittest.TestCase):
             )
             existing = res[0]
             new = res[1]
-            self.assertEquals(existing, set(['en', ]))
-            self.assertEquals(new, set(['el', ]))
+            self.assertEqual(existing, set(['en', ]))
+            self.assertEqual(new, set(['el', ]))
 
             mock.return_value = False
             res = self.p._languages_to_pull(
@@ -430,8 +429,8 @@ class TestProjectPull(unittest.TestCase):
             )
             existing = res[0]
             new = res[1]
-            self.assertEquals(existing, set(['en', ]))
-            self.assertEquals(new, set([]))
+            self.assertEqual(existing, set(['en', ]))
+            self.assertEqual(new, set([]))
 
     def test_in_combination_with_force_option(self):
         """Test the minumum-perc option along with -f."""
@@ -439,22 +438,22 @@ class TestProjectPull(unittest.TestCase):
             mock.return_value = 70
 
             res = self.p._should_download('de', self.stats, None, False)
-            self.assertEquals(res, False)
+            self.assertEqual(res, False)
             res = self.p._should_download('el', self.stats, None, False)
-            self.assertEquals(res, False)
+            self.assertEqual(res, False)
             res = self.p._should_download('el', self.stats, None, True)
-            self.assertEquals(res, False)
+            self.assertEqual(res, False)
             res = self.p._should_download('en', self.stats, None, False)
-            self.assertEquals(res, True)
+            self.assertEqual(res, True)
             res = self.p._should_download('en', self.stats, None, True)
-            self.assertEquals(res, True)
+            self.assertEqual(res, True)
 
             with patch.object(self.p, '_remote_is_newer') as local_file_mock:
                 local_file_mock = False
                 res = self.p._should_download('pt', self.stats, None, False)
-                self.assertEquals(res, True)
+                self.assertEqual(res, True)
                 res = self.p._should_download('pt', self.stats, None, True)
-                self.assertEquals(res, True)
+                self.assertEqual(res, True)
 
 
 class TestFormats(unittest.TestCase):
@@ -474,7 +473,7 @@ class TestFormats(unittest.TestCase):
             mock.return_value = json.dumps(sample_formats)
             for (type_, ext) in zip(['PO', 'QT', 'NONE', ], extensions):
                 extension = self.p._extension_for(type_)
-                self.assertEquals(extension, ext)
+                self.assertEqual(extension, ext)
 
 
 class TestOptions(unittest.TestCase):
@@ -485,20 +484,18 @@ class TestOptions(unittest.TestCase):
 
     def test_get_option(self):
         """Test _get_option method."""
-        with contextlib.nested(
-            patch.object(self.p, 'get_resource_option'),
-            patch.object(self.p, 'config', create=True)
-        ) as (rmock, cmock):
-            rmock.return_value = 'resource'
-            cmock.has_option.return_value = 'main'
-            cmock.get.return_value = 'main'
-            self.assertEqual(self.p._get_option(None, None), 'resource')
-            rmock.return_value = None
-            cmock.has_option.return_value = 'main'
-            cmock.get.return_value = 'main'
-            self.assertEqual(self.p._get_option(None, None), 'main')
-            cmock.has_option.return_value = None
-            self.assertIs(self.p._get_option(None, None), None)
+        with patch.object(self.p, 'get_resource_option') as rmock:
+            with patch.object(self.p, 'config', create=True) as cmock:
+                rmock.return_value = 'resource'
+                cmock.has_option.return_value = 'main'
+                cmock.get.return_value = 'main'
+                self.assertEqual(self.p._get_option(None, None), 'resource')
+                rmock.return_value = None
+                cmock.has_option.return_value = 'main'
+                cmock.get.return_value = 'main'
+                self.assertEqual(self.p._get_option(None, None), 'main')
+                cmock.has_option.return_value = None
+                self.assertIs(self.p._get_option(None, None), None)
 
 
 class TestConfigurationOptions(unittest.TestCase):
@@ -511,15 +508,15 @@ class TestConfigurationOptions(unittest.TestCase):
         with patch.object(p, 'config', create=True) as config_mock:
             p.set_i18n_type([], i18n_type)
             calls = config_mock.method_calls
-            self.assertEquals('set', calls[0][0])
-            self.assertEquals('main', calls[0][1][0])
+            self.assertEqual('set', calls[0][0])
+            self.assertEqual('main', calls[0][1][0])
             p.set_i18n_type(['transifex.txo'], 'PO')
             calls = config_mock.method_calls
-            self.assertEquals('set', calls[0][0])
+            self.assertEqual('set', calls[0][0])
             p.set_i18n_type(['transifex.txo', 'transifex.txn'], 'PO')
             calls = config_mock.method_calls
-            self.assertEquals('set', calls[0][0])
-            self.assertEquals('set', calls[1][0])
+            self.assertEqual('set', calls[0][0])
+            self.assertEqual('set', calls[1][0])
 
 
 class TestStats(unittest.TestCase):
