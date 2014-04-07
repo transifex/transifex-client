@@ -54,7 +54,7 @@ class Project(object):
             if os.path.exists(local_txrc_file):
                 self.txrc_file = local_txrc_file
         except ProjectNotInit as e:
-            logger.error('\n'.join([six.u(e), instructions]))
+            logger.error('\n'.join([six.u(str(e)), instructions]))
             raise
         host = self.config.get('main', 'host')
         if host.lower().startswith('https://'):
@@ -1085,7 +1085,7 @@ class Project(object):
             logger.debug("Resource not found, creating...")
             stats = {}
         except Exception as e:
-            logger.debug(six.u(e))
+            logger.debug(six.u(str(e)))
             raise
         return stats
 
