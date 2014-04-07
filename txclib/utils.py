@@ -119,7 +119,7 @@ def get_details(api_call, username, password, *args, **kwargs):
         data = make_request('GET', kwargs['hostname'], url, username, password)
         return parse_json(data)
     except Exception as e:
-        logger.debug(six.u(e))
+        logger.debug(six.u(str(e)))
         raise
 
 
