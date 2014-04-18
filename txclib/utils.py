@@ -1,6 +1,12 @@
 from __future__ import unicode_literals
 import os, sys, re, errno
 import ssl
+
+if sys.version_info[0] >= 3:
+    from urllib.request import Request
+else:
+    from urllib2 import Request
+
 try:
     from json import loads as parse_json, dumps as compile_json
 except ImportError:
@@ -15,6 +21,12 @@ from txclib.web import user_agent_identifier, certs_file
 from txclib.log import logger
 from txclib.packages.urllib3.exceptions import SSLError
 
+# Initialize a http pool manager
+manager = urllib3.PoolManager(
+    num_pools=1,
+    cert_reqs=ssl.CERT_REQUIRED,
+    ca_certs=certs_file()
+)
 
 class HttpNotFound(Exception):
     pass
@@ -73,29 +85,34 @@ def parse_tx_url(url):
     )
 
 
-def make_request(method, host, url, username, password, fields=None):
-    if host.lower().startswith('https://'):
-        connection = urllib3.connection_from_url(
-            host,
-            cert_reqs=ssl.CERT_REQUIRED,
-            ca_certs=certs_file()
-        )
-    else:
-        connection = urllib3.connection_from_url(host)
+def make_request_with_connection_info(
+    method, host, url, connection_info, fields=None
+):
+    basic_auth = "{0}:{1}".format(
+        connection_info["username"],
+        connection_info["password"]
+    )
     headers = urllib3.util.make_headers(
-        basic_auth='{0}:{1}'.format(username, password),
+        basic_auth=basic_auth,
         accept_encoding=True,
         user_agent=user_agent_identifier(),
         keep_alive=True
     )
-    r = None
+    request = Request(host + url, None, headers)
+    request.type = method
+    response = None
     try:
-        r = connection.request(method, url, headers=headers, fields=fields)
-        data = r.data
+        response = manager.request(
+            request.get_type(),
+            request.get_full_url(),
+            headers=dict(request.header_items()),
+            fields=fields
+        )
+        data = response.data
         if isinstance(data, bytes):
             data = data.decode("utf-8")
-        if r.status < 200 or r.status >= 400:
-            if r.status == 404:
+        if response.status < 200 or response.status >= 400:
+            if response.status == 404:
                 raise HttpNotFound(data)
             else:
                 raise Exception(data)
@@ -104,8 +121,20 @@ def make_request(method, host, url, username, password, fields=None):
         logger.error("Invalid SSL certificate")
         raise
     finally:
-        if not r is None:
-            r.close()
+        if response is not None:
+            response.close()
+
+
+def create_connection_info(username, password):
+    return {
+        "username": username,
+        "password": password
+    }
+
+    
+def make_request(method, host, url, username, password, fields=None):
+    info = create_connection_info(username, password)
+    return make_request_with_connection_info(method, host, url, info, fields)
 
 
 def get_details(api_call, username, password, *args, **kwargs):
