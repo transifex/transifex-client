@@ -24,6 +24,7 @@ from txclib.log import logger
 from txclib.processors import visit_hostname
 from txclib.paths import posix_path, native_path, posix_sep
 from txclib.packages.urllib3.exceptions import SSLError
+from txclib.resource import Resource, Resources
 
 
 class ProjectNotInit(Exception):
@@ -295,7 +296,7 @@ class Project(object):
                     if value in list(tr_files.values()):
                         keys = []
                         for k, v in six.iteritems(tr_files):
-                            if v == value:
+                               if v == value:
                                 keys.append(k)
                         if len(keys) == 1:
                             del tr_files[keys[0]]
@@ -573,7 +574,10 @@ class Project(object):
         """
         Push all the resources
         """
-        resource_list = self.get_chosen_resources(resources)
+        resources = Resources([
+            Resource.create_from_config(self.config, name)
+            for name in self.get_chosen_resources(resources)
+        ])
         self.skip = skip
         self.force = force
         if force and not no_interactive:
@@ -585,24 +589,21 @@ class Project(object):
 
             if not answer in ["", 'Y', 'y', "yes", 'YES']:
                 return
-
-        for resource in resource_list:
+        resources.walk(self.root)
+        for resource in resources.list:
             push_languages = []
-            project_slug, resource_slug = resource.split('.', 1)
-            files = self.get_resource_files(resource)
-            slang = self.get_resource_option(resource, 'source_lang')
-            sfile = self.get_source_file(resource)
-            lang_map = self.get_resource_lang_mapping(resource)
-            host = self.get_resource_host(resource)
+            files = resource.trans
+            lang_map = self.get_resource_lang_mapping(resource.name)
+            host = self.get_resource_host(resource.name)
             logger.debug("Language mapping is: %s" % lang_map)
             logger.debug("Using host %s" % host)
             self.url_info = {
                 'host': host,
-                'project': project_slug,
-                'resource': resource_slug
+                'project': resource.project_slug,
+                'resource': resource.resource_slug
             }
 
-            logger.info("Pushing translations for resource %s:" % resource)
+            logger.info("Pushing translations for resource %s:" % resource.name)
 
             stats = self._get_stats_for_resource()
 
@@ -616,25 +617,25 @@ class Project(object):
                     return
 
             if source:
-                if sfile is None:
+                if resource.source_file is None:
                     logger.error("You don't seem to have a proper source file"
                         " mapping for resource %s. Try without the --source"
                         " option or set a source file first and then try again." %
-                        resource)
+                        resource.name)
                     continue
                 # Push source file
                 try:
-                    logger.warning("Pushing source file (%s)" % sfile)
+                    logger.warning("Pushing source file (%s)" % resource.source_file)
                     if not self._resource_exists(stats):
                         logger.info("Resource does not exist.  Creating...")
-                        fileinfo = "%s;%s" % (resource_slug, slang)
-                        filename = self.get_full_path(sfile)
-                        self._create_resource(resource, project_slug, fileinfo, filename)
+                        fileinfo = "%s;%s" % (resource.resource_slug, resource.source_lang)
+                        filename = self.get_full_path(resource.source_file)
+                        self._create_resource(resource.name, resource.project_slug, fileinfo, filename)
                     self.do_url_request(
                         'push_source', multipart=True, method="PUT",
                         files=[(
-                                "%s;%s" % (resource_slug, slang)
-                                , self.get_full_path(sfile)
+                                "%s;%s" % (resource.resource_slug, resource.source_lang)
+                                , self.get_full_path(resource.source_file)
                         )],
                     )
                 except Exception as e:
@@ -651,7 +652,7 @@ class Project(object):
                     code = getattr(e, 'code', None)
                     if code == 404:
                         msg = "Resource %s doesn't exist on the server."
-                        logger.error(msg % resource)
+                        logger.error(msg % resource.name)
                         continue
 
             if translations:
@@ -699,7 +700,7 @@ class Project(object):
                         self.do_url_request(
                             'push_translation', multipart=True, method='PUT',
                             files=[(
-                                    "%s;%s" % (resource_slug, remote_lang),
+                                    "%s;%s" % (resource.resource_slug, remote_lang),
                                     self.get_full_path(local_file)
                             )], language=remote_lang
                         )
