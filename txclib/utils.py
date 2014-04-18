@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import os, sys, re, errno
 import ssl
+from txclib.packages.urllib3.packages.six.moves import http_cookiejar
 
 if sys.version_info[0] >= 3:
     from urllib.request import Request
@@ -27,6 +28,27 @@ manager = urllib3.PoolManager(
     cert_reqs=ssl.CERT_REQUIRED,
     ca_certs=certs_file()
 )
+
+
+class HeaderWrapper:
+    def __init__(self, headers):
+        self.headers = headers
+
+    def info(self):
+        return self
+
+    def get_all(self, key, list):
+        """ For python 3 """
+        return self.getheaders(key)
+
+    def getheaders(self, key):
+        """ For python < 3 """
+        result = []
+        for header, value in self.headers.items():
+            if header.lower().startswith(key.lower()):
+                result.append(value)
+        return result
+
 
 class HttpNotFound(Exception):
     pass
@@ -92,6 +114,7 @@ def make_request_with_connection_info(
         connection_info["username"],
         connection_info["password"]
     )
+    cookies = connection_info["cookies"]
     headers = urllib3.util.make_headers(
         basic_auth=basic_auth,
         accept_encoding=True,
@@ -100,6 +123,7 @@ def make_request_with_connection_info(
     )
     request = Request(host + url, None, headers)
     request.type = method
+    cookies.add_cookie_header(request)
     response = None
     try:
         response = manager.request(
@@ -108,6 +132,7 @@ def make_request_with_connection_info(
             headers=dict(request.header_items()),
             fields=fields
         )
+        cookies.extract_cookies(HeaderWrapper(response.headers), request)
         data = response.data
         if isinstance(data, bytes):
             data = data.decode("utf-8")
@@ -128,7 +153,8 @@ def make_request_with_connection_info(
 def create_connection_info(username, password):
     return {
         "username": username,
-        "password": password
+        "password": password,
+        "cookies": http_cookiejar.CookieJar(),
     }
 
     
