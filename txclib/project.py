@@ -157,6 +157,7 @@ class Project(object):
         Read .transifexrc and report user,pass for a specific host else ask the
         user for input.
         """
+        passwd = None
         try:
             username = self.txrc.get(host, 'username')
             passwd = self.txrc.get(host, 'password')
@@ -165,14 +166,17 @@ class Project(object):
             username = user or input("Please enter your transifex username: ")
             while (not username):
                 username = input("Please enter your transifex username: ")
-            passwd = password
-            while (not passwd):
-                passwd = getpass.getpass()
+            shall_store_password = confirm("Want to specify and store password?")
+            if shall_store_password:
+                passwd = password
+                while (not passwd):
+                    passwd = getpass.getpass()
 
             logger.info("Updating %s file..." % self.txrc_file)
             self.txrc.add_section(host)
             self.txrc.set(host, 'username', username)
-            self.txrc.set(host, 'password', passwd)
+            if shall_store_password:
+                self.txrc.set(host, 'password', passwd)
             self.txrc.set(host, 'token', '')
             self.txrc.set(host, 'hostname', host)
 
@@ -556,15 +560,21 @@ class Project(object):
     def get_connection_info(self, host):
         if host in self.connection_info_by_host:
             return self.connection_info_by_host[host]
+
         try:
-            info = create_connection_info(
-                self.txrc.get(host, 'username'),
-                self.txrc.get(host, 'password')
-            )
-        except configparser.NoSectionError:
+            username = self.txrc.get(host, 'username')
+        except configparser.NoOptionError, configparser.NoSectionError:
             raise Exception("No user credentials found for host %s. Edit"
                 " ~/.transifexrc and add the appropriate info in there." %
                 host)
+        try:
+            password = self.txrc.get(host, 'password')
+        except configparser.NoOptionError, configparser.NoSectionError:
+            password = None
+            while not password:
+                password = getpass.getpass()
+
+        info = create_connection_info(username, password)
         self.connection_info_by_host[host] = info
         return info
 
