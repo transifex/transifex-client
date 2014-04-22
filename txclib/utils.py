@@ -1,18 +1,26 @@
+from __future__ import unicode_literals
 import os, sys, re, errno
+import ssl
 try:
     from json import loads as parse_json, dumps as compile_json
 except ImportError:
     from simplejson import loads as parse_json, dumps as compile_json
-import urllib2 # This should go and instead use do_url_request everywhere
-
+from txclib.packages import urllib3
+from txclib.packages.urllib3.packages import six
+from txclib.packages.urllib3.packages.six.moves import input
 from txclib.urls import API_URLS
-from txclib.log import logger
 from txclib.exceptions import UnknownCommandError
 from txclib.paths import posix_path, native_path, posix_sep
-from txclib.web import verify_ssl
+from txclib.web import user_agent_identifier, certs_file
+from txclib.log import logger
+from txclib.packages.urllib3.exceptions import SSLError
 
 
-def find_dot_tx(path = os.path.curdir, previous = None):
+class HttpNotFound(Exception):
+    pass
+
+
+def find_dot_tx(path=os.path.curdir, previous=None):
     """Return the path where .tx folder is found.
 
     The 'path' should be a DIRECTORY.
@@ -46,7 +54,6 @@ def regex_from_filefilter(file_filter, root_path = os.path.curdir):
 
 TX_URLS = {
     'resource': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/resource/(?P<resource>(\w|-)+)/?$',
-    'release': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/r/(?P<release>(\w|-)+)/?$',
     'project': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/?$',
 }
 
@@ -56,7 +63,7 @@ def parse_tx_url(url):
     Try to match given url to any of the valid url patterns specified in
     TX_URLS. If not match is found, we raise exception
     """
-    for type_ in TX_URLS.keys():
+    for type_ in list(TX_URLS.keys()):
         pattern = TX_URLS[type_]
         m = re.match(pattern, url)
         if m:
@@ -66,37 +73,54 @@ def parse_tx_url(url):
     )
 
 
+def make_request(method, host, url, username, password, fields=None):
+    if host.lower().startswith('https://'):
+        connection = urllib3.connection_from_url(
+            host,
+            cert_reqs=ssl.CERT_REQUIRED,
+            ca_certs=certs_file()
+        )
+    else:
+        connection = urllib3.connection_from_url(host)
+    headers = urllib3.util.make_headers(
+        basic_auth='{0}:{1}'.format(username, password),
+        accept_encoding=True,
+        user_agent=user_agent_identifier(),
+        keep_alive=True
+    )
+    r = None
+    try:
+        r = connection.request(method, url, headers=headers, fields=fields)
+        data = r.data
+        if isinstance(data, bytes):
+            data = data.decode("utf-8")
+        if r.status < 200 or r.status >= 400:
+            if r.status == 404:
+                raise HttpNotFound(data)
+            else:
+                raise Exception(data)
+        return data
+    except SSLError:
+        logger.error("Invalid SSL certificate")
+        raise
+    finally:
+        if not r is None:
+            r.close()
+
+
 def get_details(api_call, username, password, *args, **kwargs):
     """
     Get the tx project info through the API.
 
     This function can also be used to check the existence of a project.
     """
-    import base64
-    url = (API_URLS[api_call] % (kwargs)).encode('UTF-8')
-    verify_ssl(url)
-
-    req = urllib2.Request(url=url)
-    base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
-    authheader = "Basic %s" % base64string
-    req.add_header("Authorization", authheader)
-
+    url = API_URLS[api_call] % kwargs
     try:
-        fh = urllib2.urlopen(req)
-        raw = fh.read()
-        fh.close()
-        remote_project = parse_json(raw)
-    except urllib2.HTTPError, e:
-        if e.code in [401, 403, 404]:
-            raise e
-        else:
-            # For other requests, we should print the message as well
-            raise Exception("Remote server replied: %s" % e.read())
-    except urllib2.URLError, e:
-        error = e.args[0]
-        raise Exception("Remote server replied: %s" % error[1])
-
-    return remote_project
+        data = make_request('GET', kwargs['hostname'], url, username, password)
+        return parse_json(data)
+    except Exception as e:
+        logger.debug(six.u(str(e)))
+        raise
 
 
 def valid_slug(slug):
@@ -150,7 +174,7 @@ def mkdir_p(path):
     try:
         if path:
             os.makedirs(path)
-    except OSError, exc: # Python >2.5
+    except OSError as exc:
         if exc.errno == errno.EEXIST:
             pass
         else:
@@ -174,9 +198,9 @@ def confirm(prompt='Continue?', default=True):
         prompt = prompt + '[y/N]'
         valid_no.append('')
 
-    ans = raw_input(prompt)
+    ans = input(prompt)
     while (ans not in valid_yes and ans not in valid_no):
-        ans = raw_input(prompt)
+        ans = input(prompt)
 
     return ans in valid_yes
 

@@ -106,6 +106,9 @@ def pull_parser():
         dest="minimum_perc", default=0,
         help="Specify the minimum acceptable percentage of a translation "
              "in order to download it.")
+    parser.add_option("--pseudo", action="store_true", dest="pseudo",
+        default=False,
+        help="Apply this option to download a pseudo file.")
     parser.add_option(
         "--mode", action="store", dest="mode", help=(
             "Specify the mode of the translation file to pull (e.g. "
@@ -163,7 +166,7 @@ def set_parser():
         " To set a specific file as a source and auto detect translations:\n"\
         "  $ tx set --auto-local -r project.resource 'expr' --source-lang en"\
         " --source-file <file>\n\n"\
-        " To set a remote release/resource/project:\n"\
+        " To set a remote resource/project:\n"\
         "  $ tx set --auto-remote <transifex-url>\n"
     parser = EpilogParser(usage=usage, description=description, epilog=epilog)
     parser.add_option("--auto-local", action="store_true", dest="local",

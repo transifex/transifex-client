@@ -4,7 +4,10 @@
 Module for API-related calls.
 """
 
-import urlparse
+try:
+    from urllib import parse as urlparse
+except ImportError:
+    import urlparse
 
 
 def hostname_tld_migration(hostname):

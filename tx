@@ -4,13 +4,12 @@
 from optparse import OptionParser, OptionValueError
 import os
 import sys
-import ssl
 import errno
 from txclib import utils
 from txclib import get_version
 from txclib.log import set_log_level, logger
+from txclib.packages.urllib3.exceptions import SSLError
 
-reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
 
 # This block ensures that ^C interrupts are handled quietly.
 try:
@@ -29,9 +28,12 @@ try:
 except KeyboardInterrupt:
     sys.exit(1)
 
-# When we open file with f = codecs.open we specifi FROM what encoding to read
-# This sets the encoding for the strings which are created with f.read()
-sys.setdefaultencoding('utf-8')
+# In python 3 default encoding is utf-8
+if sys.version_info < (3,0):
+    reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
+    # When we open file with f = codecs.open we specifi FROM what encoding to read
+    # This sets the encoding for the strings which are created with f.read()
+    sys.setdefaultencoding('utf-8')
 
 
 def main(argv):
@@ -87,17 +89,10 @@ def main(argv):
     # find .tx
     path_to_tx = options.root_dir or utils.find_dot_tx()
 
-
     cmd = args[0]
     try:
         utils.exec_command(cmd, args[1:], path_to_tx)
-    except ssl.SSLError as e:
-        if 'certificate verify failed' in e.strerror:
-            logger.error(
-                'Error: Could not verify the SSL certificate of the remote host'
-            )
-        else:
-            logger.error(errno.errorcode[e.errno])
+    except SSLError as e:
         sys.exit(1)
     except utils.UnknownCommandError:
         logger.error("tx: Command %s not found" % cmd)

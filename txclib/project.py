@@ -1,23 +1,29 @@
-
 # -*- coding: utf-8 -*-
 
-import base64
 import getpass
 import os
 import re
 import fnmatch
-import urllib2
 import datetime
 import time
-import ConfigParser
+import ssl
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
+
+
 from txclib.web import *
 from txclib.utils import *
+from txclib.packages import urllib3
+from txclib.packages.urllib3.packages import six
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
-from txclib.http_utils import http_response
 from txclib.processors import visit_hostname
 from txclib.paths import posix_path, native_path, posix_sep
+from txclib.packages.urllib3.exceptions import SSLError
 
 
 class ProjectNotInit(Exception):
@@ -47,9 +53,18 @@ class Project(object):
             self.txrc = self._get_transifex_config([self.txrc_file, local_txrc_file])
             if os.path.exists(local_txrc_file):
                 self.txrc_file = local_txrc_file
-        except ProjectNotInit, e:
-            logger.error('\n'.join([unicode(e), instructions]))
+        except ProjectNotInit as e:
+            logger.error('\n'.join([six.u(str(e)), instructions]))
             raise
+        host = self.config.get('main', 'host')
+        if host.lower().startswith('https://'):
+            self.conn = urllib3.connection_from_url(
+                host,
+                cert_reqs=ssl.CERT_REQUIRED,
+                ca_certs=certs_file()
+            )
+        else:
+            self.conn = urllib3.connection_from_url(host)
 
     def _get_config_file_path(self, root_path):
         """Check the .tx/config file exists."""
@@ -74,7 +89,7 @@ class Project(object):
         config = OrderedRawConfigParser()
         try:
             config.read(config_file)
-        except Exception, err:
+        except Exception as err:
             msg = "Cannot open/parse .tx/config file: %s" % err
             raise ProjectNotInit(msg)
         return config
@@ -84,7 +99,7 @@ class Project(object):
         txrc = OrderedRawConfigParser()
         try:
             txrc.read(txrc_files)
-        except Exception, e:
+        except Exception as e:
             msg = "Cannot read configuration file: %s" % e
             raise ProjectNotInit(msg)
         self._migrate_txrc_file(txrc)
@@ -125,7 +140,7 @@ class Project(object):
         if not os.path.exists(txrc_file):
             msg = "%s not found." % (txrc_file)
             logger.info(msg)
-            mask = os.umask(077)
+            mask = os.umask(0o077)
             open(txrc_file, 'w').close()
             os.umask(mask)
         return txrc_file
@@ -144,11 +159,11 @@ class Project(object):
         try:
             username = self.txrc.get(host, 'username')
             passwd = self.txrc.get(host, 'password')
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (configparser.NoOptionError, configparser.NoSectionError):
             logger.info("No entry found for host %s. Creating..." % host)
-            username = user or raw_input("Please enter your transifex username: ")
+            username = user or input("Please enter your transifex username: ")
             while (not username):
-                username = raw_input("Please enter your transifex username: ")
+                username = input("Please enter your transifex username: ")
             passwd = password
             while (not passwd):
                 passwd = getpass.getpass()
@@ -170,7 +185,7 @@ class Project(object):
         if not self.config.has_section(resource):
             self.config.add_section(resource)
 
-        p_slug, r_slug = resource.split('.')
+        p_slug, r_slug = resource.split('.', 1)
         file_filter = file_filter.replace("<sep>", r"%s" % posix_sep)
         self.url_info = {
             'host': host,
@@ -193,8 +208,6 @@ class Project(object):
         Returns the host that the resource is configured to use. If there is no
         such option we return the default one
         """
-        if self.config.has_option(resource, 'host'):
-            return self.config.get(resource, 'host')
         return self.config.get('main', 'host')
 
     def get_resource_lang_mapping(self, resource):
@@ -205,7 +218,7 @@ class Project(object):
             for arg in args.replace(' ', '').split(','):
                 k,v = arg.split(":")
                 lang_map.update({k:v})
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             pass
         except (ValueError, KeyError):
             raise Exception("Your lang map configuration is not correct.")
@@ -217,7 +230,7 @@ class Project(object):
                 for arg in args.replace(' ', '').split(','):
                     k,v = arg.split(":")
                     res_lang_map.update({k:v})
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 pass
             except (ValueError, KeyError):
                 raise Exception("Your lang map configuration is not correct.")
@@ -241,7 +254,7 @@ class Project(object):
                     filename = file_filter.replace('<lang>', source_lang)
                     if os.path.exists(filename):
                         return native_path(filename)
-                except ConfigParser.NoOptionError:
+                except configparser.NoOptionError:
                     pass
             else:
                 return native_path(source_file)
@@ -260,7 +273,7 @@ class Project(object):
         if self.config.has_section(resource):
             try:
                 file_filter = self.config.get(resource, "file_filter")
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 file_filter = "$^"
             source_lang = self.config.get(resource, "source_lang")
             source_file = self.get_source_file(resource)
@@ -280,9 +293,9 @@ class Project(object):
                     value = native_path(value)
                     lang = name.split('.')[1]
                     # delete language which has same file
-                    if value in tr_files.values():
+                    if value in list(tr_files.values()):
                         keys = []
-                        for k, v in tr_files.iteritems():
+                        for k, v in six.iteritems(tr_files):
                             if v == value:
                                 keys.append(k)
                         if len(keys) == 1:
@@ -347,7 +360,7 @@ class Project(object):
         """Save the .transifexrc file."""
         if txrc is None:
             txrc = self.txrc
-        mask = os.umask(077)
+        mask = os.umask(0o077)
         fh = open(self.txrc_file, 'w')
         txrc.write(fh)
         fh.close()
@@ -359,8 +372,13 @@ class Project(object):
         else:
             return os.path.join(self.root, relpath)
 
+    def _get_pseudo_file(self, slang, resource, file_filter):
+        pseudo_file = file_filter.replace('<lang>', '%s_pseudo' % slang)
+        return native_path(pseudo_file)
+
     def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
-        fetchsource=False, force=False, skip=False, minimum_perc=0, mode=None):
+        fetchsource=False, force=False, skip=False, minimum_perc=0, mode=None,
+        pseudo=False):
         """Pull all translations file from transifex server."""
         self.minimum_perc = minimum_perc
         resource_list = self.get_chosen_resources(resources)
@@ -377,13 +395,12 @@ class Project(object):
         for resource in resource_list:
             logger.debug("Handling resource %s" % resource)
             self.resource = resource
-            project_slug, resource_slug = resource.split('.')
+            project_slug, resource_slug = resource.split('.', 1)
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_source_file(resource)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
-            verify_ssl(host)
             logger.debug("Language mapping is: %s" % lang_map)
             if mode is None:
                 mode = self._get_option(resource, 'mode')
@@ -398,12 +415,27 @@ class Project(object):
 
             try:
                 file_filter = self.config.get(resource, 'file_filter')
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 file_filter = None
 
             # Pull source file
             pull_languages = set([])
             new_translations = set([])
+
+            if pseudo:
+                pseudo_file = self._get_pseudo_file(
+                    slang, resource, file_filter
+                )
+                if self._should_download(slang, stats, local_file=pseudo_file):
+                    logger.info("Pulling pseudo file for resource %s (%s)." % (
+                        resource,
+                        color_text(pseudo_file, "RED")
+                    ))
+                    self._download_pseudo(
+                        project_slug, resource_slug, pseudo_file
+                    )
+                if not languages:
+                    continue
 
             if fetchall:
                 new_translations = self._new_translations_to_add(
@@ -433,7 +465,7 @@ class Project(object):
 
             for lang in pull_languages:
                 local_lang = lang
-                if lang in lang_map.values():
+                if lang in list(lang_map.values()):
                     remote_lang = lang_map.flip[lang]
                 else:
                     remote_lang = lang
@@ -467,23 +499,23 @@ class Project(object):
                 )
                 try:
                     r = self.do_url_request(url, language=remote_lang)
-                except Exception,e:
-                    if not skip:
-                        raise e
+                except Exception as e:
+                    if isinstance(e, SSLError) or not skip:
+                        raise
                     else:
                         logger.error(e)
                         continue
                 base_dir = os.path.split(local_file)[0]
                 mkdir_p(base_dir)
                 fd = open(local_file, 'wb')
-                fd.write(r)
+                fd.write(r.encode("utf-8"))
                 fd.close()
 
             if new_translations:
                 msg = "Pulling new translations for resource %s (source: %s)"
                 logger.info(msg % (resource, sfile))
                 for lang in new_translations:
-                    if lang in lang_map.keys():
+                    if lang in list(lang_map.keys()):
                         local_lang = lang_map[lang]
                     else:
                         local_lang = lang
@@ -514,12 +546,12 @@ class Project(object):
                     logger.warning(
                         " -> %s: %s" % (color_text(remote_lang, "RED"), local_file)
                     )
-                    r = self.do_url_request(url, language=remote_lang)
 
+                    r = self.do_url_request(url, language=remote_lang)
                     base_dir = os.path.split(local_file)[0]
                     mkdir_p(base_dir)
                     fd = open(local_file, 'wb')
-                    fd.write(r)
+                    fd.write(r.encode("utf-8"))
                     fd.close()
 
     def push(self, source=False, translations=False, force=False, resources=[],
@@ -532,14 +564,13 @@ class Project(object):
         self.force = force
         for resource in resource_list:
             push_languages = []
-            project_slug, resource_slug = resource.split('.')
+            project_slug, resource_slug = resource.split('.', 1)
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sname = self.get_resource_option(resource, 'source_name')
             sfile = self.get_source_file(resource)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
-            verify_ssl(host)
             logger.debug("Language mapping is: %s" % lang_map)
             logger.debug("Using host %s" % host)
             self.url_info = {
@@ -553,7 +584,7 @@ class Project(object):
             stats = self._get_stats_for_resource()
 
             if force and not no_interactive:
-                answer = raw_input("Warning: By using --force, the uploaded"
+                answer = input("Warning: By using --force, the uploaded"
                     " files will overwrite remote translations, even if they"
                     " are newer than your uploaded files.\nAre you sure you"
                     " want to continue? [y/N] ")
@@ -585,15 +616,17 @@ class Project(object):
                             self.get_full_path(sfile)
                         )]
                     )
-                except Exception, e:
-                    if not skip:
+                except Exception as e:
+                    if isinstance(e, SSLError) or not skip:
                         raise
                     else:
                         logger.error(e)
             else:
                 try:
                     self.do_url_request('resource_details')
-                except Exception, e:
+                except Exception as e:
+                    if isinstance(e, SSLError):
+                        raise
                     code = getattr(e, 'code', None)
                     if code == 404:
                         msg = "Resource %s doesn't exist on the server."
@@ -603,12 +636,12 @@ class Project(object):
             if translations:
                 # Check if given language codes exist
                 if not languages:
-                    push_languages = files.keys()
+                    push_languages = list(files.keys())
                 else:
                     push_languages = []
-                    f_langs = files.keys()
+                    f_langs = list(files.keys())
                     for l in languages:
-                        if l in lang_map.keys():
+                        if l in list(lang_map.keys()):
                             l = lang_map[l]
                         push_languages.append(l)
                         if l not in f_langs:
@@ -619,7 +652,7 @@ class Project(object):
                 # Push translation files one by one
                 for lang in push_languages:
                     local_lang = lang
-                    if lang in lang_map.values():
+                    if lang in list(lang_map.values()):
                         remote_lang = lang_map.flip[lang]
                     else:
                         remote_lang = lang
@@ -652,9 +685,12 @@ class Project(object):
                             )], language=remote_lang
                         )
                         logger.debug("Translation %s pushed." % remote_lang)
-                    except Exception, e:
-                        if not skip:
-                            raise e
+                    except HttpNotFound:
+                        if not source:
+                            logger.error("Resource hasn't been created. Try pushing source file.")
+                    except Exception as e:
+                        if isinstance(e, SSLError) or not skip:
+                            raise
                         else:
                             logger.error(e)
 
@@ -670,9 +706,8 @@ class Project(object):
             delete_func = self._delete_translations
 
         for resource in resource_list:
-            project_slug, resource_slug = resource.split('.')
+            project_slug, resource_slug = resource.split('.', 1)
             host = self.get_resource_host(resource)
-            verify_ssl(host)
             self.url_info = {
                 'host': host,
                 'project': project_slug,
@@ -688,7 +723,7 @@ class Project(object):
 
     def _delete_resource(self, project_details, resource, stats, *args):
         """Delete a resource from Transifex."""
-        project_slug, resource_slug = resource.split('.')
+        project_slug, resource_slug = resource.split('.', 1)
         project_resource_slugs = [
             r['slug'] for r in project_details['resources']
         ]
@@ -717,10 +752,10 @@ class Project(object):
             self.save()
             msg = "Deleted resource %s of project %s."
             logger.info(msg % (resource_slug, project_slug))
-        except Exception, e:
+        except Exception as e:
             msg = "Unable to delete resource %s of project %s."
             logger.error(msg % (resource_slug, project_slug))
-            if not self.skip:
+            if isinstance(e, SSLError) or not self.skip:
                 raise
 
     def _delete_translations(self, project_details, resource, stats, languages):
@@ -731,7 +766,7 @@ class Project(object):
 
     def _delete_translation(self, project_details, resource, stats, language):
         """Delete a specific translation from the specified resource."""
-        project_slug, resource_slug = resource.split('.')
+        project_slug, resource_slug = resource.split('.', 1)
         if language not in stats:
             if not self.skip:
                 msg = "Skipping %s: Translation does not exist."
@@ -761,14 +796,14 @@ class Project(object):
             )
             msg = "Deleted language %s from resource %s of project %s."
             logger.info(msg % (language, resource_slug, project_slug))
-        except Exception, e:
+        except Exception as e:
             msg = "Unable to delete translation %s"
             logger.error(msg % language)
-            if not self.skip:
+            if isinstance(e, SSLError) or not self.skip:
                 raise
 
-    def do_url_request(self, api_call, multipart=False, data=None, files=[],
-                       encoding=None, method="GET", attempts=3, **kwargs):
+    def do_url_request(self, api_call, multipart=False, data=None,
+                       files=[], method="GET", **kwargs):
         """
         Issues a url request.
         """
@@ -779,7 +814,7 @@ class Project(object):
             passwd = self.txrc.get(host, 'password')
             token = self.txrc.get(host, 'token')
             hostname = self.txrc.get(host, 'hostname')
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             raise Exception("No user credentials found for host %s. Edit"
                 " ~/.transifexrc and add the appropriate info in there." %
                 host)
@@ -787,65 +822,24 @@ class Project(object):
         # Create the Url
         kwargs['hostname'] = hostname
         kwargs.update(self.url_info)
-        url = (API_URLS[api_call] % kwargs).encode('UTF-8')
-        logger.debug(url)
-
-        opener = None
-        headers = None
-        req = None
+        url = API_URLS[api_call] % kwargs
 
         if multipart:
-            opener = urllib2.build_opener(MultipartPostHandler)
-            for info,filename in files:
-                data = {"uploaded_file": open(filename,'rb')}
+            for info, filename in files:
+                #FIXME: It works because we only pass to files argument
+                #only one item
+
+                data = {"uploaded_file": (name, open(filename, 'rb').read())}
                 try:
                     language, resource, name = info.split(';')
-                    data.update(
-                        language=language, resource=resource, name=name
-                    )
                 except ValueError:
                     language, resource = into.split(';')
-                    data.update(
-                        language=language, resource=resource
-                    )
-
-            urllib2.install_opener(opener)
-            req = RequestWithMethod(url=url, data=data, method=method)
-        else:
-            req = RequestWithMethod(url=url, data=data, method=method)
-            if encoding:
-                req.add_header("Content-Type",encoding)
-
-        base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
-        authheader = "Basic %s" % base64string
-        req.add_header("Authorization", authheader)
-        req.add_header("Accept-Encoding", "gzip,deflate")
-        req.add_header("User-Agent", user_agent_identifier())
-
-        while True:
-            if not attempts:
-                raise Exception(
-                    "No valid response was obtained from the server"
+                    name = os.path.basename(filename)
+                data.update(
+                    language=language, resource=resource, name=name
                 )
-            attempts -= 1
-            try:
-                response = urllib2.urlopen(req, timeout=300)
-                return http_response(response)
-            except urllib2.HTTPError, e:
-                if attempts:
-                    continue
-                if e.code in [401, 403, 404]:
-                    raise e
-                elif 200 <= e.code < 300:
-                    return None
-                else:
-                    # For other requests, we should print the message as well
-                    raise Exception("Remote server replied: %s" % e.read())
-            except urllib2.URLError, e:
-                if attempts:
-                    continue
-                error = e.args[0]
-                raise Exception("Remote server replied: %s" % error[1])
+
+        return make_request(method, hostname, url, username, passwd, data)
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
                                    mode=None):
@@ -895,7 +889,7 @@ class Project(object):
         """
         try:
             lang_stats = stats[lang]
-        except KeyError, e:
+        except KeyError as e:
             logger.debug("No lang %s in statistics" % lang)
             return False
 
@@ -936,7 +930,7 @@ class Project(object):
             return True
         try:
             lang_stats = stats[lang]
-        except KeyError, e:
+        except KeyError as e:
             logger.debug("Language %s does not exist in Transifex." % lang)
             return True
         if local_file is not None:
@@ -1040,7 +1034,7 @@ class Project(object):
             key = 'completed'
         try:
             return int(stats[key][:-1])
-        except KeyError, e:
+        except KeyError as e:
             return 0
 
     @classmethod
@@ -1054,8 +1048,22 @@ class Project(object):
         """
         try:
             return stats['last_update']
-        except KeyError, e:
+        except KeyError as e:
             return None
+
+    def _download_pseudo(self, project_slug, resource_slug, pseudo_file):
+        response = self.do_url_request(
+            'pull_pseudo_file',
+            resource_slug=resource_slug,
+            project_slug=project_slug
+        )
+        response = parse_json(response)
+
+        base_dir = os.path.split(pseudo_file)[0]
+        mkdir_p(base_dir)
+
+        with open(pseudo_file, "wb") as fd:
+            fd.write(response['content'].encode("utf-8"))
 
     def _new_translations_to_add(self, files, slang, lang_map,
                                  stats, force=False):
@@ -1064,14 +1072,14 @@ class Project(object):
         """
         new_translations = []
         timestamp = time.time()
-        langs = stats.keys()
+        langs = list(stats.keys())
         logger.debug("Available languages are: %s" % langs)
 
         for lang in langs:
-            lang_exists = lang in files.keys()
+            lang_exists = lang in list(files.keys())
             lang_is_source = lang == slang
             mapped_lang_exists = (
-                lang in lang_map and lang_map[lang] in files.keys()
+                lang in lang_map and lang_map[lang] in list(files.keys())
             )
             if lang_exists or lang_is_source or mapped_lang_exists:
                 continue
@@ -1085,11 +1093,11 @@ class Project(object):
             r = self.do_url_request('resource_stats')
             logger.debug("Statistics response is %s" % r)
             stats = parse_json(r)
-        except urllib2.HTTPError, e:
-            logger.debug("Resource not found: %s" % e)
+        except HttpNotFound:
+            logger.debug("Resource not found, creating...")
             stats = {}
-        except Exception,e:
-            logger.debug("Network error: %s" % e)
+        except Exception as e:
+            logger.debug(six.u(str(e)))
             raise
         return stats
 
@@ -1143,13 +1151,13 @@ class Project(object):
         else:
             pull_languages = []
             new_translations = []
-            f_langs = files.keys()
+            f_langs = list(files.keys())
             for l in languages:
                 if l not in f_langs and not (l in lang_map and lang_map[l] in f_langs):
                     if self._should_add_translation(l, stats, force):
                         new_translations.append(l)
                 else:
-                    if l in lang_map.keys():
+                    if l in list(lang_map.keys()):
                         l = lang_map[l]
                     pull_languages.append(l)
             return (set(pull_languages), set(new_translations))
@@ -1159,7 +1167,7 @@ class Project(object):
         try:
             res = parse_json(self.do_url_request('formats'))
             return res[i18n_type]['file-extensions'].split(',')[0]
-        except Exception,e:
+        except Exception as e:
             logger.error(e)
             return ''
 
@@ -1194,7 +1202,7 @@ class Project(object):
             passwd = self.txrc.get(host, 'password')
             token = self.txrc.get(host, 'token')
             hostname = self.txrc.get(host, 'hostname')
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             raise Exception("No user credentials found for host %s. Edit"
                 " ~/.transifexrc and add the appropriate info in there." %
                 host)
@@ -1205,50 +1213,26 @@ class Project(object):
         kwargs['project'] = pslug
         url = (API_URLS[api_call] % kwargs).encode('UTF-8')
 
-        opener = None
-        headers = None
-        req = None
-
         i18n_type = self._get_option(resource, 'type')
         if i18n_type is None:
-            logger.error(
+            raise Exception(
                 "Please define the resource type in .tx/config (eg. type = PO)."
                 " More info: http://bit.ly/txcl-rt"
             )
 
-        opener = urllib2.build_opener(MultipartPostHandler)
         try:
             slug, slang, sname = fileinfo.split(';')
         except ValueError:
             slug = sname = fileinfo.split(';')[0]
+
         data = {
             "slug": slug,
             "name": sname,
-            "uploaded_file":  open(filename,'rb'),
+            "uploaded_file": (filename, open(filename, 'rb').read()),
             "i18n_type": i18n_type
         }
-        urllib2.install_opener(opener)
-        req = RequestWithMethod(url=url, data=data, method=method)
 
-        base64string = base64.encodestring('%s:%s' % (username, passwd))[:-1]
-        authheader = "Basic %s" % base64string
-        req.add_header("Authorization", authheader)
-
-        try:
-            fh = urllib2.urlopen(req)
-        except urllib2.HTTPError, e:
-            if e.code in [401, 403, 404]:
-                raise e
-            else:
-                # For other requests, we should print the message as well
-                raise Exception("Remote server replied: %s" % e.read())
-        except urllib2.URLError, e:
-            error = e.args[0]
-            raise Exception("Remote server replied: %s" % error[1])
-
-        raw = fh.read()
-        fh.close()
-        return raw
+        return make_request(method, hostname, url, username, passwd, data)
 
     def _get_option(self, resource, option):
         """Get the value for the option in the config file.
