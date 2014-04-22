@@ -828,17 +828,18 @@ class Project(object):
             for info, filename in files:
                 #FIXME: It works because we only pass to files argument
                 #only one item
-
-                data = {"uploaded_file": (name, open(filename, 'rb').read())}
                 try:
                     language, resource, name = info.split(';')
                 except ValueError:
                     language, resource = into.split(';')
                     name = os.path.basename(filename)
-                data.update(
-                    language=language, resource=resource, name=name
-                )
 
+                data = dict(
+                    uploaded_file=(name, open(filename, 'rb').read()),
+                    language=language,
+                    resource=resource,
+                    name=name
+                )
         return make_request(method, hostname, url, username, passwd, data)
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
