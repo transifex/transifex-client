@@ -318,7 +318,7 @@ class TestProjectPull(unittest.TestCase):
     def test_new_translations(self):
         """Test finding new transaltions to add."""
         with patch.object(self.p, 'do_url_request') as resource_mock:
-            resource_mock.return_value = json.dumps(self.details)
+            resource_mock.return_value = json.dumps(self.details), "utf-8"
             files_keys = self.langs
             new_trans = self.p._new_translations_to_add
             for force in [True, False]:
@@ -470,7 +470,7 @@ class TestFormats(unittest.TestCase):
         }
         extensions = ['.po', '.ts', '', ]
         with patch.object(self.p, "do_url_request") as mock:
-            mock.return_value = json.dumps(sample_formats)
+            mock.return_value = json.dumps(sample_formats), "utf-8"
             for (type_, ext) in zip(['PO', 'QT', 'NONE', ], extensions):
                 extension = self.p._extension_for(type_)
                 self.assertEqual(extension, ext)

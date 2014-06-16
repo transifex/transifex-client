@@ -496,7 +496,7 @@ class Project(object):
                     " -> %s: %s" % (color_text(remote_lang, "RED"), local_file)
                 )
                 try:
-                    r = self.do_url_request(url, language=remote_lang)
+                    r, charset = self.do_url_request(url, language=remote_lang)
                 except Exception as e:
                     if isinstance(e, SSLError) or not skip:
                         raise
@@ -506,7 +506,7 @@ class Project(object):
                 base_dir = os.path.split(local_file)[0]
                 mkdir_p(base_dir)
                 fd = open(local_file, 'wb')
-                fd.write(r.encode("utf-8"))
+                fd.write(r.encode(charset))
                 fd.close()
 
             if new_translations:
@@ -545,11 +545,11 @@ class Project(object):
                         " -> %s: %s" % (color_text(remote_lang, "RED"), local_file)
                     )
 
-                    r = self.do_url_request(url, language=remote_lang)
+                    r, charset = self.do_url_request(url, language=remote_lang)
                     base_dir = os.path.split(local_file)[0]
                     mkdir_p(base_dir)
                     fd = open(local_file, 'wb')
-                    fd.write(r.encode("utf-8"))
+                    fd.write(r.encode(charset))
                     fd.close()
 
     def push(self, source=False, translations=False, force=False, resources=[], languages=[],
@@ -707,9 +707,8 @@ class Project(object):
                 'resource': resource_slug
             }
             logger.debug("URL data are: %s" % self.url_info)
-            project_details = parse_json(
-                self.do_url_request('project_details', project=self)
-            )
+            json, _ = self.do_url_request('project_details', project=self)
+            project_details = parse_json(json)
             teams = project_details['teams']
             stats = self._get_stats_for_resource()
             delete_func(project_details, resource, stats, languages)
@@ -1040,7 +1039,7 @@ class Project(object):
             return None
 
     def _download_pseudo(self, project_slug, resource_slug, pseudo_file):
-        response = self.do_url_request(
+        response, charset = self.do_url_request(
             'pull_pseudo_file',
             resource_slug=resource_slug,
             project_slug=project_slug
@@ -1078,7 +1077,7 @@ class Project(object):
     def _get_stats_for_resource(self):
         """Get the statistics information for a resource."""
         try:
-            r = self.do_url_request('resource_stats')
+            r, charset = self.do_url_request('resource_stats')
             logger.debug("Statistics response is %s" % r)
             stats = parse_json(r)
         except HttpNotFound:
@@ -1153,7 +1152,8 @@ class Project(object):
     def _extension_for(self, i18n_type):
         """Return the extension used for the specified type."""
         try:
-            res = parse_json(self.do_url_request('formats'))
+            json, charset = self.do_url_request('formats')
+            res = parse_json(json)
             return res[i18n_type]['file-extensions'].split(',')[0]
         except Exception as e:
             logger.error(e)
@@ -1215,7 +1215,8 @@ class Project(object):
             "i18n_type": i18n_type
         }
 
-        return make_request(method, hostname, url, username, passwd, data)
+        r, charset = make_request(method, hostname, url, username, passwd, data)
+        return r
 
     def _get_option(self, resource, option):
         """Get the value for the option in the config file.
