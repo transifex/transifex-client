@@ -5,6 +5,7 @@ try:
     from json import loads as parse_json, dumps as compile_json
 except ImportError:
     from simplejson import loads as parse_json, dumps as compile_json
+from email.parser import Parser
 from txclib.packages import urllib3
 from txclib.packages.urllib3.packages import six
 from txclib.packages.urllib3.packages.six.moves import input
@@ -73,6 +74,16 @@ def parse_tx_url(url):
     )
 
 
+def determine_charset(response):
+    content_type = response.headers.get('content-type', None)
+    if content_type:
+        message = Parser().parsestr("Content-type: %s" % content_type)
+        for charset in message.get_charsets():
+            if charset:
+                return charset
+    return "utf-8"
+
+
 def make_request(method, host, url, username, password, fields=None):
     if host.lower().startswith('https://'):
         connection = urllib3.connection_from_url(
@@ -92,14 +103,15 @@ def make_request(method, host, url, username, password, fields=None):
     try:
         r = connection.request(method, url, headers=headers, fields=fields)
         data = r.data
+        charset = determine_charset(r)
         if isinstance(data, bytes):
-            data = data.decode("utf-8")
+            data = data.decode(charset)
         if r.status < 200 or r.status >= 400:
             if r.status == 404:
                 raise HttpNotFound(data)
             else:
                 raise Exception(data)
-        return data
+        return data, charset
     except SSLError:
         logger.error("Invalid SSL certificate")
         raise
@@ -116,7 +128,7 @@ def get_details(api_call, username, password, *args, **kwargs):
     """
     url = API_URLS[api_call] % kwargs
     try:
-        data = make_request('GET', kwargs['hostname'], url, username, password)
+        data, charset = make_request('GET', kwargs['hostname'], url, username, password)
         return parse_json(data)
     except Exception as e:
         logger.debug(six.u(str(e)))
