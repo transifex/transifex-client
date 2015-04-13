@@ -3,8 +3,8 @@
 import os.path
 import io
 from setuptools import setup
+import txclib
 
-from txclib import get_version
 
 readme_file = io.open('README.rst', 'rt', encoding='UTF-8')
 long_description = readme_file.read()
@@ -42,7 +42,7 @@ if platform.system() == 'Windows':
 
 setup(
     name="transifex-client",
-    version=get_version(),
+    version=txclib.__version__,
     scripts=scripts,
     description="A command line interface for Transifex",
     long_description=long_description,

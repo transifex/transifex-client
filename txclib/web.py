@@ -3,12 +3,12 @@
 import os
 import platform
 from pkg_resources import resource_filename, resource_string
-from txclib import get_version
+import txclib
 
 
 def user_agent_identifier():
     """Return the user agent for the client."""
-    client_info = (get_version(), platform.system(), platform.machine())
+    client_info = (txclib.__version__, platform.system(), platform.machine())
     return "txclient/%s (%s %s)" % client_info
 
 

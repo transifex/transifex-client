@@ -5,8 +5,8 @@ from optparse import OptionParser, OptionValueError
 import os
 import sys
 import errno
+import txclib
 from txclib import utils
-from txclib import get_version
 from txclib.log import set_log_level, logger
 from txclib.packages.urllib3.exceptions import SSLError
 
@@ -49,7 +49,7 @@ def main(argv):
 		" command`"
 
     parser = OptionParser(
-        usage=usage, version=get_version(), description=description
+        usage=usage, version=txclib.__version__, description=description
     )
     parser.disable_interspersed_args()
     parser.add_option(
