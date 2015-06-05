@@ -8,6 +8,8 @@ API_URLS = {
     'pull_pseudo_file': '/api/2/project/%(project)s/resource/%(resource)s/pseudo/?pseudo_type=MIXED',
     'pull_reviewed_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=reviewed',
     'pull_translator_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=translator',
+    'pull_onlytranslated_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=onlytranslated',
+    'pull_onlyreviewed_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=onlyreviewed',
     'pull_developer_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=default',
     'resource_stats': '/api/2/project/%(project)s/resource/%(resource)s/stats/',
     'create_resource': '/api/2/project/%(project)s/resources/',
