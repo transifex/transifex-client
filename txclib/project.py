@@ -48,11 +48,13 @@ class Project(object):
             self.root = self._get_tx_dir_path(path_to_tx)
             self.config_file = self._get_config_file_path(self.root)
             self.config = self._read_config_file(self.config_file)
-            self.txrc_file = self._get_transifex_file()
+            
             local_txrc_file = self._get_transifex_file(os.getcwd())
-            self.txrc = self._get_transifex_config([self.txrc_file, local_txrc_file])
             if os.path.exists(local_txrc_file):
                 self.txrc_file = local_txrc_file
+            else:
+                self.txrc_file = self._get_transifex_file()
+            self.txrc = self._get_transifex_config([self.txrc_file, ])
         except ProjectNotInit as e:
             logger.error('\n'.join([six.u(str(e)), instructions]))
             raise
