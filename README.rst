@@ -14,7 +14,7 @@ managers can also use it to handle large volumes of translation files
 easily and without much hassle.
 
 Check the full documentation at
-http://support.transifex.com/customer/portal/topics/440187-transifex-client/articles.
+http://docs.transifex.com/developer/client/
 
 
 Installing
