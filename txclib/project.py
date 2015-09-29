@@ -48,7 +48,7 @@ class Project(object):
             self.root = self._get_tx_dir_path(path_to_tx)
             self.config_file = self._get_config_file_path(self.root)
             self.config = self._read_config_file(self.config_file)
-            
+
             local_txrc_file = self._get_transifex_file(os.getcwd())
             if os.path.exists(local_txrc_file):
                 self.txrc_file = local_txrc_file
@@ -1207,7 +1207,7 @@ class Project(object):
         if i18n_type is None:
             raise Exception(
                 "Please define the resource type in .tx/config (eg. type = PO)."
-                " More info: http://bit.ly/txcl-rt"
+                " More info: http://bit.ly/txcconfig"
             )
 
         data = {

@@ -70,7 +70,7 @@ def parse_tx_url(url):
         if m:
             return type_, m.groupdict()
     raise Exception(
-        "tx: Malformed url given. Please refer to our docs: http://bit.ly/txautor"
+        "tx: Malformed url given. Please refer to our docs: http://bit.ly/txcconfig"
     )
 
 
