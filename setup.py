@@ -23,11 +23,11 @@ import platform
 if platform.system() == 'Windows':
     import sys, os, subprocess, shutil
     pypath = os.path.dirname(sys.executable)
-    print 'Creating exe binary for Windows'
+    print('Creating exe binary for Windows')
     subprocess.Popen(['pyinstaller', 'tx.spec'], shell=True)
     dest_path = os.path.join(pypath,'Scripts')
     shutil.copy('dist\\tx.exe', dest_path)
-    print 'Please make sure to add ', dest_path, ' into system PATH to be able to run it from anywhere'
+    print('Please make sure to add {} into system PATH to be able to run it from anywhere'.format(dest_path))
 
 setup(
     name="transifex-client",
