@@ -17,17 +17,23 @@ package_data = {
 
 scripts = ['tx']
 
-install_requires = ['pyinstaller']
+install_requires = []
 extra_args = {}
 import platform
 if platform.system() == 'Windows':
-    import sys, os, subprocess, shutil
-    pypath = os.path.dirname(sys.executable)
-    print('Creating exe binary for Windows')
-    subprocess.Popen(['pyinstaller', 'tx.spec'], shell=True)
-    dest_path = os.path.join(pypath,'Scripts')
-    shutil.copy('dist\\tx.exe', dest_path)
+    import sys, shutil
+    py_path = os.path.dirname(sys.executable)
+    dest_path = os.path.join(py_path,'Scripts')
+    if sys.version_info[0] < 3:
+        source_binary = 'tx-py27.exe'
+    else:
+        source_binary = 'tx-py3.exe'
+    target_binary = os.path.join(dest_path, 'tx.exe')
+    if os.path.exists(target_binary):
+        os.unlink(target_binary)
+    shutil.copy(os.path.join('win', source_binary), target_binary)
     print('Please make sure to add {} into system PATH to be able to run it from anywhere'.format(dest_path))
+
 
 setup(
     name="transifex-client",
