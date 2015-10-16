@@ -17,21 +17,28 @@ package_data = {
 
 scripts = ['tx']
 
-install_requires = []
+install_requires = ['pyinstaller']
 extra_args = {}
 import platform
 if platform.system() == 'Windows':
-    import sys, shutil
+    #build with PyInstaller
+    # from PyInstaller import main
+    # main.run('tx.spec')
+    import sys, os, subprocess, shutil
+    pypath = os.path.dirname(sys.executable)
+    print 'Creating exe binary for Windows'
+    subprocess.Popen(['pyinstaller', '-f', 'tx.spec'], shell=True)
+    #
+    #
+    # import sys, shutil
+    source_binary = 'tx.exe'
     py_path = os.path.dirname(sys.executable)
     dest_path = os.path.join(py_path,'Scripts')
-    if sys.version_info[0] < 3:
-        source_binary = 'tx-py27.exe'
-    else:
-        source_binary = 'tx-py3.exe'
     target_binary = os.path.join(dest_path, 'tx.exe')
-    if os.path.exists(target_binary):
-        os.unlink(target_binary)
-    shutil.copy(os.path.join('win', source_binary), target_binary)
+    # if os.path.exists(target_binary):
+    #     os.unlink(target_binary)
+    #
+    shutil.copy(os.path.join('dist', source_binary), target_binary)
     print('Please make sure to add {} into system PATH to be able to run it from anywhere'.format(dest_path))
 
 
