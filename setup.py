@@ -19,40 +19,6 @@ scripts = ['tx']
 
 install_requires = ['pyinstaller']
 extra_args = {}
-import platform
-if platform.system() == 'Windows':
-    try:
-        import PyInstaller
-    except ImportError:
-        import pip
-        pip.main(['install', 'pyinstaller'])
-
-    import sys, os, shutil
-
-    pypath = os.path.dirname(sys.executable)
-    print 'Creating exe binary for Windows'
-    import subprocess
-    from subprocess import Popen
-    try:
-        from subprocess import DEVNULL # Python 3
-    except ImportError:
-        DEVNULL = open(os.devnull, 'r+b', 0)
-
-    var = Popen(['pyinstaller', '-y', 'tx.spec'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    trash = var.communicate()
-
-
-    source_binary = 'tx.exe'
-    py_path = os.path.dirname(sys.executable)
-    dest_path = os.path.join(py_path,'Scripts')
-    target_binary = os.path.join(dest_path, 'tx.exe')
-
-    if os.path.exists(target_binary):
-        os.unlink(target_binary)
-
-    shutil.copy(os.path.join('dist', source_binary), target_binary)
-    print('Please make sure to add {} into system PATH to be able to run it from anywhere'.format(dest_path))
-
 
 setup(
     name="transifex-client",
