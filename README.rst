@@ -21,10 +21,7 @@ Installing
 ==========
 
 You can install the latest version of transifex-client running ``pip
-install transifex-client`` or ``easy_install transifex-client``
-You can also install the `in-development version`_ of transifex-client
-with ``pip install transifex-client==dev`` or ``easy_install
-transifex-client==dev``.
+install transifex-client`` or ``easy_install transifex-client``.
 
 
 Build transifex-client for Windows
@@ -68,6 +65,5 @@ Build transifex-client for Windows
    ``dist/tx.exe`` will be created as the result of build process.
 
 
-.. _in-development version: http://github.com/transifex/transifex-client/tarball/master#egg=transifex-client-dev
 .. _Python: https://www.python.org/downloads/windows/
 .. _PyInstaller: http://www.pyinstaller.org
