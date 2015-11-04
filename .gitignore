@@ -3,3 +3,5 @@
 *pyo
 *~
 *egg-info*
+/build
+/dist

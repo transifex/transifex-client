@@ -26,4 +26,48 @@ You can also install the `in-development version`_ of transifex-client
 with ``pip install transifex-client==dev`` or ``easy_install
 transifex-client==dev``.
 
+
+Build transifex-client for Windows
+==================================
+
+1. Download transifex-client sources via git or github archive.
+
+   a. ``git clone https://github.com/transifex/transifex-client.git``
+   b. Download and unpack https://github.com/transifex/transifex-client/archive/master.zip
+
+2. Download and install Python_.
+
+   At this step choose right version of python: 2 or 3 and x86 or x86-64 instruction set.
+
+   Make sure pip marked for installation(default for latest installers).
+
+3. Install PyInstaller_.
+
+   Suppose that Python installed to ``C:\\Program Files\\Python35-32``
+
+   Make ``python.exe`` accessible via PATH environment variable or cd to directory containing python.exe.
+
+   ::
+
+     python -m pip install pyinstaller
+
+   This command will install ``PyInstaller`` package and its dependencies.
+
+4. Build ``transifex-client`` distribution.
+
+   Change directory to transifex-client folder and run command:
+
+   ::
+
+     python -m PyInstaller contrib/tx.spec
+     # or
+     pyinstaller contrib/tx.spec
+
+5. ``tx.exe``
+
+   ``dist/tx.exe`` will be created as the result of build process.
+
+
 .. _in-development version: http://github.com/transifex/transifex-client/tarball/master#egg=transifex-client-dev
+.. _Python: https://www.python.org/downloads/windows/
+.. _PyInstaller: http://www.pyinstaller.org

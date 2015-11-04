@@ -14,19 +14,7 @@ def user_agent_identifier():
 
 def certs_file():
     if platform.system() == 'Windows':
-        # Workaround py2exe and resource_filename incompatibility.
-        # Store the content in the filesystem permanently.
-        app_dir = os.path.join(
-            os.getenv('appdata', os.path.expanduser('~')), 'transifex-client'
-        )
-        if not os.path.exists(app_dir):
-            os.mkdir(app_dir)
-        ca_file = os.path.join(app_dir, 'cacert.pem')
-        if not os.path.exists(ca_file):
-            content = resource_string(__name__, 'cacert.pem')
-            with open(ca_file, 'w') as f:
-                f.write(content)
-        return ca_file
+        return os.path.join(txclib.utils.get_base_dir(), 'txclib', 'cacert.pem')
     else:
         POSSIBLE_CA_BUNDLE_PATHS = [
             # Red Hat, CentOS, Fedora and friends

@@ -21,6 +21,20 @@ class HttpNotFound(Exception):
     pass
 
 
+def get_base_dir():
+    """PyInstaller Run-time Operation.
+
+    http://pythonhosted.org/PyInstaller/#run-time-operation
+    """
+    if getattr(sys, 'frozen', False):
+        # we are running in a bundle
+        basedir = sys._MEIPASS
+    else:
+        # we are running in a normal Python environment
+        basedir = os.path.dirname(os.path.abspath(__file__))
+    return basedir
+
+
 def find_dot_tx(path=os.path.curdir, previous=None):
     """Return the path where .tx folder is found.
 
