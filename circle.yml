@@ -1,3 +1,4 @@
 test:
   override:
+    - python setup.py test
     - ./contrib/test_build.sh
