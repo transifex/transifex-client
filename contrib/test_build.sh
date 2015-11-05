@@ -1,3 +1,3 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-TX="$DIR/../dist/tx.exe"
+TX=`which tx`
 source "$DIR/tx_commands.sh"
