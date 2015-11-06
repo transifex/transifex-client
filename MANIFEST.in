@@ -1,5 +1,6 @@
 include tx
 include txclib/cacert.pem
+include requirements.txt
 
 # Docs
 include LICENSE README.rst

@@ -7,6 +7,7 @@ import fnmatch
 import datetime
 import time
 import ssl
+import urllib3
 
 try:
     import configparser
@@ -16,14 +17,13 @@ except ImportError:
 
 from txclib.web import *
 from txclib.utils import *
-from txclib.packages import urllib3
-from txclib.packages.urllib3.packages import six
+from urllib3.exceptions import SSLError
+from urllib3.packages import six
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
 from txclib.processors import visit_hostname
 from txclib.paths import posix_path, native_path, posix_sep
-from txclib.packages.urllib3.exceptions import SSLError
 
 
 class ProjectNotInit(Exception):

@@ -25,6 +25,7 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
+from urllib3.packages.six.moves import input
 
 from txclib import utils, project
 from txclib.utils import parse_json, compile_json, files_in_project
@@ -34,7 +35,6 @@ from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
         status_parser, pull_parser, set_parser, push_parser, init_parser
 from txclib.paths import posix_path
 from txclib.log import logger
-from txclib.packages.urllib3.packages.six.moves import input
 
 
 def cmd_init(argv, path_to_tx):

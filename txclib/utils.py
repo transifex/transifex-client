@@ -1,20 +1,22 @@
 from __future__ import unicode_literals
 import os, sys, re, errno
 import ssl
+import urllib3
+
 try:
     from json import loads as parse_json, dumps as compile_json
 except ImportError:
     from simplejson import loads as parse_json, dumps as compile_json
+
 from email.parser import Parser
-from txclib.packages import urllib3
-from txclib.packages.urllib3.packages import six
-from txclib.packages.urllib3.packages.six.moves import input
+from urllib3.exceptions import SSLError
+from urllib3.packages import six
+from urllib3.packages.six.moves import input
 from txclib.urls import API_URLS
 from txclib.exceptions import UnknownCommandError
 from txclib.paths import posix_path, native_path, posix_sep
 from txclib.web import user_agent_identifier, certs_file
 from txclib.log import logger
-from txclib.packages.urllib3.exceptions import SSLError
 
 
 class HttpNotFound(Exception):

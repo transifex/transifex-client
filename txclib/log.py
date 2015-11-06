@@ -7,7 +7,7 @@ Add logging capabilities to tx-client.
 import sys
 import logging
 
-_logger = logging.getLogger('txclib.packages.urllib3')
+_logger = logging.getLogger('urllib3')
 _logger.setLevel(logging.CRITICAL)
 
 _logger = logging.getLogger('txclib')
