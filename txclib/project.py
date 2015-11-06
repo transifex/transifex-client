@@ -180,8 +180,10 @@ class Project(object):
         return username, passwd
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
-            file_filter="translations<sep>%(proj)s.%(res)s<sep><lang>.%(extension)s"):
+                            file_filter=None):
         """Method to handle the add/conf of a remote resource."""
+        if file_filter is None:
+            file_filter = "translations<sep>%(proj)s.%(res)s<sep><lang>.%(extension)s"
         if not self.config.has_section(resource):
             self.config.add_section(resource)
 
@@ -554,8 +556,8 @@ class Project(object):
                     fd.write(r.encode(charset))
                     fd.close()
 
-    def push(self, source=False, translations=False, force=False, resources=[], languages=[],
-        skip=False, no_interactive=False):
+    def push(self, source=False, translations=False, force=False, resources=[],
+             languages=[], skip=False, no_interactive=False):
         """
         Push all the resources
         """
@@ -567,6 +569,7 @@ class Project(object):
             project_slug, resource_slug = resource.split('.', 1)
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
+            sname = self.get_resource_option(resource, 'source_name')
             sfile = self.get_source_file(resource)
             lang_map = self.get_resource_lang_mapping(resource)
             host = self.get_resource_host(resource)
@@ -603,15 +606,17 @@ class Project(object):
                     logger.warning("Pushing source file (%s)" % sfile)
                     if not self._resource_exists(stats):
                         logger.info("Resource does not exist.  Creating...")
-                        fileinfo = "%s;%s" % (resource_slug, slang)
+                        fileinfo = "%s;%s;%s" % (resource_slug, slang, sname)
                         filename = self.get_full_path(sfile)
-                        self._create_resource(resource, project_slug, fileinfo, filename)
+                        self._create_resource(
+                            resource, project_slug, fileinfo, filename
+                        )
                     self.do_url_request(
                         'push_source', multipart=True, method="PUT",
                         files=[(
-                                "%s;%s" % (resource_slug, slang)
-                                , self.get_full_path(sfile)
-                        )],
+                            "%s;%s;%s" % (resource_slug, slang, sname),
+                            self.get_full_path(sfile)
+                        )]
                     )
                 except Exception as e:
                     if isinstance(e, SSLError) or not skip:
@@ -675,8 +680,10 @@ class Project(object):
                         self.do_url_request(
                             'push_translation', multipart=True, method='PUT',
                             files=[(
-                                    "%s;%s" % (resource_slug, remote_lang),
-                                    self.get_full_path(local_file)
+                                "%s;%s;%s" % (resource_slug,
+                                              remote_lang,
+                                              sname),
+                                self.get_full_path(local_file)
                             )], language=remote_lang
                         )
                         logger.debug("Translation %s pushed." % remote_lang)
@@ -822,12 +829,18 @@ class Project(object):
             for info, filename in files:
                 #FIXME: It works because we only pass to files argument
                 #only one item
-                name = os.path.basename(filename)
-                data = {
-                    "resource": info.split(';')[0],
-                    "language": info.split(';')[1],
-                    "uploaded_file": (name, open(filename, 'rb').read())
-                }
+                try:
+                    language, resource, name = info.split(';')
+                except ValueError:
+                    language, resource = into.split(';')
+                    name = os.path.basename(filename)
+
+                data = dict(
+                    uploaded_file=(name, open(filename, 'rb').read()),
+                    language=language,
+                    resource=resource,
+                    name=name
+                )
         return make_request(method, hostname, url, username, passwd, data)
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
@@ -1210,9 +1223,14 @@ class Project(object):
                 " More info: http://bit.ly/txcconfig"
             )
 
+        try:
+            slug, slang, sname = fileinfo.split(';')
+        except ValueError:
+            slug = sname = fileinfo.split(';')[0]
+
         data = {
-            "slug": fileinfo.split(';')[0],
-            "name": fileinfo.split(';')[0],
+            "slug": slug,
+            "name": sname,
             "uploaded_file": (filename, open(filename, 'rb').read()),
             "i18n_type": i18n_type
         }
