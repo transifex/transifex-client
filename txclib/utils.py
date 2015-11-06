@@ -265,6 +265,25 @@ def files_in_project(curpath):
 
     Return each file under ``curpath`` with its absolute name.
     """
+    visited = set()
     for root, dirs, files in os.walk(curpath, followlinks=True):
+        root_realpath = os.path.realpath(root)
+
+        # Don't visit any subdirectory
+        if root_realpath in visited:
+            del dirs[:]
+            continue
+
         for f in files:
-            yield os.path.abspath(os.path.join(root, f))
+            yield os.path.realpath(os.path.join(root, f))
+
+        visited.add(root_realpath)
+
+        # Find which directories are already visited and remove them from
+        # further processing
+        removals = list(
+            d for d in dirs
+            if os.path.realpath(os.path.join(root, d)) in visited
+        )
+        for removal in removals:
+            dirs.remove(removal)
