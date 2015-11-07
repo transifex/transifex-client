@@ -1,3 +1,5 @@
+.. image:: https://circleci.com/gh/transifex/transifex-client/tree/master.svg?style=shield&circle-token=33aafd984726261eff1b73278a0cf761382c478a
+    :target: https://circleci.com/gh/transifex/transifex-client/tree/master
 
 =============================
  Transifex Command-Line Tool
