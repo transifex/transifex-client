@@ -1201,7 +1201,7 @@ class Project(object):
         kwargs['hostname'] = hostname
         kwargs.update(self.url_info)
         kwargs['project'] = pslug
-        url = (API_URLS[api_call] % kwargs).encode('UTF-8')
+        url = (API_URLS[api_call] % kwargs)
 
         i18n_type = self._get_option(resource, 'type')
         if i18n_type is None:
