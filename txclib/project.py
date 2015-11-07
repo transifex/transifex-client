@@ -1210,10 +1210,11 @@ class Project(object):
                 " More info: http://bit.ly/txcconfig"
             )
 
+        name = os.path.basename(filename)
         data = {
             "slug": fileinfo.split(';')[0],
             "name": fileinfo.split(';')[0],
-            "uploaded_file": (filename, open(filename, 'rb').read()),
+            "uploaded_file": (name, open(filename, 'rb').read()),
             "i18n_type": i18n_type
         }
 
