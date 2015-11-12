@@ -16,7 +16,8 @@ adding code to this file you must take care of the following:
    descripition field.
 """
 import os
-import re, shutil
+import re
+import shutil
 import sys
 from optparse import OptionParser, OptionGroup
 
@@ -32,7 +33,7 @@ from txclib.utils import parse_json, compile_json, files_in_project
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
-        status_parser, pull_parser, set_parser, push_parser, init_parser
+    status_parser, pull_parser, set_parser, push_parser, init_parser
 from txclib.paths import posix_path
 from txclib.log import logger
 
@@ -48,11 +49,14 @@ def cmd_init(argv, path_to_tx):
     else:
         path_to_tx = os.getcwd()
 
-    if os.path.isdir(os.path.join(path_to_tx,".tx")):
+    if os.path.isdir(os.path.join(path_to_tx, ".tx")):
         logger.info("tx: There is already a tx folder!")
-        reinit = input("Do you want to delete it and reinit the project? [y/N]: ")
-        while (reinit != 'y' and reinit != 'Y' and reinit != 'N' and reinit != 'n' and reinit != ''):
-            reinit = input("Do you want to delete it and reinit the project? [y/N]: ")
+        reinit = input("Do you want to delete it and"
+                       " reinit the project? [y/N]: ")
+        while (reinit != 'y' and reinit != 'Y' and reinit != 'N'
+               and reinit != 'n' and reinit != ''):
+            reinit = input("Do you want to delete it and"
+                           " reinit the project? [y/N]: ")
         if not reinit or reinit in ['N', 'n', 'NO', 'no', 'No']:
             return
         # Clean the old settings
@@ -62,7 +66,7 @@ def cmd_init(argv, path_to_tx):
             shutil.rmtree(rm_dir)
 
     logger.info("Creating .tx folder...")
-    os.mkdir(os.path.join(path_to_tx,".tx"))
+    os.mkdir(os.path.join(path_to_tx, ".tx"))
 
     # Handle the credentials through transifexrc
     home = os.path.expanduser("~")
@@ -70,7 +74,8 @@ def cmd_init(argv, path_to_tx):
     config = OrderedRawConfigParser()
 
     default_transifex = "https://www.transifex.com"
-    transifex_host = options.host or input("Transifex instance [%s]: " % default_transifex)
+    transifex_host = options.host or input("Transifex instance [%s]: " %
+                                           default_transifex)
 
     if not transifex_host:
         transifex_host = default_transifex
@@ -92,7 +97,7 @@ def cmd_init(argv, path_to_tx):
 
     prj = project.Project(path_to_tx)
     prj.getset_host_credentials(transifex_host, user=options.user,
-        password=options.password)
+                                password=options.password)
     prj.save()
     logger.info("Done.")
 
@@ -113,17 +118,19 @@ def cmd_set(argv, path_to_tx):
             parser.error("Please specify a resource")
         if not options.source_language:
             parser.error("Please specify a source language.")
-        if not '<lang>' in expression:
+        if '<lang>' not in expression:
             parser.error("The expression you have provided is not valid.")
         if not utils.valid_slug(options.resource):
-            parser.error("Invalid resource slug. The format is <project_slug>"\
-                ".<resource_slug> and the valid characters include [_-\w].")
+            parser.error("Invalid resource slug. The format is <project_slug>"
+                         ".<resource_slug> and the valid characters include"
+                         " [_-\w].")
         _auto_local(path_to_tx, options.resource,
-            source_language=options.source_language,
-            expression = expression, source_file=options.source_file,
-            execute=options.execute, regex=False)
+                    source_language=options.source_language,
+                    expression=expression, source_file=options.source_file,
+                    execute=options.execute, regex=False)
         if options.execute:
-            _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
+            _set_minimum_perc(options.resource, options.minimum_perc,
+                              path_to_tx)
             _set_mode(options.resource, options.mode, path_to_tx)
             _set_type(options.resource, options.i18n_type, path_to_tx)
         return
@@ -142,7 +149,7 @@ def cmd_set(argv, path_to_tx):
         resource = options.resource
         if not resource:
             parser.error("You must specify a resource name with the"
-                " -r|--resource flag.")
+                         " -r|--resource flag.")
 
         lang = options.language
         if not lang:
@@ -152,8 +159,9 @@ def cmd_set(argv, path_to_tx):
             parser.error("Please specify a file.")
 
         if not utils.valid_slug(resource):
-            parser.error("Invalid resource slug. The format is <project_slug>"\
-                ".<resource_slug> and the valid characters include [_-\w].")
+            parser.error("Invalid resource slug. The format is <project_slug>"
+                         ".<resource_slug> and the valid characters include"
+                         " [_-\w].")
 
         file = args[0]
         # Calculate relative path
@@ -176,8 +184,9 @@ def cmd_set(argv, path_to_tx):
             return
 
         if not utils.valid_slug(resource):
-            parser.error("Invalid resource slug. The format is <project_slug>"\
-                ".<resource_slug> and the valid characters include [_-\w].")
+            parser.error("Invalid resource slug. The format is <project_slug>"
+                         ".<resource_slug> and the valid characters include"
+                         " [_-\w].")
         _set_translation(path_to_tx, resource, lang, path_to_file)
 
     _set_mode(options.resource, options.mode, path_to_tx)
@@ -188,8 +197,8 @@ def cmd_set(argv, path_to_tx):
     return
 
 
-def _auto_local(path_to_tx, resource, source_language, expression, execute=False,
-                source_file=None, regex=False):
+def _auto_local(path_to_tx, resource, source_language, expression,
+                execute=False, source_file=None, regex=False):
     """Auto configure local project."""
     # The path everything will be relative to
     curpath = os.path.abspath(os.curdir)
@@ -200,7 +209,7 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
 
     if not execute:
         logger.info("Only printing the commands which will be run if the "
-                  "--execute switch is specified.")
+                    "--execute switch is specified.")
 
     # First, let's construct a dictionary of all matching files.
     # Note: Only the last matching file of a language will be stored.
@@ -216,13 +225,15 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
 
     if not source_file:
         raise Exception("Could not find a source language file. Please run"
-            " set --source manually and then re-run this command or provide"
-            " the source file with the -s flag.")
+                        " set --source manually and then re-run this command"
+                        " or provide the source file with the -s flag.")
     if execute:
-        logger.info("Updating source for resource %s ( %s -> %s )." % (resource,
-            source_language, os.path.relpath(source_file, path_to_tx)))
+        logger.info("Updating source for resource %s ( %s -> %s )." % (
+                    resource, source_language, os.path.relpath(
+                        source_file, path_to_tx)
+                    ))
         _set_source_file(path_to_tx, resource, source_language,
-            os.path.relpath(source_file, path_to_tx))
+                         os.path.relpath(source_file, path_to_tx))
     else:
         logger.info('\ntx set --source -r %(res)s -l %(lang)s %(file)s\n' % {
             'res': resource,
@@ -236,13 +247,14 @@ def _auto_local(path_to_tx, resource, source_language, expression, execute=False
         try:
             prj.config.get("%s" % resource, "source_file")
         except configparser.NoSectionError:
-            raise Exception("No resource with slug \"%s\" was found.\nRun 'tx set --auto"
-                "-local -r %s \"expression\"' to do the initial configuration." % resource)
+            raise Exception("No resource with slug \"%s\" was found.\nRun"
+                            " 'tx set --auto-local -r %s \"expression\"' to"
+                            " do the initial configuration." % resource)
 
     # Now let's handle the translation files.
     if execute:
-        logger.info("Updating file expression for resource %s ( %s )." % (resource,
-            expression))
+        logger.info("Updating file expression for resource %s ( %s )." % (
+                    resource, expression))
         # Eval file_filter relative to root dir
         file_filter = posix_path(
             os.path.relpath(os.path.join(curpath, expression), path_to_tx)
@@ -271,16 +283,22 @@ def _auto_remote(path_to_tx, url):
 
     if type == 'project':
         logger.info("Getting details for project %s" % vars['project'])
-        proj_info = utils.get_details('project_details',
+        proj_info = utils.get_details(
+            'project_details',
             username, password,
-            hostname = vars['hostname'], project = vars['project'])
-        resources = [ '.'.join([vars['project'], r['slug']]) for r in proj_info['resources'] ]
+            hostname=vars['hostname'],
+            project=vars['project'])
+        resources = ['.'.join([vars['project'],
+                     r['slug']]) for r in proj_info['resources']]
         logger.info("%s resources found. Configuring..." % len(resources))
     elif type == 'release':
         logger.info("Getting details for release %s" % vars['release'])
-        rel_info = utils.get_details('release_details',
-            username, password, hostname = vars['hostname'],
-            project = vars['project'], release = vars['release'])
+        rel_info = utils.get_details(
+            'release_details',
+            username, password,
+            hostname=vars['hostname'],
+            project=vars['project'],
+            release=vars['release'])
         resources = []
         for r in rel_info['resources']:
             if 'project' in r:
@@ -290,28 +308,31 @@ def _auto_remote(path_to_tx, url):
         logger.info("%s resources found. Configuring..." % len(resources))
     elif type == 'resource':
         logger.info("Getting details for resource %s" % vars['resource'])
-        resources = [ '.'.join([vars['project'], vars['resource']]) ]
+        resources = ['.'.join([vars['project'], vars['resource']])]
     else:
         raise Exception("Url '%s' is not recognized." % url)
 
     for resource in resources:
         logger.info("Configuring resource %s." % resource)
         proj, res = resource.split('.')
-        res_info = utils.get_details('resource_details',
-             username, password, hostname = vars['hostname'],
-             project = proj, resource=res)
+        res_info = utils.get_details(
+            'resource_details',
+            username, password,
+            hostname=vars['hostname'],
+            project=proj, resource=res)
         try:
             source_lang = res_info['source_language_code']
             i18n_type = res_info['i18n_type']
         except KeyError:
-            raise Exception("Remote server seems to be running an unsupported version"
-                " of Transifex. Either update your server software of fallback"
-                " to a previous version of transifex-client.")
+            raise Exception("Remote server seems to be running an unsupported"
+                            " version of Transifex. Either update your server"
+                            " software of fallback to a previous version"
+                            " of transifex-client.")
         prj.set_remote_resource(
             resource=resource,
-            host = vars['hostname'],
-            source_lang = source_lang,
-            i18n_type = i18n_type)
+            host=vars['hostname'],
+            source_lang=source_lang,
+            i18n_type=i18n_type)
 
     prj.save()
 
@@ -327,7 +348,7 @@ def cmd_push(argv, path_to_tx):
     prj = project.Project(path_to_tx)
     if not (options.push_source or options.push_translations):
         parser.error("You need to specify at least one of the -s|--source,"
-            " -t|--translations flags with the push command.")
+                     " -t|--translations flags with the push command.")
 
     prj.push(
         force=force_creation, resources=resources, languages=languages,
@@ -343,8 +364,8 @@ def cmd_pull(argv, path_to_tx):
     parser = pull_parser()
     (options, args) = parser.parse_args(argv)
     if options.fetchall and options.languages:
-        parser.error("You can't user a language filter along with the"\
-            " -a|--all option")
+        parser.error("You can't user a language filter along with the"
+                     " -a|--all option")
     languages = parse_csv_option(options.languages)
     resources = parse_csv_option(options.resources)
     pseudo = options.pseudo
@@ -372,9 +393,10 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     """Reusable method to set source file."""
     proj, res = resource.split('.')
     if not proj or not res:
-        raise Exception("\"%s.%s\" is not a valid resource identifier. It should"
-            " be in the following format project_slug.resource_slug." %
-            (proj, res))
+        raise Exception("\"%s.%s\" is not a valid resource identifier."
+                        " It should be in the following format"
+                        " project_slug.resource_slug." %
+                        (proj, res))
     if not lang:
         raise Exception("You haven't specified a source language.")
 
@@ -386,7 +408,7 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
 
     if not os.path.exists(path_to_file):
         raise Exception("tx: File ( %s ) does not exist." %
-            os.path.join(path_to_tx, path_to_file))
+                        os.path.join(path_to_tx, path_to_file))
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
@@ -424,9 +446,10 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
     proj, res = resource.split('.')
     if not project or not resource:
-        raise Exception("\"%s\" is not a valid resource identifier. It should"
-            " be in the following format project_slug.resource_slug." %
-            resource)
+        raise Exception("\"%s\" is not a valid resource identifier."
+                        " It should be in the following format"
+                        " project_slug.resource_slug." %
+                        resource)
 
     try:
         _go_to_dir(path_to_tx)
@@ -445,12 +468,13 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
     if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
         raise Exception("File must be under the project root directory.")
 
-    if lang ==  prj.config.get("%s.%s" % (proj, res), "source_lang"):
-        raise Exception("tx: You cannot set translation file for the source language."
-            " Source languages contain the strings which will be translated!")
+    if lang == prj.config.get("%s.%s" % (proj, res), "source_lang"):
+        raise Exception("tx: You cannot set translation file for"
+                        " the source language. Source languages contain"
+                        " the strings which will be translated!")
 
-    logger.info("Updating translations for resource %s ( %s -> %s )." % (resource,
-        lang, path_to_file))
+    logger.info("Updating translations for resource %s ( %s -> %s )." % (
+                resource, lang, path_to_file))
     path_to_file = os.path.relpath(path_to_file, root_dir)
     prj.config.set(
         "%s.%s" % (proj, res), "trans.%s" % lang, posix_path(path_to_file)
@@ -475,7 +499,7 @@ def cmd_status(argv, path_to_tx):
         sfile = prj.get_resource_option(res, 'source_file') or "N/A"
         lang_map = prj.get_resource_lang_mapping(res)
         logger.info(" - %s: %s (%s)" % (utils.color_text(slang, "RED"),
-            sfile, utils.color_text("source", "YELLOW")))
+                    sfile, utils.color_text("source", "YELLOW")))
         files = prj.get_resource_files(res)
         fkeys = list(files.keys())
         fkeys.sort()
@@ -484,7 +508,7 @@ def cmd_status(argv, path_to_tx):
             if lang in list(lang_map.values()):
                 local_lang = lang_map.flip[lang]
             logger.info(" - %s: %s" % (utils.color_text(local_lang, "RED"),
-                files[lang]))
+                        files[lang]))
         logger.info("")
 
 

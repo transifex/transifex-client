@@ -1,5 +1,8 @@
 from __future__ import unicode_literals
-import os, sys, re, errno
+import os
+import sys
+import re
+import errno
 import ssl
 import urllib3
 
@@ -57,21 +60,21 @@ def find_dot_tx(path=os.path.curdir, previous=None):
 #################################################
 # Parse file filter expressions and create regex
 
-def regex_from_filefilter(file_filter, root_path = os.path.curdir):
+def regex_from_filefilter(file_filter, root_path=os.path.curdir):
     """Create proper regex from <lang> expression."""
     # Force expr to be a valid regex expr (escaped) but keep <lang> intact
     expr_re = re.escape(
         posix_path(os.path.join(root_path, native_path(file_filter)))
     )
     expr_re = expr_re.replace("\\<lang\\>", '<lang>').replace(
-        '<lang>', '([^%(sep)s]+)' % { 'sep': re.escape(posix_sep)})
+        '<lang>', '([^%(sep)s]+)' % {'sep': re.escape(posix_sep)})
 
     return "^%s$" % expr_re
 
 
 TX_URLS = {
-    'resource': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/resource/(?P<resource>(\w|-)+)/?$',
-    'project': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/?$',
+    'resource': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/resource/(?P<resource>(\w|-)+)/?$',  # noqa
+    'project': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/?$',  # noqa
 }
 
 
@@ -86,7 +89,8 @@ def parse_tx_url(url):
         if m:
             return type_, m.groupdict()
     raise Exception(
-        "tx: Malformed url given. Please refer to our docs: http://bit.ly/txcconfig"
+        "tx: Malformed url given."
+        " Please refer to our docs: http://bit.ly/txcconfig"
     )
 
 
@@ -132,7 +136,7 @@ def make_request(method, host, url, username, password, fields=None):
         logger.error("Invalid SSL certificate")
         raise
     finally:
-        if not r is None:
+        if r is not None:
             r.close()
 
 
@@ -144,7 +148,8 @@ def get_details(api_call, username, password, *args, **kwargs):
     """
     url = API_URLS[api_call] % kwargs
     try:
-        data, charset = make_request('GET', kwargs['hostname'], url, username, password)
+        data, charset = make_request('GET', kwargs['hostname'],
+                                     url, username, password)
         return parse_json(data)
     except Exception as e:
         logger.debug(six.u(str(e)))
@@ -180,7 +185,7 @@ def discover_commands():
     for name, fn in fns:
         if name.startswith("cmd_"):
             command_table.update({
-                name.split("cmd_")[1]:fn
+                name.split("cmd_")[1]: fn
             })
 
     return command_table
@@ -195,7 +200,7 @@ def exec_command(command, *args, **kwargs):
         cmd_fn = commands[command]
     except KeyError:
         raise UnknownCommandError
-    cmd_fn(*args,**kwargs)
+    cmd_fn(*args, **kwargs)
 
 
 def mkdir_p(path):
