@@ -9,7 +9,6 @@ except ImportError:
     from simplejson import loads as parse_json, dumps as compile_json
 
 from email.parser import Parser
-from urllib3.exceptions import SSLError
 from urllib3.packages import six
 from urllib3.packages.six.moves import input
 from txclib.urls import API_URLS
@@ -128,9 +127,6 @@ def make_request(method, host, url, username, password, fields=None):
             else:
                 raise Exception(data)
         return data, charset
-    except SSLError:
-        logger.error("Invalid SSL certificate")
-        raise
     finally:
         if not r is None:
             r.close()
