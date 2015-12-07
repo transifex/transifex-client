@@ -5,7 +5,7 @@ added_files = [
     ('../txclib/cacert.pem', 'txclib'),
 ]
 
-a = Analysis(['../tx'],
+a = Analysis(['../txclib/cmdline.py'],
              binaries=None,
              datas=added_files,
              hiddenimports=[],

@@ -36,10 +36,12 @@ if sys.version_info < (3,0):
     sys.setdefaultencoding('utf-8')
 
 
-def main(argv):
+def main(argv=None):
     """
     Here we parse the flags (short, long) and we instantiate the classes.
     """
+    if argv is None:
+        argv = sys.argv[1:]
     usage = "usage: %prog [options] command [cmd_options]"
     description = "This is the Transifex command line client which"\
 		" allows you to manage your translations locally and sync"\
@@ -110,4 +112,4 @@ def main(argv):
 # Run baby :) ... run
 if __name__ == "__main__":
     # sys.argv[0] is the name of the script that we’re running.
-    main(sys.argv[1:])
+    main()
