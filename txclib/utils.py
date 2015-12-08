@@ -30,7 +30,7 @@ def get_base_dir():
     """
     if getattr(sys, 'frozen', False):
         # we are running in a bundle
-        basedir = sys._MEIPASS
+        basedir = os.path.join(sys._MEIPASS, 'txclib')
     else:
         # we are running in a normal Python environment
         basedir = os.path.dirname(os.path.abspath(__file__))

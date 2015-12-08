@@ -14,7 +14,7 @@ def user_agent_identifier():
 
 def certs_file():
     if platform.system() == 'Windows':
-        return os.path.join(txclib.utils.get_base_dir(), 'txclib', 'cacert.pem')
+        return os.path.join(txclib.utils.get_base_dir(), 'cacert.pem')
     else:
         POSSIBLE_CA_BUNDLE_PATHS = [
             # Red Hat, CentOS, Fedora and friends
