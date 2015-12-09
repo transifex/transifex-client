@@ -1,3 +1,8 @@
+if [[ ! -z "$CI_PULL_REQUEST" ]] ; then
+	echo "NB: Skipping tests of $TX in PR build ($CI_PULL_REQUEST)"
+	exit 0
+fi
+
 # Exit on fail
 set -e
 
