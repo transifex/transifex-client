@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-In this file we have all the top level commands for the transifex client.
+"""In this file we have all the top level commands for the transifex client.
 Since we're using a way to automatically list them and execute them, when
 adding code to this file you must take care of the following:
  * Added functions must begin with 'cmd_' followed by the actual name of the
@@ -39,7 +38,7 @@ from txclib.log import logger
 
 
 def cmd_init(argv, path_to_tx):
-    "Initialize a new transifex project."
+    """Initialize a new transifex project."""
     parser = init_parser()
     (options, args) = parser.parse_args(argv)
     if len(args) > 1:
@@ -51,12 +50,12 @@ def cmd_init(argv, path_to_tx):
 
     if os.path.isdir(os.path.join(path_to_tx, ".tx")):
         logger.info("tx: There is already a tx folder!")
-        reinit = input("Do you want to delete it and"
-                       " reinit the project? [y/N]: ")
+        reinit = input("Do you want to delete it and "
+                       "reinit the project? [y/N]: ")
         while (reinit != 'y' and reinit != 'Y' and reinit != 'N'
                and reinit != 'n' and reinit != ''):
-            reinit = input("Do you want to delete it and"
-                           " reinit the project? [y/N]: ")
+            reinit = input("Do you want to delete it and "
+                           "reinit the project? [y/N]: ")
         if not reinit or reinit in ['N', 'n', 'NO', 'no', 'No']:
             return
         # Clean the old settings
@@ -103,7 +102,7 @@ def cmd_init(argv, path_to_tx):
 
 
 def cmd_set(argv, path_to_tx):
-    "Add local or remote files under transifex"
+    """Add local or remote files under transifex"""
     parser = set_parser()
     (options, args) = parser.parse_args(argv)
 
@@ -148,8 +147,8 @@ def cmd_set(argv, path_to_tx):
     if options.is_source:
         resource = options.resource
         if not resource:
-            parser.error("You must specify a resource name with the"
-                         " -r|--resource flag.")
+            parser.error("You must specify a resource name with the "
+                         "-r|--resource flag.")
 
         lang = options.language
         if not lang:
@@ -160,8 +159,8 @@ def cmd_set(argv, path_to_tx):
 
         if not utils.valid_slug(resource):
             parser.error("Invalid resource slug. The format is <project_slug>"
-                         ".<resource_slug> and the valid characters include"
-                         " [_-\w].")
+                         ".<resource_slug> and the valid characters include "
+                         "[_-\w].")
 
         file = args[0]
         # Calculate relative path
@@ -185,8 +184,8 @@ def cmd_set(argv, path_to_tx):
 
         if not utils.valid_slug(resource):
             parser.error("Invalid resource slug. The format is <project_slug>"
-                         ".<resource_slug> and the valid characters include"
-                         " [_-\w].")
+                         ".<resource_slug> and the valid characters include "
+                         "[_-\w].")
         _set_translation(path_to_tx, resource, lang, path_to_file)
 
     _set_mode(options.resource, options.mode, path_to_tx)
@@ -224,9 +223,9 @@ def _auto_local(path_to_tx, resource, source_language, expression,
                 translation_files[lang] = f_path
 
     if not source_file:
-        raise Exception("Could not find a source language file. Please run"
-                        " set --source manually and then re-run this command"
-                        " or provide the source file with the -s flag.")
+        raise Exception("Could not find a source language file. Please run "
+                        "set --source manually and then re-run this command "
+                        "or provide the source file with the -s flag.")
     if execute:
         logger.info("Updating source for resource %s ( %s -> %s )." % (
                     resource, source_language, os.path.relpath(
@@ -247,9 +246,9 @@ def _auto_local(path_to_tx, resource, source_language, expression,
         try:
             prj.config.get("%s" % resource, "source_file")
         except configparser.NoSectionError:
-            raise Exception("No resource with slug \"%s\" was found.\nRun"
-                            " 'tx set --auto-local -r %s \"expression\"' to"
-                            " do the initial configuration." % resource)
+            raise Exception("No resource with slug \"%s\" was found.\nRun "
+                            "'tx set --auto-local -r %s \"expression\"' to "
+                            "do the initial configuration." % resource)
 
     # Now let's handle the translation files.
     if execute:
@@ -272,9 +271,7 @@ def _auto_local(path_to_tx, resource, source_language, expression,
 
 
 def _auto_remote(path_to_tx, url):
-    """
-    Initialize a remote project/resource to the current directory.
-    """
+    """Initialize a remote project/resource to the current directory."""
     logger.info("Auto configuring local project from remote URL...")
 
     type, vars = utils.parse_tx_url(url)
@@ -324,10 +321,10 @@ def _auto_remote(path_to_tx, url):
             source_lang = res_info['source_language_code']
             i18n_type = res_info['i18n_type']
         except KeyError:
-            raise Exception("Remote server seems to be running an unsupported"
-                            " version of Transifex. Either update your server"
-                            " software of fallback to a previous version"
-                            " of transifex-client.")
+            raise Exception("Remote server seems to be running an unsupported "
+                            "version of Transifex. Either update your server "
+                            "software of fallback to a previous version "
+                            "of transifex-client.")
         prj.set_remote_resource(
             resource=resource,
             host=vars['hostname'],
@@ -338,7 +335,7 @@ def _auto_remote(path_to_tx, url):
 
 
 def cmd_push(argv, path_to_tx):
-    "Push local files to remote server"
+    """Push local files to remote server"""
     parser = push_parser()
     (options, args) = parser.parse_args(argv)
     force_creation = options.force_creation
@@ -347,8 +344,8 @@ def cmd_push(argv, path_to_tx):
     skip = options.skip_errors
     prj = project.Project(path_to_tx)
     if not (options.push_source or options.push_translations):
-        parser.error("You need to specify at least one of the -s|--source,"
-                     " -t|--translations flags with the push command.")
+        parser.error("You need to specify at least one of the -s|--source, "
+                     "-t|--translations flags with the push command.")
 
     prj.push(
         force=force_creation, resources=resources, languages=languages,
@@ -360,12 +357,12 @@ def cmd_push(argv, path_to_tx):
 
 
 def cmd_pull(argv, path_to_tx):
-    "Pull files from remote server to local repository"
+    """Pull files from remote server to local repository"""
     parser = pull_parser()
     (options, args) = parser.parse_args(argv)
     if options.fetchall and options.languages:
-        parser.error("You can't user a language filter along with the"
-                     " -a|--all option")
+        parser.error("You can't user a language filter along with the "
+                     "-a|--all option")
     languages = parse_csv_option(options.languages)
     resources = parse_csv_option(options.resources)
     pseudo = options.pseudo
@@ -393,9 +390,9 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     """Reusable method to set source file."""
     proj, res = resource.split('.')
     if not proj or not res:
-        raise Exception("\"%s.%s\" is not a valid resource identifier."
-                        " It should be in the following format"
-                        " project_slug.resource_slug." %
+        raise Exception("\"%s.%s\" is not a valid resource identifier. "
+                        "It should be in the following format "
+                        "project_slug.resource_slug." %
                         (proj, res))
     if not lang:
         raise Exception("You haven't specified a source language.")
@@ -446,9 +443,9 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
     proj, res = resource.split('.')
     if not project or not resource:
-        raise Exception("\"%s\" is not a valid resource identifier."
-                        " It should be in the following format"
-                        " project_slug.resource_slug." %
+        raise Exception("\"%s\" is not a valid resource identifier. "
+                        "It should be in the following format "
+                        "project_slug.resource_slug." %
                         resource)
 
     try:
@@ -469,9 +466,9 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
         raise Exception("File must be under the project root directory.")
 
     if lang == prj.config.get("%s.%s" % (proj, res), "source_lang"):
-        raise Exception("tx: You cannot set translation file for"
-                        " the source language. Source languages contain"
-                        " the strings which will be translated!")
+        raise Exception("tx: You cannot set translation file for "
+                        "the source language. Source languages contain "
+                        "the strings which will be translated!")
 
     logger.info("Updating translations for resource %s ( %s -> %s )." % (
                 resource, lang, path_to_file))
@@ -484,7 +481,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
 
 def cmd_status(argv, path_to_tx):
-    "Print status of current project"
+    """Print status of current project"""
     parser = status_parser()
     (options, args) = parser.parse_args(argv)
     resources = parse_csv_option(options.resources)
@@ -544,7 +541,7 @@ def cmd_help(argv, path_to_tx):
 
 
 def cmd_delete(argv, path_to_tx):
-    "Delete an accessible resource or translation in a remote server."
+    """Delete an accessible resource or translation in a remote server."""
     parser = delete_parser()
     (options, args) = parser.parse_args(argv)
     languages = parse_csv_option(options.languages)

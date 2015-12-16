@@ -148,8 +148,9 @@ def get_details(api_call, username, password, *args, **kwargs):
     """
     url = API_URLS[api_call] % kwargs
     try:
-        data, charset = make_request('GET', kwargs['hostname'],
-                                     url, username, password)
+        data, charset = make_request(
+            'GET', kwargs['hostname'], url, username, password
+        )
         return parse_json(data)
     except Exception as e:
         logger.debug(six.u(str(e)))

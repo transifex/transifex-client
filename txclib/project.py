@@ -31,14 +31,12 @@ class ProjectNotInit(Exception):
 
 
 class Project(object):
-    """
-    Represents an association between the local and remote project instances.
+    """Represents an association between the local and
+    remote project instances.
     """
 
     def __init__(self, path_to_tx=None, init=True):
-        """
-        Initialize the Project attributes.
-        """
+        """Initialize the Project attributes."""
         if init:
             self._init(path_to_tx)
 
@@ -129,7 +127,6 @@ class Project(object):
 
     def _get_transifex_file(self, directory=None):
         """Fetch the path of the .transifexrc file.
-
         It is in the home directory of the user by default.
         """
         if directory is not None:
@@ -148,15 +145,12 @@ class Project(object):
         return txrc_file
 
     def validate_config(self):
-        """
-        To ensure the json structure is correctly formed.
-        """
+        """To ensure the json structure is correctly formed."""
         pass
 
     def getset_host_credentials(self, host, user=None, password=None):
-        """
-        Read .transifexrc and report user,pass for a specific host else ask the
-        user for input.
+        """Read .transifexrc and report user,
+        pass for a specific host else ask the user for input.
         """
         try:
             username = self.txrc.get(host, 'username')
@@ -207,9 +201,8 @@ class Project(object):
             self.config.set(resource, 'host', host)
 
     def get_resource_host(self, resource):
-        """
-        Returns the host that the resource is configured to use. If there is no
-        such option we return the default one
+        """Returns the host that the resource is configured to use.
+        If there is no such option we return the default one.
         """
         return self.config.get('main', 'host')
 
@@ -244,9 +237,7 @@ class Project(object):
         return lang_map
 
     def get_source_file(self, resource):
-        """
-        Get source file for a resource.
-        """
+        """Get source file for a resource."""
         if self.config.has_section(resource):
             source_lang = self.config.get(resource, "source_lang")
             source_file = self.get_resource_option(resource, 'source_file')\
@@ -264,10 +255,10 @@ class Project(object):
                 return native_path(source_file)
 
     def get_resource_files(self, resource):
-        """
-        Get a dict for all files assigned to a resource. First we calculate the
-        files matching the file expression and then we apply all translation
-        excpetions. The resulting dict will be in this format:
+        """Get a dict for all files assigned to a resource.
+        First we calculate the files matching the file expression and
+        then we apply all translation excpetions.
+        The resulting dict will be in this format:
 
         { 'en': 'path/foo/en/bar.po',
         'de': 'path/foo/de/bar.po',
@@ -307,8 +298,8 @@ class Project(object):
                         if len(keys) == 1:
                             del tr_files[keys[0]]
                         else:
-                            raise Exception("Your configuration seems wrong."
-                                            " You have multiple languages"
+                            raise Exception("Your configuration seems wrong. "
+                                            "You have multiple languages "
                                             "pointing to the same file.")
                     # Add language with correct file
                     tr_files.update({lang: value})
@@ -318,8 +309,7 @@ class Project(object):
         return None
 
     def get_resource_option(self, resource, option):
-        """
-        Return the requested option for a specific resource
+        """Return the requested option for a specific resource
 
         If there is no such option, we return None
         """
@@ -330,8 +320,7 @@ class Project(object):
         return None
 
     def get_resource_list(self, project=None):
-        """
-        Parse config file and return tuples with the following format
+        """Parse config file and return tuples with the following format
 
         [ (project_slug, resource_slug), (..., ...)]
         """
@@ -348,8 +337,8 @@ class Project(object):
         return resource_list
 
     def save(self):
-        """
-        Store the config dictionary in the .tx/config file of the project.
+        """Store the config dictionary
+        in the .tx/config file of the project.
         """
         self._save_tx_config()
         self._save_txrc_file()
@@ -568,9 +557,7 @@ class Project(object):
 
     def push(self, source=False, translations=False, force=False,
              resources=[], languages=[], skip=False, no_interactive=False):
-        """
-        Push all the resources
-        """
+        """Push all the resources"""
         resource_list = self.get_chosen_resources(resources)
         self.skip = skip
         self.force = force
@@ -595,21 +582,21 @@ class Project(object):
             stats = self._get_stats_for_resource()
 
             if force and not no_interactive:
-                answer = input("Warning: By using --force, the uploaded"
-                               " files will overwrite remote translations,"
-                               " even if they are newer than your uploaded"
-                               " files.\nAre you sure you want to continue?"
-                               " [y/N] ")
+                answer = input("Warning: By using --force, the uploaded "
+                               "files will overwrite remote translations, "
+                               "even if they are newer than your uploaded "
+                               "files.\nAre you sure you want to continue? "
+                               "[y/N]")
 
                 if answer not in ["", 'Y', 'y', "yes", 'YES']:
                     return
 
             if source:
                 if sfile is None:
-                    logger.error("You don't seem to have a proper source file"
-                                 " mapping for resource %s. Try without the"
-                                 " --source option or set a source file"
-                                 " first and then try again." % resource)
+                    logger.error("You don't seem to have a proper source file "
+                                 "mapping for resource %s. Try without the "
+                                 "--source option or set a source file "
+                                 "first and then try again." % resource)
                     continue
                 # Push source file
                 try:
@@ -656,8 +643,8 @@ class Project(object):
                             l = lang_map[l]
                         push_languages.append(l)
                         if l not in f_langs:
-                            msg = "Warning: No mapping found for"
-                            " language code '%s'."
+                            msg = "Warning: No mapping found for "
+                            "language code '%s'."
                             logger.error(msg % utils.color_text(l, "RED"))
                 logger.debug("Languages to push are %s" % push_languages)
 
@@ -699,8 +686,8 @@ class Project(object):
                         logger.debug("Translation %s pushed." % remote_lang)
                     except utils.HttpNotFound:
                         if not source:
-                            logger.error("Resource hasn't been created."
-                                         " Try pushing source file.")
+                            logger.error("Resource hasn't been created. "
+                                         "Try pushing source file.")
                     except Exception as e:
                         if isinstance(e, SSLError) or not skip:
                             raise
@@ -819,9 +806,7 @@ class Project(object):
 
     def do_url_request(self, api_call, multipart=False, data=None,
                        files=[], method="GET", **kwargs):
-        """
-        Issues a url request.
-        """
+        """Issues a url request."""
         # Read the credentials from the config file (.transifexrc)
         host = self.url_info['host']
         try:
@@ -1080,8 +1065,8 @@ class Project(object):
 
     def _new_translations_to_add(self, files, slang, lang_map,
                                  stats, force=False):
-        """Return a list of translations which are new to the
-        local installation.
+        """Return a list of translations which are
+        new to the local installation.
         """
         new_translations = []
         timestamp = time.time()
@@ -1218,8 +1203,8 @@ class Project(object):
             token = self.txrc.get(host, 'token')
             hostname = self.txrc.get(host, 'hostname')
         except configparser.NoSectionError:
-            raise Exception("No user credentials found for host %s. Edit"
-                            " ~/.transifexrc and add the appropriate"
+            raise Exception("No user credentials found for host %s. Edit "
+                            "~/.transifexrc and add the appropriate "
                             "info in there." % host)
 
         # Create the Url
@@ -1231,9 +1216,9 @@ class Project(object):
         i18n_type = self._get_option(resource, 'type')
         if i18n_type is None:
             raise Exception(
-                "Please define the resource type in"
-                ".tx/config (eg. type = PO)."
-                " More info: http://bit.ly/txcconfig"
+                "Please define the resource type in "
+                ".tx/config (eg. type = PO). "
+                "More info: http://bit.ly/txcconfig"
             )
 
         name = os.path.basename(filename)

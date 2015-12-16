@@ -80,12 +80,15 @@ class TestProjectMinimumPercent(unittest.TestCase):
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertFalse(self.p._satisfies_min_translated(
-                             {'completed': '12%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '20%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '30%'}))
+            self.assertFalse(
+                self.p._satisfies_min_translated({'completed': '12%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '20%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '30%'})
+            )
 
     def test_global_only(self):
         """Test only global option."""
@@ -96,12 +99,15 @@ class TestProjectMinimumPercent(unittest.TestCase):
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertFalse(self.p._satisfies_min_translated(
-                             {'completed': '70%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '80%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '90%'}))
+            self.assertFalse(
+                self.p._satisfies_min_translated({'completed': '70%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '80%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '90%'})
+            )
 
     def test_local_lower_than_global(self):
         """Test the case where the local option is lower than the global."""
@@ -112,14 +118,18 @@ class TestProjectMinimumPercent(unittest.TestCase):
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertFalse(self.p._satisfies_min_translated(
-                             {'completed': '60%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '70%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '80%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '90%'}))
+            self.assertFalse(
+                self.p._satisfies_min_translated({'completed': '60%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '70%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '80%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '90%'})
+            )
 
     def test_local_higher_than_global(self):
         """Test the case where the local option is lower than the global."""
@@ -130,14 +140,18 @@ class TestProjectMinimumPercent(unittest.TestCase):
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertFalse(self.p._satisfies_min_translated(
-                             {'completed': '60%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '70%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '80%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '90%'}))
+            self.assertFalse(
+                self.p._satisfies_min_translated({'completed': '60%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '70%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '80%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '90%'})
+            )
 
     def test_local_only(self):
         """Test the case where the local option is lower than the global."""
@@ -148,14 +162,18 @@ class TestProjectMinimumPercent(unittest.TestCase):
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertFalse(self.p._satisfies_min_translated(
-                             {'completed': '60%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '70%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '80%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '90%'}))
+            self.assertFalse(
+                self.p._satisfies_min_translated({'completed': '60%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '70%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '80%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '90%'})
+            )
 
     def test_no_option(self):
         """"Test the case there is nothing defined."""
@@ -166,12 +184,15 @@ class TestProjectMinimumPercent(unittest.TestCase):
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '0%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '10%'}))
-            self.assertTrue(self.p._satisfies_min_translated(
-                            {'completed': '90%'}))
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '0%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '10%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '90%'})
+            )
 
 
 class TestProjectFilters(unittest.TestCase):
