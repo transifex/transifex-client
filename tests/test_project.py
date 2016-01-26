@@ -303,10 +303,13 @@ class TestProjectFilters(unittest.TestCase):
             should_push = self.p._should_push_translation
             force = True
             for lang in self.langs:
-                self.assertTrue(should_push(
-                                lang, self.stats, local_file, force))
+                self.assertTrue(
+                    should_push(
+                        lang, self.stats, local_file, force
+                    )
+                )
 
-            force = False       # reminder
+            force = False  # reminder
 
             # unknown language
             self.assertTrue(should_push('es', self.stats, local_file))
