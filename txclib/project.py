@@ -389,6 +389,10 @@ class Project(object):
             url = 'pull_translator_file'
         elif mode == 'developer':
             url = 'pull_developer_file'
+        elif mode == 'onlytranslated':
+            url = 'pull_onlytranslated_file'
+        elif mode == 'onlyreviewed':
+            url = 'pull_onlyreviewed_file'
         else:
             url = 'pull_file'
 
