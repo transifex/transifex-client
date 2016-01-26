@@ -14,17 +14,17 @@ class OrderedRawConfigParser(configparser.RawConfigParser):
         """Write an .ini-format representation of the configuration state."""
         if self._defaults:
             fp.write("[%s]\n" % DEFAULTSECT)
-            for key in sorted( self._defaults ):
-                fp.write( "%s = %s\n" % (key, str( self._defaults[ key ]
-                    ).replace('\n', '\n\t')) )
+            for key in sorted(self._defaults):
+                fp.write("%s = %s\n" % (key, str(self._defaults[key]).
+                         replace('\n', '\n\t')))
             fp.write("\n")
         for section in self._sections:
             fp.write("[%s]\n" % section)
-            for key in sorted( self._sections[section] ):
+            for key in sorted(self._sections[section]):
                 if key != "__name__":
                     fp.write("%s = %s\n" %
-                        (key, str( self._sections[section][ key ]
-                        ).replace('\n', '\n\t')))
+                             (key, str(self._sections[section][key]).
+                              replace('\n', '\n\t')))
             fp.write("\n")
 
     optionxform = str
@@ -66,7 +66,7 @@ class Flipdict(dict):
 
     def __setitem__(self, key, val):
         k = self._flip.get(val, _NOTFOUND)
-        if not (k is _NOTFOUND or k==key):
+        if not (k is _NOTFOUND or k == key):
             raise KeyError('(key,val) would erase mapping for value %r' % val)
 
         v = self.get(key, _NOTFOUND)
@@ -76,7 +76,7 @@ class Flipdict(dict):
         dict.__setitem__(self,       key, val)
         dict.__setitem__(self._flip, val, key)
 
-    def setdefault(self, key, default = None):
+    def setdefault(self, key, default=None):
         # Copied from python's UserDict.DictMixin code.
         try:
             return self[key]
@@ -84,7 +84,7 @@ class Flipdict(dict):
             self[key] = default
             return default
 
-    def update(self, other = None, **kwargs):
+    def update(self, other=None, **kwargs):
         # Copied from python's UserDict.DictMixin code.
         # Make progressively weaker assumptions about "other"
         if other is None:

@@ -45,7 +45,7 @@ class TestProject(unittest.TestCase):
                 ['proj1.res1', ],
                 ['proj1.res1', ],
                 ['transifex.txn', 'transifex.txo', ],
-                ['proj1.res1', 'proj2.res2', 'transifex.txn', 'transifex.txo', ],
+                ['proj1.res1', 'proj2.res2', 'transifex.txn', 'transifex.txo', ],  # noqa
                 ['transifex.txo', ],
                 ['transifex.txn', 'transifex.txo', ],
                 ['transifex.txn', ],
@@ -73,82 +73,132 @@ class TestProjectMinimumPercent(unittest.TestCase):
     def test_cmd_option(self):
         """Test command-line option."""
         self.p.minimum_perc = 20
-        results = itertools.cycle([80, 90 ])
+        results = itertools.cycle([80, 90])
+
         def side_effect(*args):
             return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertFalse(self.p._satisfies_min_translated({'completed': '12%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '20%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '30%'}))
+            self.assertFalse(
+                self.p._satisfies_min_translated({'completed': '12%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '20%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '30%'})
+            )
 
     def test_global_only(self):
         """Test only global option."""
-        results = itertools.cycle([80, None ])
+        results = itertools.cycle([80, None])
+
         def side_effect(*args):
             return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertFalse(self.p._satisfies_min_translated({'completed': '70%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '80%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '90%'}))
+            self.assertFalse(
+                self.p._satisfies_min_translated({'completed': '70%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '80%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '90%'})
+            )
 
     def test_local_lower_than_global(self):
         """Test the case where the local option is lower than the global."""
-        results = itertools.cycle([80, 70 ])
+        results = itertools.cycle([80, 70])
+
         def side_effect(*args):
             return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertFalse(self.p._satisfies_min_translated({'completed': '60%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '70%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '80%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '90%'}))
+            self.assertFalse(
+                self.p._satisfies_min_translated({'completed': '60%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '70%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '80%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '90%'})
+            )
 
     def test_local_higher_than_global(self):
         """Test the case where the local option is lower than the global."""
-        results = itertools.cycle([60, 70 ])
+        results = itertools.cycle([60, 70])
+
         def side_effect(*args):
             return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertFalse(self.p._satisfies_min_translated({'completed': '60%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '70%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '80%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '90%'}))
+            self.assertFalse(
+                self.p._satisfies_min_translated({'completed': '60%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '70%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '80%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '90%'})
+            )
 
     def test_local_only(self):
         """Test the case where the local option is lower than the global."""
-        results = itertools.cycle([None, 70 ])
+        results = itertools.cycle([None, 70])
+
         def side_effect(*args):
             return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertFalse(self.p._satisfies_min_translated({'completed': '60%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '70%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '80%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '90%'}))
+            self.assertFalse(
+                self.p._satisfies_min_translated({'completed': '60%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '70%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '80%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '90%'})
+            )
 
     def test_no_option(self):
         """"Test the case there is nothing defined."""
-        results = itertools.cycle([None, None ])
+        results = itertools.cycle([None, None])
+
         def side_effect(*args):
             return next(results)
 
         with patch.object(self.p, "get_resource_option") as mock:
             mock.side_effect = side_effect
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '0%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '10%'}))
-            self.assertTrue(self.p._satisfies_min_translated({'completed': '90%'}))
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '0%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '10%'})
+            )
+            self.assertTrue(
+                self.p._satisfies_min_translated({'completed': '90%'})
+            )
 
 
 class TestProjectFilters(unittest.TestCase):
-    """Test filters used to decide whether to push/pull a translation or not."""
+    """
+    Test filters used to decide whether to push/pull a translation or not.
+    """
 
     def setUp(self):
         super(TestProjectFilters, self).setUp()
@@ -213,6 +263,7 @@ class TestProjectFilters(unittest.TestCase):
             # older local files
             local_times = [self.p._generate_timestamp('2011-11-01 14:00:59')]
             results = itertools.cycle(local_times)
+
             def side_effect(*args):
                 return next(results)
 
@@ -228,6 +279,7 @@ class TestProjectFilters(unittest.TestCase):
             # newer local files
             local_times = [self.p._generate_timestamp('2011-11-01 15:01:59')]
             results = itertools.cycle(local_times)
+
             def side_effect(*args):
                 return next(results)
 
@@ -241,7 +293,9 @@ class TestProjectFilters(unittest.TestCase):
                         )
 
     def test_push_translation(self):
-        """Test filters for pushing a translation file."""
+        """
+        Test filters for pushing a translation file.
+        """
         with patch.object(self.p, "get_resource_option") as mock:
             mock.return_value = None
 
@@ -249,9 +303,13 @@ class TestProjectFilters(unittest.TestCase):
             should_push = self.p._should_push_translation
             force = True
             for lang in self.langs:
-                self.assertTrue(should_push(lang, self.stats, local_file, force))
+                self.assertTrue(
+                    should_push(
+                        lang, self.stats, local_file, force
+                    )
+                )
 
-            force = False       # reminder
+            force = False  # reminder
 
             # unknown language
             self.assertTrue(should_push('es', self.stats, local_file))
@@ -259,6 +317,7 @@ class TestProjectFilters(unittest.TestCase):
             # older local files
             local_times = [self.p._generate_timestamp('2011-11-01 14:00:59')]
             results = itertools.cycle(local_times)
+
             def side_effect(*args):
                 return next(results)
 
@@ -274,6 +333,7 @@ class TestProjectFilters(unittest.TestCase):
             # newer local files
             local_times = [self.p._generate_timestamp('2011-11-01 15:01:59')]
             results = itertools.cycle(local_times)
+
             def side_effect(*args):
                 return next(results)
 
@@ -327,11 +387,13 @@ class TestProjectPull(unittest.TestCase):
                 )
                 self.assertEqual(res, set([]))
 
-            with patch.object(self.p, '_should_add_translation') as filter_mock:
+            with patch.object(self.p,
+                              '_should_add_translation') as filter_mock:
                 filter_mock.return_value = True
                 for force in [True, False]:
                     res = new_trans(
-                        {'el': None}, self.slang, self.lang_map, self.stats, force
+                        {'el': None}, self.slang, self.lang_map, self.stats,
+                        force
                     )
                     self.assertEqual(res, set(['pt']))
                 for force in [True, False]:
