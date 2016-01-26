@@ -15,7 +15,7 @@ from txclib.log import set_log_level, logger
 try:
     import signal
 
-    def exithandler(signum,frame):
+    def exithandler(signum, frame):
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         sys.exit(1)
@@ -29,9 +29,10 @@ except KeyboardInterrupt:
     sys.exit(1)
 
 # In python 3 default encoding is utf-8
-if sys.version_info < (3,0):
-    reload(sys) # WTF? Otherwise setdefaultencoding doesn't work
-    # When we open file with f = codecs.open we specifi FROM what encoding to read
+if sys.version_info < (3, 0):
+    reload(sys)  # WTF? Otherwise setdefaultencoding doesn't work
+    # When we open file with f = codecs.open we specify
+    # FROM what encoding to read.
     # This sets the encoding for the strings which are created with f.read()
     sys.setdefaultencoding('utf-8')
 
@@ -44,11 +45,11 @@ def main(argv=None):
         argv = sys.argv[1:]
     usage = "usage: %prog [options] command [cmd_options]"
     description = "This is the Transifex command line client which"\
-		" allows you to manage your translations locally and sync"\
- 	 	" them with the master Transifex server.\nIf you'd like to"\
-		" check the available commands issue `%prog help` or if you"\
-		" just want help with a specific command issue `%prog help"\
-		" command`"
+                  " allows you to manage your translations locally and sync"\
+                  " them with the master Transifex server.\nIf you'd like to"\
+                  " check the available commands issue `%prog help` or if you"\
+                  " just want help with a specific command issue `%prog help"\
+                  " command`"
 
     parser = OptionParser(
         usage=usage, version=txclib.__version__, description=description
