@@ -1,5 +1,5 @@
-if [[ ! -z "$CI_PULL_REQUEST" ]] ; then
-	echo "NB: Skipping tests of $TX in PR build ($CI_PULL_REQUEST)"
+if [[ -z "$TRANSIFEX_USER" ]] ; then
+	echo "NB: Skipping tests of $TX since TRANSIFEX_USER is undefined or empty"
 	exit 0
 fi
 
