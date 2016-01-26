@@ -441,8 +441,8 @@ class Project(object):
                     files, slang, lang_map, stats, force
                 )
                 if new_translations:
-                    msg = "New translations found"
-                    "for the following languages:%s"
+                    msg = ("New translations found "
+                           "for the following languages:%s")
                     logger.info(msg % ', '.join(new_translations))
 
             existing, new = self._languages_to_pull(
