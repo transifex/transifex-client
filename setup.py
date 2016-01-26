@@ -13,7 +13,7 @@ def get_file_content(filename):
 setup(
     name="transifex-client",
     version=txclib.__version__,
-    scripts=['tx'],
+    entry_points={'console_scripts': ['tx=txclib.cmdline:main']},
     description="A command line interface for Transifex",
     long_description=get_file_content('README.rst'),
     author="Transifex",

@@ -1,3 +1,8 @@
+if [[ -z "$TRANSIFEX_USER" ]] ; then
+	echo "NB: Skipping tests of $TX since TRANSIFEX_USER is undefined or empty"
+	exit 0
+fi
+
 # Exit on fail
 set -e
 
