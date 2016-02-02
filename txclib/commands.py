@@ -278,7 +278,7 @@ def _auto_remote(path_to_tx, url):
     prj = project.Project(path_to_tx)
     username, password = prj.getset_host_credentials(vars['hostname'])
 
-    if type == 'project':
+    if type.startswith('project'):
         logger.info("Getting details for project %s" % vars['project'])
         proj_info = utils.get_details(
             'project_details',
@@ -303,7 +303,7 @@ def _auto_remote(path_to_tx, url):
             else:
                 resources.append('.'.join([vars['project'], r['slug']]))
         logger.info("%s resources found. Configuring..." % len(resources))
-    elif type == 'resource':
+    elif type.startswith('resource'):
         logger.info("Getting details for resource %s" % vars['resource'])
         resources = ['.'.join([vars['project'], vars['resource']])]
     else:
