@@ -104,7 +104,9 @@ def determine_charset(response):
     return "utf-8"
 
 
-def make_request(method, host, url, username, password, fields=None):
+def make_request(method, host, url, username, password, fields=None,
+                 skip_parse=False):
+    charset = None
     if host.lower().startswith('https://'):
         connection = urllib3.connection_from_url(
             host,
@@ -123,9 +125,10 @@ def make_request(method, host, url, username, password, fields=None):
     try:
         r = connection.request(method, url, headers=headers, fields=fields)
         data = r.data
-        charset = determine_charset(r)
-        if isinstance(data, bytes):
-            data = data.decode(charset)
+        if not skip_parse:
+            charset = determine_charset(r)
+            if isinstance(data, bytes):
+                data = data.decode(charset)
         if r.status < 200 or r.status >= 400:
             if r.status == 404:
                 raise HttpNotFound(data)
