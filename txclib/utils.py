@@ -105,7 +105,7 @@ def determine_charset(response):
 
 
 def make_request(method, host, url, username, password, fields=None,
-                 skip_parse=False):
+                 skip_decode=False):
     charset = None
     if host.lower().startswith('https://'):
         connection = urllib3.connection_from_url(
@@ -125,7 +125,7 @@ def make_request(method, host, url, username, password, fields=None,
     try:
         r = connection.request(method, url, headers=headers, fields=fields)
         data = r.data
-        if not skip_parse:
+        if not skip_decode:
             charset = determine_charset(r)
             if isinstance(data, bytes):
                 data = data.decode(charset)

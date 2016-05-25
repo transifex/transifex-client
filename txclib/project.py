@@ -35,7 +35,7 @@ class Project(object):
     remote project instances.
     """
 
-    SKIP_PARSE_I18N_TYPES = ['DOCX', 'XLSX']
+    SKIP_DECODE_I18N_TYPES = ['DOCX', 'XLSX']
 
     def __init__(self, path_to_tx=None, init=True):
         """Initialize the Project attributes."""
@@ -379,7 +379,7 @@ class Project(object):
         """Pull all translations file from transifex server."""
         self.minimum_perc = minimum_perc
         resource_list = self.get_chosen_resources(resources)
-        skip_parse = False
+        skip_decode = False
 
         if mode == 'reviewed':
             url = 'pull_reviewed_file'
@@ -416,8 +416,8 @@ class Project(object):
             stats = self._get_stats_for_resource()
             details_response, _ = self.do_url_request('resource_details')
             details = utils.parse_json(details_response)
-            if details['i18n_type'] in self.SKIP_PARSE_I18N_TYPES:
-                skip_parse = True
+            if details['i18n_type'] in self.SKIP_DECODE_I18N_TYPES:
+                skip_decode = True
             try:
                 file_filter = self.config.get(resource, 'file_filter')
             except configparser.NoOptionError:
@@ -507,7 +507,7 @@ class Project(object):
                 )
                 try:
                     r, charset = self.do_url_request(
-                        url, language=remote_lang, skip_parse=skip_parse
+                        url, language=remote_lang, skip_decode=skip_decode
                     )
                 except Exception as e:
                     if isinstance(e, SSLError) or not skip:
@@ -557,7 +557,7 @@ class Project(object):
                     )
 
                     r, charset = self.do_url_request(
-                        url, language=remote_lang, skip_parse=skip_parse
+                        url, language=remote_lang, skip_decode=skip_decode
                     )
                     self._save_file(local_file, charset, r)
 
@@ -810,7 +810,7 @@ class Project(object):
                 raise
 
     def do_url_request(self, api_call, multipart=False, data=None,
-                       files=[], method="GET", skip_parse=False, **kwargs):
+                       files=[], method="GET", skip_decode=False, **kwargs):
         """Issues a url request."""
         # Read the credentials from the config file (.transifexrc)
         host = self.url_info['host']
@@ -842,7 +842,7 @@ class Project(object):
                 }
         return utils.make_request(
             method, hostname, url, username, passwd, data,
-            skip_parse=skip_parse
+            skip_decode=skip_decode
         )
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
