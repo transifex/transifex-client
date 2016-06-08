@@ -11,3 +11,14 @@ class UnInitializedError(Exception):
 
 class UnknownCommandError(Exception):
     """The provided command is not supported."""
+
+
+# HTTP exceptions
+
+
+class HttpNotFound(Exception):
+    pass
+
+
+class HttpNotAuthorized(Exception):
+    pass
