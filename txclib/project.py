@@ -35,6 +35,8 @@ class Project(object):
     remote project instances.
     """
 
+    SKIP_DECODE_I18N_TYPES = ['DOCX', 'XLSX']
+
     def __init__(self, path_to_tx=None, init=True):
         """Initialize the Project attributes."""
         if init:
@@ -377,6 +379,7 @@ class Project(object):
         """Pull all translations file from transifex server."""
         self.minimum_perc = minimum_perc
         resource_list = self.get_chosen_resources(resources)
+        skip_decode = False
 
         if mode == 'reviewed':
             url = 'pull_reviewed_file'
@@ -411,7 +414,10 @@ class Project(object):
             logger.debug("URL data are: %s" % self.url_info)
 
             stats = self._get_stats_for_resource()
-
+            details_response, _ = self.do_url_request('resource_details')
+            details = utils.parse_json(details_response)
+            if details['i18n_type'] in self.SKIP_DECODE_I18N_TYPES:
+                skip_decode = True
             try:
                 file_filter = self.config.get(resource, 'file_filter')
             except configparser.NoOptionError:
@@ -500,18 +506,16 @@ class Project(object):
                                     local_file)
                 )
                 try:
-                    r, charset = self.do_url_request(url, language=remote_lang)
+                    r, charset = self.do_url_request(
+                        url, language=remote_lang, skip_decode=skip_decode
+                    )
                 except Exception as e:
                     if isinstance(e, SSLError) or not skip:
                         raise
                     else:
                         logger.error(e)
                         continue
-                base_dir = os.path.split(local_file)[0]
-                utils.mkdir_p(base_dir)
-                fd = open(local_file, 'wb')
-                fd.write(r.encode(charset))
-                fd.close()
+                self._save_file(local_file, charset, r)
 
             if new_translations:
                 msg = "Pulling new translations for resource %s (source: %s)"
@@ -552,12 +556,10 @@ class Project(object):
                                         local_file)
                     )
 
-                    r, charset = self.do_url_request(url, language=remote_lang)
-                    base_dir = os.path.split(local_file)[0]
-                    utils.mkdir_p(base_dir)
-                    fd = open(local_file, 'wb')
-                    fd.write(r.encode(charset))
-                    fd.close()
+                    r, charset = self.do_url_request(
+                        url, language=remote_lang, skip_decode=skip_decode
+                    )
+                    self._save_file(local_file, charset, r)
 
     def push(self, source=False, translations=False, force=False,
              resources=[], languages=[], skip=False, no_interactive=False):
@@ -720,7 +722,6 @@ class Project(object):
             logger.debug("URL data are: %s" % self.url_info)
             json, _ = self.do_url_request('project_details', project=self)
             project_details = utils.parse_json(json)
-            teams = project_details['teams']
             stats = self._get_stats_for_resource()
             delete_func(project_details, resource, stats, languages)
 
@@ -809,14 +810,13 @@ class Project(object):
                 raise
 
     def do_url_request(self, api_call, multipart=False, data=None,
-                       files=[], method="GET", **kwargs):
+                       files=[], method="GET", skip_decode=False, **kwargs):
         """Issues a url request."""
         # Read the credentials from the config file (.transifexrc)
         host = self.url_info['host']
         try:
             username = self.txrc.get(host, 'username')
             passwd = self.txrc.get(host, 'password')
-            token = self.txrc.get(host, 'token')
             hostname = self.txrc.get(host, 'hostname')
         except configparser.NoSectionError:
             raise Exception(
@@ -840,8 +840,10 @@ class Project(object):
                     "language": info.split(';')[1],
                     "uploaded_file": (name, open(filename, 'rb').read())
                 }
-        return utils.make_request(method, hostname,
-                                  url, username, passwd, data)
+        return utils.make_request(
+            method, hostname, url, username, passwd, data,
+            skip_decode=skip_decode
+        )
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
                                    mode=None):
@@ -1073,7 +1075,6 @@ class Project(object):
         new to the local installation.
         """
         new_translations = []
-        timestamp = time.time()
         langs = list(stats.keys())
         logger.debug("Available languages are: %s" % langs)
 
@@ -1196,7 +1197,6 @@ class Project(object):
         Raises:
             URLError, in case of a problem.
         """
-        multipart = True
         method = "POST"
         api_call = 'create_resource'
 
@@ -1204,7 +1204,6 @@ class Project(object):
         try:
             username = self.txrc.get(host, 'username')
             passwd = self.txrc.get(host, 'password')
-            token = self.txrc.get(host, 'token')
             hostname = self.txrc.get(host, 'hostname')
         except configparser.NoSectionError:
             raise Exception("No user credentials found for host %s. Edit "
@@ -1278,3 +1277,13 @@ class Project(object):
             return
         for r in resources:
             self.config.set(r, key, value)
+
+    @staticmethod
+    def _save_file(local_file, charset, file_content):
+        base_dir = os.path.split(local_file)[0]
+        utils.mkdir_p(base_dir)
+        fd = open(local_file, 'wb')
+        if charset is not None:
+            file_content = file_content.encode(charset)
+        fd.write(file_content)
+        fd.close()

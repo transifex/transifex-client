@@ -104,7 +104,9 @@ def determine_charset(response):
     return "utf-8"
 
 
-def make_request(method, host, url, username, password, fields=None):
+def make_request(method, host, url, username, password, fields=None,
+                 skip_decode=False):
+    charset = None
     if host.lower().startswith('https://'):
         connection = urllib3.connection_from_url(
             host,
@@ -119,15 +121,21 @@ def make_request(method, host, url, username, password, fields=None):
         user_agent=user_agent_identifier(),
         keep_alive=True
     )
-    r = None
+    response = None
     try:
-        r = connection.request(method, url, headers=headers, fields=fields)
-        data = r.data
-        charset = determine_charset(r)
-        if isinstance(data, bytes):
-            data = data.decode(charset)
-        if r.status < 200 or r.status >= 400:
-            if r.status == 404:
+        response = connection.request(
+            method,
+            url,
+            headers=headers,
+            fields=fields
+        )
+        data = response.data
+        if not skip_decode:
+            charset = determine_charset(response)
+            if isinstance(data, bytes):
+                data = data.decode(charset)
+        if response.status < 200 or response.status >= 400:
+            if response.status == 404:
                 raise HttpNotFound(data)
             else:
                 raise Exception(data)
@@ -136,8 +144,8 @@ def make_request(method, host, url, username, password, fields=None):
         logger.error("Invalid SSL certificate")
         raise
     finally:
-        if r is not None:
-            r.close()
+        if response is not None:
+            response.close()
 
 
 def get_details(api_call, username, password, *args, **kwargs):
