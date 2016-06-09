@@ -36,6 +36,7 @@ class Project(object):
     """
 
     SKIP_DECODE_I18N_TYPES = ['DOCX', 'XLSX']
+    FILE_FILTER = "translations<sep>%(proj)s.%(res)s<sep><lang>.%(extension)s"
 
     def __init__(self, path_to_tx=None, init=True):
         """Initialize the Project attributes."""
@@ -176,9 +177,11 @@ class Project(object):
         return username, passwd
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
-                            file_filter="translations<sep>%(proj)s.%(res)s<sep>\
-                            <lang>.%(extension)s"):
+                            file_filter=None):
         """Method to handle the add/conf of a remote resource."""
+        if file_filter is None:
+            file_filter = self.FILE_FILTER
+
         if not self.config.has_section(resource):
             self.config.add_section(resource)
 
