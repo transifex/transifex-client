@@ -15,5 +15,3 @@ dependencies:
 test:
   override:
     - tox -v --recreate
-  post:
-    - bash <(curl -s https://codecov.io/bash)
