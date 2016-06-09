@@ -1,5 +1,4 @@
 codecov:
-  token: 5ad93ecd-ffdc-4c92-b2db-a7c0ff1c1571
   ci:
     - "!ci.appveyor.com"
 
