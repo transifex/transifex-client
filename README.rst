@@ -2,6 +2,9 @@
     :target: https://circleci.com/gh/transifex/transifex-client/tree/master
 .. image:: https://ci.appveyor.com/api/projects/status/github/transifex/transifex-client?branch=master&svg=true
     :target: https://ci.appveyor.com/project/transifex/transifex-client/branch/master
+.. image:: https://codecov.io/gh/dimoschi/transifex-client/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/dimoschi/transifex-client
+
 
 
 =============================
