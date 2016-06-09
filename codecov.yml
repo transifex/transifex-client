@@ -1,0 +1,19 @@
+codecov:
+  token: 5ad93ecd-ffdc-4c92-b2db-a7c0ff1c1571
+  ci:
+    - "!ci.appveyor.com"
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  notify:
+    slack:
+      default:
+        url: https://hooks.slack.com/services/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
+        threshold: null
+        branches: null
+        attachments: "sunburst, diff"
+
+comment: off
