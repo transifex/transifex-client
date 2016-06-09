@@ -5,6 +5,7 @@ import re
 import errno
 import ssl
 import urllib3
+import collections
 
 try:
     from json import loads as parse_json, dumps as compile_json
@@ -72,12 +73,12 @@ def regex_from_filefilter(file_filter, root_path=os.path.curdir):
     return "^%s$" % expr_re
 
 
-TX_URLS = {
-    'resource': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/resource/(?P<resource>(\w|-)+)/?$',  # noqa
-    'project': '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/?$',  # noqa
-    'project2': '(?P<hostname>https?://(\w|\.|:|-)+)/(\w|-)+/(?P<project>(\w|-)+)(/(dashboard|settings))?/?',  # noqa
-    'resource2': '(?P<hostname>https?://(\w|\.|:|-)+)/(\w|-)+/(?P<project>(\w|-)+)/(?P<resource>(\w|-)+)/?',  # noqa
-}
+TX_URLS = collections.OrderedDict([
+    ('resource', '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/resource/(?P<resource>(\w|-)+)/?$'),  # noqa
+    ('project', '(?P<hostname>https?://(\w|\.|:|-)+)/projects/p/(?P<project>(\w|-)+)/?$'),  # noqa
+    ('project2', '(?P<hostname>https?://(\w|\.|:|-)+)/(\w|-)+/(?P<project>(\w|-)+)(/(dashboard|settings))?/?'),  # noqa
+    ('resource2', '(?P<hostname>https?://(\w|\.|:|-)+)/(\w|-)+/(?P<project>(\w|-)+)/(?P<resource>(\w|-)+)/?'),  # noqa
+])
 
 
 def parse_tx_url(url):
