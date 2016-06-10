@@ -635,6 +635,9 @@ class Project(object):
                     if isinstance(e, SSLError):
                         raise
                     code = getattr(e, 'code', None)
+                    if code == 401:
+                        logger.error("Request is not authorized.")
+                        continue
                     if code == 404:
                         msg = "Resource %s doesn't exist on the server."
                         logger.error(msg % resource)

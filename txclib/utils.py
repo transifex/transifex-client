@@ -17,14 +17,10 @@ from urllib3.exceptions import SSLError
 from urllib3.packages import six
 from urllib3.packages.six.moves import input
 from txclib.urls import API_URLS
-from txclib.exceptions import UnknownCommandError
+from txclib.exceptions import UnknownCommandError, HttpNotFound, HttpNotAuthorized
 from txclib.paths import posix_path, native_path, posix_sep
 from txclib.web import user_agent_identifier, certs_file
 from txclib.log import logger
-
-
-class HttpNotFound(Exception):
-    pass
 
 
 def get_base_dir():
@@ -138,7 +134,9 @@ def make_request(method, host, url, username, password, fields=None,
             if isinstance(data, bytes):
                 data = data.decode(charset)
         if response.status < 200 or response.status >= 400:
-            if response.status == 404:
+            if response.status == 401:
+                raise HttpNotAuthorized(data)
+            elif response.status == 404:
                 raise HttpNotFound(data)
             else:
                 raise Exception(data)

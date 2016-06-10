@@ -2,7 +2,7 @@ import unittest
 from mock import patch, MagicMock
 from urllib3.exceptions import SSLError
 
-from txclib import utils
+from txclib import utils, exceptions
 
 
 class MakeRequestTestCase(unittest.TestCase):
@@ -87,7 +87,7 @@ class MakeRequestTestCase(unittest.TestCase):
         host = 'http://whynotestsforthisstuff.com'
         url = '/my_test_url/'
         self.assertRaises(
-            utils.HttpNotFound,
+            exceptions.HttpNotFound,
             utils.make_request,
             'GET',
             host,
@@ -110,6 +110,28 @@ class MakeRequestTestCase(unittest.TestCase):
         url = '/my_test_url/'
         self.assertRaises(
             Exception,
+            utils.make_request,
+            'GET',
+            host,
+            url,
+            'a_user',
+            'a_pass'
+        )
+
+    @patch('urllib3.connection_from_url')
+    def test_makes_request_401(self, mock_connection_from_url):
+        response_mock = MagicMock()
+        response_mock.status = 401
+        response_mock.data = 'test_data'
+
+        mock_connection = MagicMock()
+        mock_connection.request.return_value = response_mock
+        mock_connection_from_url.return_value = mock_connection
+
+        host = 'http://whynotestsforthisstuff.com'
+        url = '/my_test_url/'
+        self.assertRaises(
+            exceptions.HttpNotAuthorized,
             utils.make_request,
             'GET',
             host,
