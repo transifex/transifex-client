@@ -9,6 +9,7 @@ import time
 import ssl
 import sys
 import urllib3
+import six
 
 try:
     import configparser
@@ -18,7 +19,7 @@ except ImportError:
 from txclib import web
 from txclib import utils
 from urllib3.exceptions import SSLError
-from urllib3.packages import six
+from six.moves import input
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict
 from txclib.log import logger
