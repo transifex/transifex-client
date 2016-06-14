@@ -6,6 +6,7 @@ import errno
 import ssl
 import urllib3
 import collections
+import six
 
 try:
     from json import loads as parse_json, dumps as compile_json
@@ -14,8 +15,7 @@ except ImportError:
 
 from email.parser import Parser
 from urllib3.exceptions import SSLError
-from urllib3.packages import six
-from urllib3.packages.six.moves import input
+from six.moves import input
 from txclib.urls import API_URLS
 from txclib.exceptions import UnknownCommandError, HttpNotFound, HttpNotAuthorized
 from txclib.paths import posix_path, native_path, posix_sep
