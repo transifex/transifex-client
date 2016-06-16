@@ -11,6 +11,14 @@ from txclib import utils
 from txclib.log import set_log_level, logger
 
 
+# use pyOpenSSL if available
+try:
+    import urllib3.contrib.pyopenssl
+    urllib3.contrib.pyopenssl.inject_into_urllib3()
+except ImportError:
+    pass
+
+
 # This block ensures that ^C interrupts are handled quietly.
 try:
     import signal
