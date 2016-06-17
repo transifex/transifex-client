@@ -3,7 +3,7 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
-from urllib3.packages import six
+import six
 
 
 class OrderedRawConfigParser(configparser.RawConfigParser):
