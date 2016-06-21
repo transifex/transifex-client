@@ -6,9 +6,9 @@ import re
 import fnmatch
 import datetime
 import time
-import ssl
 import sys
 import urllib3
+import six
 
 try:
     import configparser
@@ -18,12 +18,14 @@ except ImportError:
 from txclib import web
 from txclib import utils
 from urllib3.exceptions import SSLError
-from urllib3.packages import six
+from six.moves import input
 from txclib.urls import API_URLS
-from txclib.config import OrderedRawConfigParser, Flipdict
+from txclib.config import OrderedRawConfigParser, Flipdict, CERT_REQUIRED
 from txclib.log import logger
 from txclib.processors import visit_hostname
 from txclib.paths import posix_path, native_path, posix_sep
+
+
 
 
 class ProjectNotInit(Exception):
@@ -63,7 +65,7 @@ class Project(object):
         if host.lower().startswith('https://'):
             self.conn = urllib3.connection_from_url(
                 host,
-                cert_reqs=ssl.CERT_REQUIRED,
+                cert_reqs=CERT_REQUIRED,
                 ca_certs=web.certs_file()
             )
         else:

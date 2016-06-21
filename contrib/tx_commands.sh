@@ -7,7 +7,7 @@ fi
 set -e
 
 rm -rf txci
-git clone https://github.com/diegobz/txci.git
+git clone https://github.com/transifex/txci.git
 cd txci
 rm -rf .tx
 $TX init --host="https://www.transifex.com" --user=$TRANSIFEX_USER --pass=$TRANSIFEX_PASSWORD

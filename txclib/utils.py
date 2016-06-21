@@ -3,9 +3,9 @@ import os
 import sys
 import re
 import errno
-import ssl
 import urllib3
 import collections
+import six
 
 try:
     from json import loads as parse_json, dumps as compile_json
@@ -14,13 +14,13 @@ except ImportError:
 
 from email.parser import Parser
 from urllib3.exceptions import SSLError
-from urllib3.packages import six
-from urllib3.packages.six.moves import input
+from six.moves import input
 from txclib.urls import API_URLS
 from txclib.exceptions import UnknownCommandError, HttpNotFound, HttpNotAuthorized
 from txclib.paths import posix_path, native_path, posix_sep
 from txclib.web import user_agent_identifier, certs_file
 from txclib.log import logger
+from txclib.config import CERT_REQUIRED
 
 
 def get_base_dir():
@@ -109,7 +109,7 @@ def make_request(method, host, url, username, password, fields=None,
     if host.lower().startswith('https://'):
         connection = urllib3.connection_from_url(
             host,
-            cert_reqs=ssl.CERT_REQUIRED,
+            cert_reqs=CERT_REQUIRED,
             ca_certs=certs_file()
         )
     else:

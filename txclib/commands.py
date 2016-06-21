@@ -25,7 +25,7 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
-from urllib3.packages.six.moves import input
+from six.moves import input
 
 from txclib import utils, project
 from txclib.utils import parse_json, compile_json, files_in_project

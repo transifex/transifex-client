@@ -3,7 +3,7 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
-from urllib3.packages import six
+import six
 
 
 class OrderedRawConfigParser(configparser.RawConfigParser):
@@ -118,3 +118,9 @@ class Flipdict(dict):
     def clear(self):
         dict.clear(self)
         dict.clear(self._flip)
+
+
+import os
+import ssl
+
+CERT_REQUIRED = getattr(ssl, os.environ.get('TX_CERT_MODE', 'CERT_REQUIRED'))
