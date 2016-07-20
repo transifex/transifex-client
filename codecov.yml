@@ -1,0 +1,22 @@
+codecov:
+  ci:
+    - "!ci.appveyor.com"
+
+coverage:
+  precision: 2
+  round: down
+  range: "50...100"
+
+  ignore:
+    - "tests/*"
+
+
+  notify:
+    slack:
+      default:
+        url: https://hooks.slack.com/services/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
+        threshold: null
+        branches: null
+        attachments: "sunburst, diff"
+
+comment: off

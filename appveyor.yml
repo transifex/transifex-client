@@ -1,3 +1,7 @@
+branches:
+  only:
+    - master
+
 environment:
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
@@ -23,6 +27,8 @@ environment:
       PYTHON_VERSION: "3.5.x"
       PYTHON_ARCH: "64"
 
+matrix:
+  fast_finish: true
 
 install:
   - ECHO "Filesystem root:"
@@ -72,4 +78,3 @@ artifacts:
 #on_success:
 #  - TODO: upload the content of dist/*.whl to a public wheelhouse
 #
-
