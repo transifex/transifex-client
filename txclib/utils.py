@@ -6,7 +6,6 @@ import errno
 import urllib3
 import collections
 import six
-import urllib3
 import ssl
 
 if sys.version_info[0] >= 3:
