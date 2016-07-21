@@ -6,6 +6,13 @@ import errno
 import urllib3
 import collections
 import six
+import urllib3
+import ssl
+
+if sys.version_info[0] >= 3:
+    from urllib.request import Request
+else:
+    from urllib2 import Request
 
 try:
     from json import loads as parse_json, dumps as compile_json
@@ -105,27 +112,57 @@ def determine_charset(response):
 
 def make_request(method, host, url, username, password, fields=None,
                  skip_decode=False):
-    charset = None
-    if host.lower().startswith('https://'):
-        connection = urllib3.connection_from_url(
-            host,
-            cert_reqs=CERT_REQUIRED,
+    # Initialize http and https pool managers
+    num_pools = 1
+    managers = {}
+    if "http_proxy" in os.environ:
+        proxy_url = os.environ["http_proxy"]
+        managers["http"] = urllib3.ProxyManager(
+            proxy_url=proxy_url,
+            proxy_headers={"User-Agent": user_agent_identifier()},
+            num_pools=num_pools
+        )
+    else:
+        managers["http"] = urllib3.PoolManager(num_pools=num_pools)
+
+    if "https_proxy" in os.environ:
+        proxy_url = os.environ["https_proxy"]
+        managers["https"] = urllib3.ProxyManager(
+            proxy_url=proxy_url,
+            proxy_headers={"User-Agent": user_agent_identifier()},
+            num_pools=num_pools,
+            cert_reqs=ssl.CERT_REQUIRED,
             ca_certs=certs_file()
         )
     else:
-        connection = urllib3.connection_from_url(host)
+        managers["https"] = urllib3.PoolManager(
+            num_pools=num_pools,
+            cert_reqs=ssl.CERT_REQUIRED,
+            ca_certs=certs_file()
+        )
+    
+    charset = None
     headers = urllib3.util.make_headers(
         basic_auth='{0}:{1}'.format(username, password),
         accept_encoding=True,
         user_agent=user_agent_identifier(),
         keep_alive=True
     )
+    request = Request(host + url, None, headers)
+    request.type = method
     response = None
     try:
-        response = connection.request(
+        if host.startswith("http://"):
+            scheme = "http"
+        elif host.startswith("https://"):
+            scheme = "https"
+        else:
+            raise Exception("Unknown scheme")
+        manager = managers[scheme]
+        response = manager.request(
             method,
-            url,
-            headers=headers,
+            request.get_full_url(),
+            headers=dict(request.header_items()),
             fields=fields
         )
         data = response.data
