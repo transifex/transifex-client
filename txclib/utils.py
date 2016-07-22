@@ -6,13 +6,7 @@ import errno
 import urllib3
 import collections
 import six
-import urllib3
 import ssl
-
-if sys.version_info[0] >= 3:
-    from urllib.request import Request
-else:
-    from urllib2 import Request
 
 try:
     from json import loads as parse_json, dumps as compile_json
@@ -112,6 +106,7 @@ def determine_charset(response):
 
 def make_request(method, host, url, username, password, fields=None,
                  skip_decode=False):
+    
     # Initialize http and https pool managers
     num_pools = 1
     managers = {}
@@ -131,13 +126,13 @@ def make_request(method, host, url, username, password, fields=None,
             proxy_url=proxy_url,
             proxy_headers={"User-Agent": user_agent_identifier()},
             num_pools=num_pools,
-            cert_reqs=ssl.CERT_REQUIRED,
+            cert_reqs=CERT_REQUIRED,
             ca_certs=certs_file()
         )
     else:
         managers["https"] = urllib3.PoolManager(
             num_pools=num_pools,
-            cert_reqs=ssl.CERT_REQUIRED,
+            cert_reqs=CERT_REQUIRED,
             ca_certs=certs_file()
         )
     
@@ -148,21 +143,20 @@ def make_request(method, host, url, username, password, fields=None,
         user_agent=user_agent_identifier(),
         keep_alive=True
     )
-    request = Request(host + url, None, headers)
-    request.type = method
+    
     response = None
     try:
-        if host.startswith("http://"):
+        if host.lower().startswith("http://"):
             scheme = "http"
-        elif host.startswith("https://"):
+        elif host.lower().startswith("https://"):
             scheme = "https"
         else:
             raise Exception("Unknown scheme")
         manager = managers[scheme]
         response = manager.request(
             method,
-            request.get_full_url(),
-            headers=dict(request.header_items()),
+            host + url,
+            headers=dict(headers),
             fields=fields
         )
         data = response.data
