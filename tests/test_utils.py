@@ -26,7 +26,7 @@ class MakeRequestTestCase(unittest.TestCase):
             'a_user',
             'a_pass'
         )
-        mock_manager.assert_called_once_with(host)
+        mock_manager.assert_called_once_with(num_pools=1)
         mock_connection.request.assert_called_once()
 
     @patch('urllib3.PoolManager')
@@ -70,7 +70,7 @@ class MakeRequestTestCase(unittest.TestCase):
             'a_pass',
             skip_decode=True
         )
-        mock_conn.assert_called_once_with(host)
+        mock_conn.assert_called_once_with(num_pools=1)
         mock_connection.request.assert_called_once()
         mock_determine.assert_not_called()
 
@@ -159,5 +159,5 @@ class MakeRequestTestCase(unittest.TestCase):
             'a_user',
             'a_pass'
         )
-        mock_manager.assert_called_once_with(host)
+        mock_manager.assert_called_once_with(num_pools=1)
         mock_connection.request.assert_called_once()
