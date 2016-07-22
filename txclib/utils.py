@@ -26,7 +26,6 @@ from txclib.config import CERT_REQUIRED
 
 def get_base_dir():
     """PyInstaller Run-time Operation.
-
     http://pythonhosted.org/PyInstaller/#run-time-operation
     """
     if getattr(sys, 'frozen', False):
@@ -40,7 +39,6 @@ def get_base_dir():
 
 def find_dot_tx(path=os.path.curdir, previous=None):
     """Return the path where .tx folder is found.
-
     The 'path' should be a DIRECTORY.
     This process is functioning recursively from the current directory to each
     one of the ancestors dirs.
@@ -106,36 +104,42 @@ def determine_charset(response):
 
 def make_request(method, host, url, username, password, fields=None,
                  skip_decode=False):
-    
+
     # Initialize http and https pool managers
     num_pools = 1
     managers = {}
-    if "http_proxy" in os.environ:
-        proxy_url = os.environ["http_proxy"]
-        managers["http"] = urllib3.ProxyManager(
-            proxy_url=proxy_url,
-            proxy_headers={"User-Agent": user_agent_identifier()},
-            num_pools=num_pools
-        )
-    else:
-        managers["http"] = urllib3.PoolManager(num_pools=num_pools)
 
-    if "https_proxy" in os.environ:
-        proxy_url = os.environ["https_proxy"]
-        managers["https"] = urllib3.ProxyManager(
-            proxy_url=proxy_url,
-            proxy_headers={"User-Agent": user_agent_identifier()},
-            num_pools=num_pools,
-            cert_reqs=CERT_REQUIRED,
-            ca_certs=certs_file()
-        )
+    if host.lower().startswith("http://"):
+        scheme = "http"
+        if "http_proxy" in os.environ:
+            proxy_url = os.environ["http_proxy"]
+            managers["http"] = urllib3.ProxyManager(
+                proxy_url=proxy_url,
+                proxy_headers={"User-Agent": user_agent_identifier()},
+                num_pools=num_pools
+            )
+        else:
+            managers["http"] = urllib3.PoolManager(num_pools=num_pools)
+    elif host.lower().startswith("https://"):
+        scheme = "https"
+        if "https_proxy" in os.environ:
+            proxy_url = os.environ["https_proxy"]
+            managers["https"] = urllib3.ProxyManager(
+                proxy_url=proxy_url,
+                proxy_headers={"User-Agent": user_agent_identifier()},
+                num_pools=num_pools,
+                cert_reqs=CERT_REQUIRED,
+                ca_certs=certs_file()
+            )
+        else:
+            managers["https"] = urllib3.PoolManager(
+                num_pools=num_pools,
+                cert_reqs=CERT_REQUIRED,
+                ca_certs=certs_file()
+            )
     else:
-        managers["https"] = urllib3.PoolManager(
-            num_pools=num_pools,
-            cert_reqs=CERT_REQUIRED,
-            ca_certs=certs_file()
-        )
-    
+        raise Exception("Unknown scheme")
+
     charset = None
     headers = urllib3.util.make_headers(
         basic_auth='{0}:{1}'.format(username, password),
@@ -143,15 +147,9 @@ def make_request(method, host, url, username, password, fields=None,
         user_agent=user_agent_identifier(),
         keep_alive=True
     )
-    
+
     response = None
     try:
-        if host.lower().startswith("http://"):
-            scheme = "http"
-        elif host.lower().startswith("https://"):
-            scheme = "https"
-        else:
-            raise Exception("Unknown scheme")
         manager = managers[scheme]
         response = manager.request(
             method,
@@ -183,7 +181,6 @@ def make_request(method, host, url, username, password, fields=None,
 def get_details(api_call, username, password, *args, **kwargs):
     """
     Get the tx project info through the API.
-
     This function can also be used to check the existence of a project.
     """
     url = API_URLS[api_call] % kwargs
@@ -200,7 +197,6 @@ def get_details(api_call, username, password, *args, **kwargs):
 def valid_slug(slug):
     """
     Check if a slug contains only valid characters.
-
     Valid chars include [-_\w]
     """
     try:
@@ -258,7 +254,6 @@ def mkdir_p(path):
 def confirm(prompt='Continue?', default=True):
     """
     Prompt the user for a Yes/No answer.
-
     Args:
         prompt: The text displayed to the user ([Y/n] will be appended)
         default: If the default value will be yes or no
@@ -294,7 +289,6 @@ def color_text(text, color_name, bold=False):
     This command can be used to colorify command line output. If the shell
     doesn't support this or the --disable-colors options has been set, it just
     returns the plain text.
-
     Usage:
         print "%s" % color_text("This text is red", "RED")
     """
@@ -308,7 +302,6 @@ def color_text(text, color_name, bold=False):
 def files_in_project(curpath):
     """
     Iterate over the files in the project.
-
     Return each file under ``curpath`` with its absolute name.
     """
     visited = set()
