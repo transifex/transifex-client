@@ -3,6 +3,7 @@ Transifex Command-Line Tool
 [![image](https://circleci.com/gh/transifex/transifex-client/tree/master.svg?style=shield&circle-token=33aafd984726261eff1b73278a0cf761382c478a)](https://circleci.com/gh/transifex/transifex-client/tree/master)
 [![image](https://ci.appveyor.com/api/projects/status/github/transifex/transifex-client?branch=master&svg=true)](https://ci.appveyor.com/project/transifex/transifex-client/branch/master)
 [![codecov](https://codecov.io/gh/transifex/transifex-client/branch/master/graph/badge.svg)](https://codecov.io/gh/transifex/transifex-client)
+[![PyPI version](https://badge.fury.io/py/transifex-client.svg)](https://badge.fury.io/py/transifex-client)
 
 Description
 ---
