@@ -14,7 +14,8 @@ coverage:
   notify:
     slack:
       default:
-        url: https://hooks.slack.com/services/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
+        url:
+          secret:4FCetOj2urXyoT02ONiv62804o/mPp++K5/L3QlnSVdeovhfAQWVlROA+ZKPGdi0atAN+8lfoZIfk8qPY5JgGQOkcPMCoxVL+OaAgLWJlBdB7j5YfHERyf0LH6neP8E0qAqzk8xYFv3wqGSmcxwx1DRS5qx3LwZNuIoyF2Nhsg4=
         threshold: null
         branches: null
         attachments: "sunburst, diff"
