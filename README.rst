@@ -1,9 +1,9 @@
 .. image:: https://circleci.com/gh/transifex/transifex-client/tree/master.svg?style=shield&circle-token=33aafd984726261eff1b73278a0cf761382c478a
-    :target: https://circleci.com/gh/transifex/transifex-client/tree/master
+  :target: https://circleci.com/gh/transifex/transifex-client/tree/master
 .. image:: https://ci.appveyor.com/api/projects/status/github/transifex/transifex-client?branch=master&svg=true
-    :target: https://ci.appveyor.com/project/transifex/transifex-client/branch/master
+  :target: https://ci.appveyor.com/project/transifex/transifex-client/branch/master
 .. image:: https://codecov.io/gh/transifex/transifex-client/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/transifex/transifex-client
+  :target: https://codecov.io/gh/transifex/transifex-client
 
 
 
