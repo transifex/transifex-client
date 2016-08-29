@@ -103,7 +103,7 @@ def main(argv=None):
     cmd = args[0]
     try:
         utils.exec_command(cmd, args[1:], path_to_tx)
-    except SSLError as e:
+    except SSLError:
         sys.exit(1)
     except utils.UnknownCommandError:
         logger.error("tx: Command %s not found" % cmd)

@@ -52,8 +52,8 @@ def cmd_init(argv, path_to_tx):
         logger.info("tx: There is already a tx folder!")
         reinit = input("Do you want to delete it and "
                        "reinit the project? [y/N]: ")
-        while (reinit != 'y' and reinit != 'Y' and reinit != 'N'
-               and reinit != 'n' and reinit != ''):
+        while (reinit != 'y' and reinit != 'Y' and reinit != 'N' and
+                reinit != 'n' and reinit != ''):
             reinit = input("Do you want to delete it and "
                            "reinit the project? [y/N]: ")
         if not reinit or reinit in ['N', 'n', 'NO', 'no', 'No']:
