@@ -61,7 +61,16 @@ def cmd_init(argv, path_to_tx):
         # Clean the old settings
         # FIXME: take a backup
         else:
+            dest_dir = os.path.join(path_to_tx, ".tx_backup")
             rm_dir = os.path.join(path_to_tx, ".tx")
+            try:
+                shutil.copytree(rm_dir, dest_dir)
+                logger.info("Creating backup of .tx folder")
+            except OSError:
+                logger.info("Deleting old .tx_backup folder")
+                shutil.rmtree(dest_dir)
+                logger.info("Creating backup of .tx folder")
+                shutil.copytree(rm_dir, dest_dir)
             shutil.rmtree(rm_dir)
 
     logger.info("Creating .tx folder...")
