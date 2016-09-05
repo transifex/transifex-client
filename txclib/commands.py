@@ -19,6 +19,7 @@ import re
 import shutil
 import sys
 from optparse import OptionParser, OptionGroup
+from datetime import datetime
 
 try:
     import configparser
@@ -48,8 +49,9 @@ def cmd_init(argv, path_to_tx):
     else:
         path_to_tx = os.getcwd()
 
-    if os.path.isdir(os.path.join(path_to_tx, ".tx")):
-        logger.info("tx: There is already a tx folder!")
+    config_file = os.path.join(path_to_tx, ".tx", "config")
+    if os.path.isfile(config_file):
+        logger.info("tx: There is already a tx/config file!")
         reinit = input("Do you want to delete it and "
                        "reinit the project? [y/N]: ")
         while (reinit != 'y' and reinit != 'Y' and reinit != 'N' and
@@ -59,22 +61,27 @@ def cmd_init(argv, path_to_tx):
         if not reinit or reinit in ['N', 'n', 'NO', 'no', 'No']:
             return
         # Clean the old settings
-        # FIXME: take a backup
         else:
-            dest_dir = os.path.join(path_to_tx, ".tx_backup")
-            rm_dir = os.path.join(path_to_tx, ".tx")
+            backup_file_name = ".tx/config_{}".format(
+                datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+            backup_file = os.path.join(path_to_tx, backup_file_name)
+            if os.path.exists(backup_file) and os.path.isfile(backup_file):
+                try:
+                    shutil.rmtree(backup_file)
+                    logger.info(
+                        "Deleting old {} file".format(backup_file_name))
+                except OSError:
+                    logger.info(
+                        "File {} cannot be deleted".format(backup_file_name))
+                    return
             try:
-                shutil.copytree(rm_dir, dest_dir)
-                logger.info("Creating backup of .tx folder")
+                shutil.copy2(config_file, backup_file)
+                logger.info("Creating backup of .tx/config file")
             except OSError:
-                logger.info("Deleting old .tx_backup folder")
-                shutil.rmtree(dest_dir)
-                logger.info("Creating backup of .tx folder")
-                shutil.copytree(rm_dir, dest_dir)
-            shutil.rmtree(rm_dir)
-
-    logger.info("Creating .tx folder...")
-    os.mkdir(os.path.join(path_to_tx, ".tx"))
+                logger.info("Cannot create backup of .tx/config file")
+                return
+            else:
+                os.remove(config_file)
 
     # Handle the credentials through transifexrc
     home = os.path.expanduser("~")
@@ -90,7 +97,6 @@ def cmd_init(argv, path_to_tx):
     if not transifex_host.startswith(('http://', 'https://')):
         transifex_host = 'https://' + transifex_host
 
-    config_file = os.path.join(path_to_tx, ".tx", "config")
     if not os.path.exists(config_file):
         # The path to the config file (.tx/config)
         logger.info("Creating skeleton...")
@@ -99,6 +105,10 @@ def cmd_init(argv, path_to_tx):
         config.set('main', 'host', transifex_host)
         # Touch the file if it doesn't exist
         logger.info("Creating config file...")
+        try:
+            os.mkdir(os.path.join(path_to_tx, ".tx"))
+        except OSError:
+            pass
         fh = open(config_file, 'w')
         config.write(fh)
         fh.close()
