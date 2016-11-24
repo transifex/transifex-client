@@ -111,6 +111,11 @@ def make_request(method, host, url, username, password, fields=None,
     num_pools = 1
     managers = {}
 
+    if isinstance(host, unicode):
+        host = host.encode('UTF-8')
+    if isinstance(url, unicode):
+        url = url.encode('UTF-8')
+
     if host.lower().startswith("http://"):
         scheme = "http"
         if "http_proxy" in os.environ:
