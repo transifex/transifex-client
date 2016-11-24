@@ -111,9 +111,15 @@ def make_request(method, host, url, username, password, fields=None,
     num_pools = 1
     managers = {}
 
-    if isinstance(host, unicode):
+    try:
+        # Compatibility with python2 and python3
+        unicode_comp = unicode
+    except NameError:
+        unicode_comp = str
+
+    if isinstance(host, unicode_comp):
         host = host.encode('UTF-8')
-    if isinstance(url, unicode):
+    if isinstance(url, unicode_comp):
         url = url.encode('UTF-8')
 
     if host.lower().startswith("http://"):
@@ -188,7 +194,7 @@ def make_request(method, host, url, username, password, fields=None,
 def get_details(api_call, username, password, *args, **kwargs):
     """
     Get the tx project info through the API.
-    
+
     This function can also be used to check the existence of a project.
     """
     url = API_URLS[api_call] % kwargs
@@ -205,7 +211,7 @@ def get_details(api_call, username, password, *args, **kwargs):
 def valid_slug(slug):
     """
     Check if a slug contains only valid characters.
-    
+
     Valid chars include [-_\w]
     """
     try:
@@ -263,7 +269,7 @@ def mkdir_p(path):
 def confirm(prompt='Continue?', default=True):
     """
     Prompt the user for a Yes/No answer.
-    
+
     Args:
         prompt: The text displayed to the user ([Y/n] will be appended)
         default: If the default value will be yes or no
@@ -299,7 +305,7 @@ def color_text(text, color_name, bold=False):
     This command can be used to colorify command line output. If the shell
     doesn't support this or the --disable-colors options has been set, it just
     returns the plain text.
-    
+
     Usage:
         print "%s" % color_text("This text is red", "RED")
     """
@@ -313,7 +319,7 @@ def color_text(text, color_name, bold=False):
 def files_in_project(curpath):
     """
     Iterate over the files in the project.
-    
+
     Return each file under ``curpath`` with its absolute name.
     """
     visited = set()
