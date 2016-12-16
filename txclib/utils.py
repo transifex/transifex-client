@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import functools
 import os
 import sys
 import re
@@ -153,7 +154,9 @@ def make_request(method, host, url, username, password, fields=None,
     response = None
     try:
         manager = managers[scheme]
-        response = manager.request(
+        # All arguments must be bytes, not unicode
+        encoded_request = encode_args(manager.request)
+        response = encoded_request(
             method,
             host + url,
             headers=dict(headers),
@@ -333,3 +336,41 @@ def files_in_project(curpath):
         )
         for removal in removals:
             dirs.remove(removal)
+
+
+def encode_args(func):
+    @functools.wraps(func)
+    def decorated(*args, **kwargs):
+        new_args = _encode_anything(args)
+        new_kwargs = _encode_anything(kwargs, keys_as_unicode=True)
+        return func(*new_args, **new_kwargs)
+    return decorated
+
+
+def _encode_anything(thing, encoding='utf-8', keys_as_unicode=False):
+    # Handle python versions
+    if sys.version_info.major == 3:
+        return thing
+
+    if isinstance(thing, str):
+        return thing
+    elif isinstance(thing, unicode):
+        return thing.encode(encoding)
+    elif isinstance(thing, list):
+        return [_encode_anything(item) for item in thing]
+    elif isinstance(thing, tuple):
+        return tuple(_encode_anything(list(thing)))
+    elif isinstance(thing, dict):
+        # I know this is weird, but when using kwargs in python-3, the keys
+        # should be str, not bytes
+        if keys_as_unicode:
+            return {key: _encode_anything(value)
+                    for key, value in thing.items()}
+        else:
+            return {_encode_anything(key): _encode_anything(value)
+                    for key, value in thing.items()}
+    elif thing is None:
+        return thing
+    else:
+        raise TypeError("Could not encode, unknown type: {}".
+                        format(type(thing)))
