@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import functools
 import os
 import sys
 import re
@@ -153,7 +154,9 @@ def make_request(method, host, url, username, password, fields=None,
     response = None
     try:
         manager = managers[scheme]
-        response = manager.request(
+        # All arguments must be bytes, not unicode
+        encoded_request = encode_args(manager.request)
+        response = encoded_request(
             method,
             host + url,
             headers=dict(headers),
@@ -333,3 +336,29 @@ def files_in_project(curpath):
         )
         for removal in removals:
             dirs.remove(removal)
+
+
+def encode_args(func):
+    @functools.wraps(func)
+    def decorated(*args, **kwargs):
+        return func(*_encode_anything(args), **_encode_anything(kwargs))
+    return decorated
+
+
+def _encode_anything(thing, encoding='utf-8'):
+    if isinstance(thing, str):
+        return thing
+    elif isinstance(thing, unicode):
+        return thing.encode(encoding)
+    elif isinstance(thing, list):
+        return [_encode_anything(item) for item in thing]
+    elif isinstance(thing, tuple):
+        return tuple(_encode_anything(list(thing)))
+    elif isinstance(thing, dict):
+        return {_encode_anything(key): _encode_anything(value)
+                for key, value in thing.iteritems()}
+    elif thing is None:
+        return thing
+    else:
+        raise TypeError("Could not encode, unknown type: {}".
+                        format(type(thing)))
