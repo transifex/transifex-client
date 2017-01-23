@@ -104,6 +104,7 @@ def main(argv=None):
     try:
         utils.exec_command(cmd, args[1:], path_to_tx)
     except SSLError as e:
+        logger.error("SSl error %s" % e)
         sys.exit(1)
     except utils.UnknownCommandError:
         logger.error("tx: Command %s not found" % cmd)
@@ -117,6 +118,7 @@ def main(argv=None):
             formatted_lines = traceback.format_exc().splitlines()
             logger.error(formatted_lines[-1])
         sys.exit(1)
+
 
 # Run baby :) ... run
 if __name__ == "__main__":
