@@ -18,7 +18,6 @@ import os
 import re
 import shutil
 import sys
-from optparse import OptionParser, OptionGroup
 
 try:
     import configparser
@@ -28,7 +27,7 @@ except ImportError:
 from six.moves import input
 
 from txclib import utils, project
-from txclib.utils import parse_json, compile_json, files_in_project
+from txclib.utils import files_in_project
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
@@ -68,8 +67,6 @@ def cmd_init(argv, path_to_tx):
     os.mkdir(os.path.join(path_to_tx, ".tx"))
 
     # Handle the credentials through transifexrc
-    home = os.path.expanduser("~")
-    txrc = os.path.join(home, ".transifexrc")
     config = OrderedRawConfigParser()
 
     default_transifex = "https://www.transifex.com"
@@ -240,7 +237,6 @@ def _auto_local(path_to_tx, resource, source_language, expression,
             'file': os.path.relpath(source_file, curpath)})
 
     prj = project.Project(path_to_tx)
-    root_dir = os.path.abspath(path_to_tx)
 
     if execute:
         try:

@@ -64,21 +64,24 @@ def init_parser():
     parser.add_option("--host", action="store", dest="host", default=None,
                       help="Specify a default Transifex host.")
     parser.add_option("--user", action="store", dest="user", default=None,
-                      help="Specify username for Transifex server.")
+                      help="Specify username for Transifex server.\n"
+                      "If you are using an api token, use api as username.")
     parser.add_option("--pass", action="store", dest="password", default=None,
-                      help="Specify password for Transifex server.")
+                      help="Specify password for Transifex server.\n"
+                      "if you re using an api token, use the token as the"
+                      "password")
     return parser
 
 
 def pull_parser():
     """Return the command-line parser for the pull command."""
     usage = "usage: %prog [tx_options] pull [options]"
-    description = "This command pulls all outstanding changes from the remote "\
-        "Transifex server to the local repository. By default, only the "\
-        "files that are watched by Transifex will be updated but if you "\
+    description = "This command pulls all outstanding changes from the "\
+        "remote Transifex server to the local repository. By default, only "\
+        "the files that are watched by Transifex will be updated but if you "\
         "want to fetch the translations for new languages as well, use the "\
-        "-a|--all option. (Note: new translations are saved in the .tx folder "\
-        "and require the user to manually rename them and add then in "\
+        "-a|--all option. (Note: new translations are saved in the .tx "\
+        "folder and require the user to manually rename them and add then in "\
         "Transifex using the set_translation command)."
     parser = OptionParser(usage=usage, description=description)
     parser.add_option("-l", "--language", action="store", dest="languages",
@@ -124,8 +127,8 @@ def pull_parser():
 def push_parser():
     """Return the command-line parser for the push command."""
     usage = "usage: %prog [tx_options] push [options]"
-    description = "This command pushes all local files that have been added to "\
-        "Transifex to the remote server. All new translations are merged "\
+    description = "This command pushes all local files that have been added "\
+        "to Transifex to the remote server. All new translations are merged "\
         "with existing ones and if a language doesn't exists then it gets "\
         "created. If you want to push the source file as well (either "\
         "because this is your first time running the client or because "\
@@ -162,15 +165,18 @@ def push_parser():
 def set_parser():
     """Return the command-line parser for the set command."""
     usage = "usage: %prog [tx_options] set [options] [args]"
-    description = "This command can be used to create a mapping between files "\
-        "and projects either using local files or using files from a remote "\
-        "Transifex server."
+    description = "This command can be used to create a mapping between "\
+        "files and projects either using local files or using files from a "\
+        "remote Transifex server."
     epilog = "\nExamples:\n"\
-        "To set the source file:\n  $ tx set -r project.resource --source -l en <file>\n\n"\
-        "To set a single translation file:\n  $ tx set -r project.resource -l de <file>\n\n"\
-        "To automatically detect and assign the source files and translations:\n"\
-        " $ tx set --auto-local -r project.resource 'expr' --source-lang en\n\n"\
-        "To set a specific file as a source and auto detect translations:\n"\
+        "To set the source file:\n"\
+        "$ tx set -r project.resource --source -l en <file>\n\n"\
+        "To set a single translation file:\n"\
+        "$ tx set -r project.resource -l de <file>\n\n"\
+        "To automatically detect and assign the source files"\
+        " and translations:\n"\
+        " $ tx set --auto-local -r project.resource 'expr' --source-lang en\n"\
+        "\nTo set a specific file as a source and auto detect translations:\n"\
         " $ tx set --auto-local -r project.resource 'expr' --source-lang en "\
         "--source-file <file>\n\n"\
         "To set a remote resource/project:\n"\
