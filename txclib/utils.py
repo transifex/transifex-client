@@ -339,6 +339,12 @@ def files_in_project(curpath):
 
 
 def encode_args(func):
+    # we have to patch func in order to make tests work.
+    # sadly mock does not have the attributes needed for functools
+    # so we need to set the manually
+    if not hasattr(func, '__name__'):
+        functools.update_wrapper(func, str.split, ('__name__', ))
+
     @functools.wraps(func)
     def decorated(*args, **kwargs):
         new_args = _encode_anything(args)
