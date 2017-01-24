@@ -5,3 +5,7 @@
 *egg-info*
 /build
 /dist
+*.swp
+.tox/
+.coverage
+.eggs
