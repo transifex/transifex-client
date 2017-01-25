@@ -27,7 +27,6 @@ except ImportError:
 from six.moves import input
 
 from txclib import utils, project
-from txclib.utils import files_in_project
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
@@ -205,7 +204,7 @@ def _auto_local(path_to_tx, resource, source_language, expression,
     # First, let's construct a dictionary of all matching files.
     # Note: Only the last matching file of a language will be stored.
     translation_files = {}
-    for f_path in files_in_project(curpath):
+    for f_path in utils.files_in_project(curpath):
         match = expr_rec.match(posix_path(f_path))
         if match:
             lang = match.group(1)
