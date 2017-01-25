@@ -7,18 +7,19 @@ import errno
 import urllib3
 import collections
 import six
-import ssl
 
 try:
-    from json import loads as parse_json, dumps as compile_json
+    from json import loads as parse_json
 except ImportError:
-    from simplejson import loads as parse_json, dumps as compile_json
+    from simplejson import loads as parse_json
 
 from email.parser import Parser
 from urllib3.exceptions import SSLError
 from six.moves import input
 from txclib.urls import API_URLS
-from txclib.exceptions import UnknownCommandError, HttpNotFound, HttpNotAuthorized
+from txclib.exceptions import (
+    UnknownCommandError, HttpNotFound, HttpNotAuthorized
+)
 from txclib.paths import posix_path, native_path, posix_sep
 from txclib.web import user_agent_identifier, certs_file
 from txclib.log import logger
@@ -186,7 +187,6 @@ def make_request(method, host, url, username, password, fields=None,
 def get_details(api_call, username, password, *args, **kwargs):
     """
     Get the tx project info through the API.
-    
     This function can also be used to check the existence of a project.
     """
     url = API_URLS[api_call] % kwargs
@@ -203,7 +203,6 @@ def get_details(api_call, username, password, *args, **kwargs):
 def valid_slug(slug):
     """
     Check if a slug contains only valid characters.
-    
     Valid chars include [-_\w]
     """
     try:
@@ -261,7 +260,6 @@ def mkdir_p(path):
 def confirm(prompt='Continue?', default=True):
     """
     Prompt the user for a Yes/No answer.
-    
     Args:
         prompt: The text displayed to the user ([Y/n] will be appended)
         default: If the default value will be yes or no
@@ -269,10 +267,10 @@ def confirm(prompt='Continue?', default=True):
     valid_yes = ['Y', 'y', 'Yes', 'yes', ]
     valid_no = ['N', 'n', 'No', 'no', ]
     if default:
-        prompt = prompt + '[Y/n]'
+        prompt = prompt + ' [Y/n]: '
         valid_yes.append('')
     else:
-        prompt = prompt + '[y/N]'
+        prompt = prompt + ' [y/N]: '
         valid_no.append('')
 
     ans = input(prompt)
@@ -297,7 +295,6 @@ def color_text(text, color_name, bold=False):
     This command can be used to colorify command line output. If the shell
     doesn't support this or the --disable-colors options has been set, it just
     returns the plain text.
-    
     Usage:
         print "%s" % color_text("This text is red", "RED")
     """
@@ -311,7 +308,6 @@ def color_text(text, color_name, bold=False):
 def files_in_project(curpath):
     """
     Iterate over the files in the project.
-    
     Return each file under ``curpath`` with its absolute name.
     """
     visited = set()

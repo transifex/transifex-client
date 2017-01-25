@@ -26,8 +26,6 @@ from txclib.processors import visit_hostname
 from txclib.paths import posix_path, native_path, posix_sep
 
 
-
-
 class ProjectNotInit(Exception):
     pass
 

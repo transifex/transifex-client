@@ -18,7 +18,6 @@ import os
 import re
 import shutil
 import sys
-from optparse import OptionParser, OptionGroup
 
 try:
     import configparser
@@ -28,7 +27,6 @@ except ImportError:
 from six.moves import input
 
 from txclib import utils, project
-from txclib.utils import parse_json, compile_json, files_in_project
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
@@ -50,13 +48,10 @@ def cmd_init(argv, path_to_tx):
 
     if os.path.isdir(os.path.join(path_to_tx, ".tx")):
         logger.info("tx: There is already a tx folder!")
-        reinit = input("Do you want to delete it and "
-                       "reinit the project? [y/N]: ")
-        while (reinit != 'y' and reinit != 'Y' and reinit != 'N'
-               and reinit != 'n' and reinit != ''):
-            reinit = input("Do you want to delete it and "
-                           "reinit the project? [y/N]: ")
-        if not reinit or reinit in ['N', 'n', 'NO', 'no', 'No']:
+        if not utils.confirm(
+            prompt='Do you want to delete it and reinit the project?',
+            default=False
+        ):
             return
         # Clean the old settings
         # FIXME: take a backup
@@ -66,11 +61,6 @@ def cmd_init(argv, path_to_tx):
 
     logger.info("Creating .tx folder...")
     os.mkdir(os.path.join(path_to_tx, ".tx"))
-
-    # Handle the credentials through transifexrc
-    home = os.path.expanduser("~")
-    txrc = os.path.join(home, ".transifexrc")
-    config = OrderedRawConfigParser()
 
     default_transifex = "https://www.transifex.com"
     transifex_host = options.host or input("Transifex instance [%s]: " %
@@ -85,6 +75,7 @@ def cmd_init(argv, path_to_tx):
     if not os.path.exists(config_file):
         # The path to the config file (.tx/config)
         logger.info("Creating skeleton...")
+        # Handle the credentials through transifexrc
         config = OrderedRawConfigParser()
         config.add_section('main')
         config.set('main', 'host', transifex_host)
@@ -213,7 +204,7 @@ def _auto_local(path_to_tx, resource, source_language, expression,
     # First, let's construct a dictionary of all matching files.
     # Note: Only the last matching file of a language will be stored.
     translation_files = {}
-    for f_path in files_in_project(curpath):
+    for f_path in utils.files_in_project(curpath):
         match = expr_rec.match(posix_path(f_path))
         if match:
             lang = match.group(1)
@@ -240,7 +231,6 @@ def _auto_local(path_to_tx, resource, source_language, expression,
             'file': os.path.relpath(source_file, curpath)})
 
     prj = project.Project(path_to_tx)
-    root_dir = os.path.abspath(path_to_tx)
 
     if execute:
         try:
