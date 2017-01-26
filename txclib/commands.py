@@ -46,7 +46,10 @@ def cmd_init(argv, path_to_tx):
     else:
         path_to_tx = os.getcwd()
 
-    if os.path.isdir(os.path.join(path_to_tx, ".tx")):
+    save = options.save
+    # if we already have a config file and we are not told to override it
+    # in the args we have to ask
+    if os.path.isdir(os.path.join(path_to_tx, ".tx")) and not save:
         logger.info("tx: There is already a tx folder!")
         if not utils.confirm(
             prompt='Do you want to delete it and reinit the project?',
@@ -56,6 +59,7 @@ def cmd_init(argv, path_to_tx):
         # Clean the old settings
         # FIXME: take a backup
         else:
+            save = True
             rm_dir = os.path.join(path_to_tx, ".tx")
             shutil.rmtree(rm_dir)
 
@@ -86,8 +90,9 @@ def cmd_init(argv, path_to_tx):
         fh.close()
 
     prj = project.Project(path_to_tx)
-    prj.getset_host_credentials(transifex_host, user=options.user,
-                                password=options.password)
+    prj.getset_host_credentials(transifex_host, username=options.user,
+                                password=options.password,
+                                token=options.token, save=save)
     prj.save()
     logger.info("Done.")
 
