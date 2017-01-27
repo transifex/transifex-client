@@ -3,7 +3,7 @@ include txclib/cacert.pem
 include requirements.txt
 
 # Docs
-include LICENSE README.rst
+include LICENSE README.md
 recursive-include docs *
 
 # Tests
