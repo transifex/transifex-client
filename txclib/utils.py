@@ -107,7 +107,7 @@ def determine_charset(response):
 
 
 def make_request(method, host, url, username, password, fields=None,
-                 skip_decode=False):
+                 skip_decode=False, get_params={}):
 
     # Initialize http and https pool managers
     num_pools = 1

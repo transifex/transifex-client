@@ -11,6 +11,12 @@ import urllib3
 import six
 
 try:
+    import urlparse
+    from urllib import urlencode
+except:  # For Python 3
+    import urllib.parse as urlparse
+    from urllib.parse import urlencode
+try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
@@ -433,11 +439,12 @@ class Project(object):
 
     def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
              fetchsource=False, force=False, skip=False, minimum_perc=0,
-             mode=None, pseudo=False):
+             mode=None, pseudo=False, xliff=False):
         """Pull all translations file from transifex server."""
         self.minimum_perc = minimum_perc
         resource_list = self.get_chosen_resources(resources)
         skip_decode = False
+        get_params = {}
 
         if mode == 'reviewed':
             url = 'pull_reviewed_file'
@@ -527,6 +534,8 @@ class Project(object):
                 msg = "Pulling translations for resource %s (source: %s)"
                 logger.info(msg % (resource, sfile))
 
+            if xliff:
+                get_params.update({'file': 'xliff'})
             for lang in pull_languages:
                 local_lang = lang
                 if lang in list(lang_map.values()):
@@ -549,13 +558,16 @@ class Project(object):
                     'force': force,
                     'mode': mode,
                 }
-                if not self._should_update_translation(**kwargs):
-                    msg = "Skipping '%s' translation (file: %s)."
-                    logger.info(
-                        msg % (utils.color_text(remote_lang, "RED"),
-                               local_file)
-                    )
-                    continue
+
+                # xliff files should be always pulled
+                if not xliff:
+                    if not self._should_update_translation(**kwargs):
+                        msg = "Skipping '%s' translation (file: %s)."
+                        logger.info(
+                            msg % (utils.color_text(remote_lang, "RED"),
+                                   local_file)
+                        )
+                        continue
 
                 if not overwrite:
                     local_file = ("%s.new" % local_file)
@@ -565,7 +577,8 @@ class Project(object):
                 )
                 try:
                     r, charset = self.do_url_request(
-                        url, language=remote_lang, skip_decode=skip_decode
+                        url, language=remote_lang, skip_decode=skip_decode,
+                        get_params=get_params
                     )
                 except Exception as e:
                     if isinstance(e, SSLError) or not skip:
@@ -573,6 +586,8 @@ class Project(object):
                     else:
                         logger.error(e)
                         continue
+                if xliff:
+                    local_file += '.xlf'
                 self._save_file(local_file, charset, r)
 
             if new_translations:
@@ -615,8 +630,12 @@ class Project(object):
                     )
 
                     r, charset = self.do_url_request(
-                        url, language=remote_lang, skip_decode=skip_decode
+                        url, language=remote_lang, skip_decode=skip_decode,
+                        get_params=get_params
                     )
+                    if xliff:
+                        local_file += '.xlf'
+
                     self._save_file(local_file, charset, r)
 
     def push(self, source=False, translations=False, force=False,
@@ -871,7 +890,8 @@ class Project(object):
                 raise
 
     def do_url_request(self, api_call, multipart=False, data=None,
-                       files=[], method="GET", skip_decode=False, **kwargs):
+                       files=[], method="GET", skip_decode=False,
+                       get_params={}, **kwargs):
         """Issues a url request."""
         # Read the credentials from the config file (.transifexrc)
         host = self.url_info['host']
@@ -890,6 +910,14 @@ class Project(object):
         kwargs.update(self.url_info)
         url = API_URLS[api_call] % kwargs
 
+        if get_params:
+            # update url params
+            url_parts = list(urlparse.urlparse(url))
+            query = dict(urlparse.parse_qsl(url_parts[4]))
+            query.update(get_params)
+            url_parts[4] = urlencode(query)
+            url = urlparse.urlunparse(url_parts)
+
         if multipart:
             for info, filename in files:
                 # FIXME: It works because we only pass to files argument
@@ -902,7 +930,7 @@ class Project(object):
                 }
         return utils.make_request(
             method, hostname, url, username, passwd, data,
-            skip_decode=skip_decode
+            skip_decode=skip_decode, get_params=get_params
         )
 
     def _should_update_translation(self, lang, stats, local_file, force=False,

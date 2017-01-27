@@ -129,6 +129,9 @@ def pull_parser():
             "'reviewed'). See http://bit.ly/pullmode for available values."
         )
     )
+    parser.add_option("--xliff", action="store_true", dest="xliff",
+                      default=False, help="Apply this option to download "
+                      "file as xliff.")
     return parser
 
 
