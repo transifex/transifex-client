@@ -8,11 +8,65 @@ except ImportError:
     import simplejson as json
 from mock import Mock, patch
 
-from txclib.project import Project
+from txclib.project import Project, ProjectNotInit
 from txclib.config import Flipdict
 
 
 class TestProject(unittest.TestCase):
+
+    @patch('txclib.utils.find_dot_tx')
+    def test_get_tx_dir_path(self, m_find_dot_tx):
+        """Test _get_tx_dir_path function"""
+        expected_path = '/tmp/'
+        m_find_dot_tx.return_value = expected_path
+        p = Project(init=False)
+        path = p._get_tx_dir_path(path_to_tx=None)
+        self.assertEqual(path, expected_path)
+        m_find_dot_tx.assert_called_once_with()
+
+        expected_path = '/opt/'
+        path = p._get_tx_dir_path(path_to_tx=expected_path)
+        self.assertEqual(path, expected_path)
+        # make sure it has not been called twice
+        m_find_dot_tx.assert_called_once_with()
+
+    @patch('os.path.exists')
+    def test_get_config_file_path(self, m_exists):
+        """Test _get_config_file_path function"""
+        p = Project(init=False)
+        m_exists.return_value = True
+        p._get_config_file_path('/tmp/')
+        m_exists.assert_called_once_with('/tmp/.tx/config')
+
+        m_exists.return_value = False
+        with self.assertRaises(ProjectNotInit):
+            p._get_config_file_path('/tmp/')
+
+    @patch('txclib.utils.confirm')
+    @patch('txclib.config.configparser')
+    def test_getset_host_credentials(self, m_parser, m_confirm):
+        p = Project(init=False)
+        # let suppose a token has been set at the config
+        dummy_token = 'salala'
+        p.txrc = m_parser
+        p.txrc.add_section = Mock()
+        p.txrc.set = Mock()
+        p.txrc.get = Mock()
+        p.txrc.get.side_effect = ['api', dummy_token, None, None]
+        p.txrc_file = '/tmp'
+        username, password = p.getset_host_credentials('test')
+        self.assertEqual(username, 'api')
+        self.assertEqual(password, dummy_token)
+
+        # let's try to get credentials for someone without
+        # a token
+        p.txrc.get.side_effect = [
+            'username',
+            'passw0rdz'
+        ]
+        username, password = p.getset_host_credentials('test')
+        self.assertEqual(username, 'username')
+        self.assertEqual(password, 'passw0rdz')
 
     def test_extract_fields(self):
         """Test the functions that extract a field from a stats object."""
@@ -379,7 +433,6 @@ class TestProjectPull(unittest.TestCase):
         """Test finding new transaltions to add."""
         with patch.object(self.p, 'do_url_request') as resource_mock:
             resource_mock.return_value = json.dumps(self.details), "utf-8"
-            files_keys = self.langs
             new_trans = self.p._new_translations_to_add
             for force in [True, False]:
                 res = new_trans(
@@ -510,8 +563,7 @@ class TestProjectPull(unittest.TestCase):
             res = self.p._should_download('en', self.stats, None, True)
             self.assertEqual(res, True)
 
-            with patch.object(self.p, '_remote_is_newer') as local_file_mock:
-                local_file_mock = False
+            with patch.object(self.p, '_remote_is_newer'):
                 res = self.p._should_download('pt', self.stats, None, False)
                 self.assertEqual(res, True)
                 res = self.p._should_download('pt', self.stats, None, True)
@@ -565,7 +617,6 @@ class TestConfigurationOptions(unittest.TestCase):
 
     def test_i18n_type(self):
         p = Project(init=False)
-        type_string = 'type'
         i18n_type = 'PO'
         with patch.object(p, 'config', create=True) as config_mock:
             p.set_i18n_type([], i18n_type)

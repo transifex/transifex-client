@@ -24,6 +24,7 @@ from txclib.config import OrderedRawConfigParser, Flipdict, CERT_REQUIRED
 from txclib.log import logger
 from txclib.processors import visit_hostname
 from txclib.paths import posix_path, native_path, posix_sep
+from txclib.utils import confirm
 
 
 class ProjectNotInit(Exception):
@@ -145,36 +146,88 @@ class Project(object):
             mask = os.umask(0o077)
             open(txrc_file, 'w').close()
             os.umask(mask)
+            if os.path.exists(txrc_file):
+                logger.info('Created %s ' % txrc_file)
+            else:
+                logger.info('Could not create %s ' % txrc_file)
         return txrc_file
 
     def validate_config(self):
         """To ensure the json structure is correctly formed."""
         pass
 
-    def getset_host_credentials(self, host, user=None, password=None):
+    def getset_host_credentials(
+        self,
+        host,
+        username=None,
+        password=None,
+        token=None,
+        save=False
+    ):
         """Read .transifexrc and report user,
-        pass for a specific host else ask the user for input.
+        pass or a token for a specific host else ask the user for input.
         """
-        try:
-            username = self.txrc.get(host, 'username')
-            passwd = self.txrc.get(host, 'password')
-        except (configparser.NoOptionError, configparser.NoSectionError):
-            logger.info("No entry found for host %s. Creating..." % host)
-            username = user or input("Please enter your transifex username: ")
-            while (not username):
-                username = input("Please enter your transifex username: ")
-            passwd = password
-            while (not passwd):
-                passwd = getpass.getpass()
+        # from_config is a flag that tells us if we got the credentials
+        # from the config file
+        from_config = False
+        # first check if a token has been given it should override everything
+        if token:
+            password = token
+            username = 'api'
+        # if neither a token nor a username or a password were given
+        # try to get them from the rc file
+        elif not (username and password):
+            try:
+                username = self.txrc.get(host, 'username')
+                password = self.txrc.get(host, 'password')
+            except (configparser.NoOptionError, configparser.NoSectionError):
+                # if the rc has no credentials, we have to ask the user and
+                # update the rc file
+                save = True
+                # Ask the user if they have an api token
+                if confirm(
+                    prompt="\nDid you know that you can create an api"
+                    "token under your transifex user's settings?\n"
+                    "(Read more at https://docs.transifex.com/api/)\n"
+                    "So, do you have an api token?",
+                    default=False
 
+                ):
+                    token_msg = "Please enter your api token: "
+                    while not token:
+                        token = input(token_msg)
+                    # Since we got a token, we use api as the username
+                    # and the token as the password
+                    username = 'api'
+                    password = token
+                else:
+                    username_msg = "Please enter your transifex username: "
+                    while not username:
+                        username = input(username_msg)
+                    while (not password):
+                        password = getpass.getpass()
+            else:
+                from_config = True
+
+        # lets see if there is a default username or a password
+        # unless we got the files from the config
+        if not from_config:
+            try:
+                username = self.txrc.get(host, 'username')
+                password = self.txrc.get(host, 'password')
+            except (configparser.NoOptionError, configparser.NoSectionError):
+                # if we do not have defaults, save the give credentials
+                save = True
+
+        if save:
             logger.info("Updating %s file..." % self.txrc_file)
-            self.txrc.add_section(host)
+            if not self.txrc.has_section(host):
+                logger.info("No entry found for host %s. Creating..." % host)
+                self.txrc.add_section(host)
             self.txrc.set(host, 'username', username)
-            self.txrc.set(host, 'password', passwd)
-            self.txrc.set(host, 'token', '')
+            self.txrc.set(host, 'password', password)
             self.txrc.set(host, 'hostname', host)
-
-        return username, passwd
+        return username, password
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
                             file_filter=None):

@@ -67,6 +67,17 @@ def init_parser():
                       help="Specify username for Transifex server.")
     parser.add_option("--pass", action="store", dest="password", default=None,
                       help="Specify password for Transifex server.")
+    parser.add_option(
+        "--force-save",
+        action="store_true",
+        dest="save",
+        default=False,
+        help="Override .transifexrc file with the given credentials."
+    )
+
+    parser.add_option("--token", action="store", dest="token", default=None,
+                      help="Specify an api token.\nYou can get one from"
+                      " user's settings")
     return parser
 
 
