@@ -188,7 +188,8 @@ class Project(object):
                 if confirm(
                     prompt="\nDid you know that you can create an api"
                     "token under your transifex user's settings?\n"
-                    "(Read more at https://docs.transifex.com/api/)\n"
+                    "(Read more at https://docs.transifex.com/api/"
+                    "introduction#authentication)\n"
                     "So, do you have an api token?",
                     default=False
 
