@@ -535,6 +535,8 @@ class Project(object):
             if pull_languages:
                 logger.debug("Pulling languages for: %s" % pull_languages)
                 msg = "Pulling translations for resource %s (source: %s)"
+                if xliff:
+                    msg += " [xliff format]"
                 logger.info(msg % (resource, sfile))
 
             if xliff:
@@ -564,14 +566,16 @@ class Project(object):
                 }
 
                 # xliff files should be always pulled
-                if not xliff:
-                    if not self._should_update_translation(**kwargs):
-                        msg = "Skipping '%s' translation (file: %s)."
-                        logger.info(
-                            msg % (utils.color_text(remote_lang, "RED"),
-                                   local_file)
-                        )
-                        continue
+                if not xliff and not self._should_update_translation(**kwargs):
+                    msg = "Skipping '%s' translation (file: %s)."
+                    logger.info(
+                        msg % (utils.color_text(remote_lang, "RED"),
+                               local_file)
+                    )
+                    continue
+
+                if xliff:
+                    local_file += '.xlf'
 
                 if not overwrite:
                     local_file = ("%s.new" % local_file)
@@ -590,8 +594,6 @@ class Project(object):
                     else:
                         logger.error(e)
                         continue
-                if xliff:
-                    local_file += '.xlf'
                 self._save_file(local_file, charset, r)
 
             if new_translations:
