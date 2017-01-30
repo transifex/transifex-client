@@ -320,7 +320,7 @@ class Project(object):
             else:
                 return native_path(source_file)
 
-    def get_resource_files(self, resource):
+    def get_resource_files(self, resource, xliff=False):
         """Get a dict for all files assigned to a resource.
         First we calculate the files matching the file expression and
         then we apply all translation excpetions.
@@ -349,6 +349,8 @@ class Project(object):
                     if lang != source_lang:
                         f_path = os.path.relpath(f_path, self.root)
                         if f_path != source_file:
+                            if xliff:
+                                f_path += '.xlf'
                             tr_files.update({lang: f_path})
 
             for (name, value) in self.config.items(resource):
@@ -444,7 +446,7 @@ class Project(object):
         self.minimum_perc = minimum_perc
         resource_list = self.get_chosen_resources(resources)
         skip_decode = False
-        get_params = {}
+        params = {}
 
         if mode == 'reviewed':
             url = 'pull_reviewed_file'
@@ -535,7 +537,8 @@ class Project(object):
                 logger.info(msg % (resource, sfile))
 
             if xliff:
-                get_params.update({'file': 'xliff'})
+                params.update({'file': 'xliff'})
+
             for lang in pull_languages:
                 local_lang = lang
                 if lang in list(lang_map.values()):
@@ -578,7 +581,7 @@ class Project(object):
                 try:
                     r, charset = self.do_url_request(
                         url, language=remote_lang, skip_decode=skip_decode,
-                        get_params=get_params
+                        params=params
                     )
                 except Exception as e:
                     if isinstance(e, SSLError) or not skip:
@@ -631,7 +634,7 @@ class Project(object):
 
                     r, charset = self.do_url_request(
                         url, language=remote_lang, skip_decode=skip_decode,
-                        get_params=get_params
+                        params=params
                     )
                     if xliff:
                         local_file += '.xlf'
@@ -639,15 +642,21 @@ class Project(object):
                     self._save_file(local_file, charset, r)
 
     def push(self, source=False, translations=False, force=False,
-             resources=[], languages=[], skip=False, no_interactive=False):
+             resources=[], languages=[], skip=False, no_interactive=False,
+             xliff=False):
         """Push all the resources"""
         resource_list = self.get_chosen_resources(resources)
         self.skip = skip
         self.force = force
+
+        params = {}
+        if xliff:
+            params.update({'file': 'xliff'})
+
         for resource in resource_list:
             push_languages = []
             project_slug, resource_slug = resource.split('.', 1)
-            files = self.get_resource_files(resource)
+            files = self.get_resource_files(resource, xliff=True)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_source_file(resource)
             lang_map = self.get_resource_lang_mapping(resource)
@@ -696,6 +705,7 @@ class Project(object):
                         files=[("%s;%s" % (resource_slug, slang),
                                 self.get_full_path(sfile)
                                 )],
+                        params=params,
                     )
                 except Exception as e:
                     if isinstance(e, SSLError) or not skip:
@@ -767,7 +777,8 @@ class Project(object):
                             'push_translation', multipart=True, method='PUT',
                             files=[("%s;%s" % (resource_slug, remote_lang),
                                     self.get_full_path(local_file)
-                                    )], language=remote_lang
+                                    )], language=remote_lang,
+                            params=params,
                         )
                         logger.debug("Translation %s pushed." % remote_lang)
                     except utils.HttpNotFound:
@@ -891,7 +902,7 @@ class Project(object):
 
     def do_url_request(self, api_call, multipart=False, data=None,
                        files=[], method="GET", skip_decode=False,
-                       get_params={}, **kwargs):
+                       params={}, **kwargs):
         """Issues a url request."""
         # Read the credentials from the config file (.transifexrc)
         host = self.url_info['host']
@@ -910,11 +921,11 @@ class Project(object):
         kwargs.update(self.url_info)
         url = API_URLS[api_call] % kwargs
 
-        if get_params:
+        if params:
             # update url params
             url_parts = list(urlparse.urlparse(url))
             query = dict(urlparse.parse_qsl(url_parts[4]))
-            query.update(get_params)
+            query.update(params)
             url_parts[4] = urlencode(query)
             url = urlparse.urlunparse(url_parts)
 
@@ -930,7 +941,7 @@ class Project(object):
                 }
         return utils.make_request(
             method, hostname, url, username, passwd, data,
-            skip_decode=skip_decode, get_params=get_params
+            skip_decode=skip_decode
         )
 
     def _should_update_translation(self, lang, stats, local_file, force=False,

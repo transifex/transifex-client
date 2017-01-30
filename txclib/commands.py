@@ -337,6 +337,7 @@ def cmd_push(argv, path_to_tx):
     languages = parse_csv_option(options.languages)
     resources = parse_csv_option(options.resources)
     skip = options.skip_errors
+    xliff = options.xliff
     prj = project.Project(path_to_tx)
     if not (options.push_source or options.push_translations):
         parser.error("You need to specify at least one of the -s|--source, "
@@ -346,7 +347,8 @@ def cmd_push(argv, path_to_tx):
         force=force_creation, resources=resources, languages=languages,
         skip=skip, source=options.push_source,
         translations=options.push_translations,
-        no_interactive=options.no_interactive
+        no_interactive=options.no_interactive,
+        xliff=xliff
     )
     logger.info("Done.")
 
