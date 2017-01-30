@@ -228,6 +228,7 @@ class Project(object):
             self.txrc.set(host, 'username', username)
             self.txrc.set(host, 'password', password)
             self.txrc.set(host, 'hostname', host)
+            self.save()
         return username, password
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
