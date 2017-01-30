@@ -350,6 +350,7 @@ class Project(object):
                         f_path = os.path.relpath(f_path, self.root)
                         if f_path != source_file:
                             if xliff:
+                                # update the file-path in case of xliff option
                                 f_path += '.xlf'
                             tr_files.update({lang: f_path})
 
@@ -923,6 +924,9 @@ class Project(object):
 
         if params:
             # update url params
+            # in case we need to add extra params on a url, we first get the
+            # already existing query, create a dict which will be merged with
+            # the extra params and finally put it back in the url
             url_parts = list(urlparse.urlparse(url))
             query = dict(urlparse.parse_qsl(url_parts[4]))
             query.update(params)
