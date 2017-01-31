@@ -228,6 +228,7 @@ class Project(object):
             self.txrc.set(host, 'username', username)
             self.txrc.set(host, 'password', password)
             self.txrc.set(host, 'hostname', host)
+            self.save()
         return username, password
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
@@ -874,13 +875,12 @@ class Project(object):
         """Issues a url request."""
         # Read the credentials from the config file (.transifexrc)
         host = self.url_info['host']
+        username, passwd = self.getset_host_credentials(host)
         try:
-            username = self.txrc.get(host, 'username')
-            passwd = self.txrc.get(host, 'password')
             hostname = self.txrc.get(host, 'hostname')
         except configparser.NoSectionError:
             raise Exception(
-                "No user credentials found for host %s. Edit"
+                "No entry found for host %s. Edit"
                 " ~/.transifexrc and add the appropriate"
                 " info in there." % host
             )
