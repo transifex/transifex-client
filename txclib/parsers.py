@@ -129,7 +129,7 @@ def pull_parser():
             "'reviewed'). See http://bit.ly/pullmode for available values."
         )
     )
-    parser.add_option("--xliff", action="store_true", dest="xliff",
+    parser.add_option("-x", "--xliff", action="store_true", dest="xliff",
                       default=False, help="Apply this option to download "
                       "file as xliff.")
     return parser
@@ -170,7 +170,7 @@ def push_parser():
     parser.add_option("--no-interactive", action="store_true",
                       dest="no_interactive", default=False,
                       help="Don't require user input when forcing a push.")
-    parser.add_option("--xliff", action="store_true", dest="xliff",
+    parser.add_option("-x", "--xliff", action="store_true", dest="xliff",
                       default=False, help="Apply this option to upload "
                       "file as xliff.")
     return parser
