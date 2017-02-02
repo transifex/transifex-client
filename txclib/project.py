@@ -659,7 +659,7 @@ class Project(object):
         for resource in resource_list:
             push_languages = []
             project_slug, resource_slug = resource.split('.', 1)
-            files = self.get_resource_files(resource, xliff=True)
+            files = self.get_resource_files(resource, xliff=xliff)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_source_file(resource)
             lang_map = self.get_resource_lang_mapping(resource)
