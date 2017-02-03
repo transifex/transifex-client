@@ -338,6 +338,9 @@ class Project(object):
                 file_filter = self.config.get(resource, "file_filter")
             except configparser.NoOptionError:
                 file_filter = "$^"
+            if xliff:
+                # update the file-path in case of xliff option
+                file_filter += '.xlf'
             source_lang = self.config.get(resource, "source_lang")
             source_file = self.get_source_file(resource)
             expr_re = utils.regex_from_filefilter(file_filter, self.root)
@@ -349,9 +352,6 @@ class Project(object):
                     if lang != source_lang:
                         f_path = os.path.relpath(f_path, self.root)
                         if f_path != source_file:
-                            if xliff:
-                                # update the file-path in case of xliff option
-                                f_path += '.xlf'
                             tr_files.update({lang: f_path})
 
             for (name, value) in self.config.items(resource):
