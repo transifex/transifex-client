@@ -15,7 +15,6 @@ except ImportError:
 
 from email.parser import Parser
 from urllib3.exceptions import SSLError
-from six.moves import input
 from txclib.urls import API_URLS
 from txclib.exceptions import (
     UnknownCommandError, HttpNotFound, HttpNotAuthorized
@@ -106,6 +105,11 @@ def determine_charset(response):
     return "utf-8"
 
 
+def make_headers(url):
+    parsed_url = urllib3.util.url.parse_url(url)
+    return urllib3.make_headers(proxy_basic_auth=parsed_url.auth)
+
+
 def make_request(method, host, url, username, password, fields=None,
                  skip_decode=False, get_params={}):
 
@@ -119,7 +123,7 @@ def make_request(method, host, url, username, password, fields=None,
             proxy_url = os.environ["http_proxy"]
             managers["http"] = urllib3.ProxyManager(
                 proxy_url=proxy_url,
-                proxy_headers={"User-Agent": user_agent_identifier()},
+                proxy_headers=make_headers(proxy_url),
                 num_pools=num_pools
             )
         else:
@@ -130,7 +134,7 @@ def make_request(method, host, url, username, password, fields=None,
             proxy_url = os.environ["https_proxy"]
             managers["https"] = urllib3.ProxyManager(
                 proxy_url=proxy_url,
-                proxy_headers={"User-Agent": user_agent_identifier()},
+                proxy_headers=make_headers(proxy_url),
                 num_pools=num_pools,
                 cert_reqs=CERT_REQUIRED,
                 ca_certs=certs_file()
