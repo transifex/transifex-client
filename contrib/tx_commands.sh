@@ -28,6 +28,6 @@ echo 'Checking if translation xlf file has been downloaded...'
 ls locale/pt_BR/LC_MESSAGES/django.po.xlf
 
 # upload xliff
-$TX --traceback push -t -l pt_BR --xliff
+yes | $TX --traceback push -t -l pt_BR -f --xliff
 
 $TX --traceback delete -f
