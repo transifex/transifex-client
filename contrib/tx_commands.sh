@@ -20,7 +20,7 @@ $TX --traceback pull -l pt_BR -f
 
 # Push dummy translation to pt_BR language
 cp locale/en/LC_MESSAGES/django.po locale/pt_BR/LC_MESSAGES/django.po
-yes | $TX --traceback push -t -l pt_BR -f
+yes | $TX --traceback push -t -l pt_BR
 
 # try to download translation xliff
 $TX --traceback pull -l pt_BR -f --xliff
