@@ -12,7 +12,7 @@ git clone https://github.com/transifex/txci.git
 cd txci
 rm -rf .tx
 $TX init --host="https://www.transifex.com" --user=$TRANSIFEX_USER --pass=$TRANSIFEX_PASSWORD
-$TX set --auto-local -r txci.$BRANCH -s en 'locale/<lang>/LC_MESSAGES/django.po' -t PO --execute
+$TX set --auto-local -r txci.$BRANCH\_$RANDOM -s en 'locale/<lang>/LC_MESSAGES/django.po' -t PO --execute
 
 # push/pull without XLIFF
 $TX --traceback push -s
