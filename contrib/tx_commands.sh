@@ -18,16 +18,16 @@ $TX set --auto-local -r txci.$BRANCH -s en 'locale/<lang>/LC_MESSAGES/django.po'
 $TX --traceback push -s
 $TX --traceback pull -l pt_BR -f
 
-# Push dummy translation to pt_BR language
-cp locale/en/LC_MESSAGES/django.po locale/pt_BR/LC_MESSAGES/django.po
-yes | $TX --traceback push -t -l pt_BR -f
-
-# try to download translation xliff
-$TX --traceback pull -l pt_BR -f --xliff
-echo 'Checking if translation xlf file has been downloaded...'
-ls locale/pt_BR/LC_MESSAGES/django.po.xlf
-
-# upload xliff
-$TX --traceback push -t -l pt_BR --xliff
+# # Push dummy translation to pt_BR language
+# cp locale/en/LC_MESSAGES/django.po locale/pt_BR/LC_MESSAGES/django.po
+# yes | $TX --traceback push -t -l pt_BR -f
+#
+# # try to download translation xliff
+# $TX --traceback pull -l pt_BR -f --xliff
+# echo 'Checking if translation xlf file has been downloaded...'
+# ls locale/pt_BR/LC_MESSAGES/django.po.xlf
+#
+# # upload xliff
+# yes | $TX --traceback push -t -l pt_BR -f --xliff
 
 $TX --traceback delete -f

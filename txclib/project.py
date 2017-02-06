@@ -338,6 +338,9 @@ class Project(object):
                 file_filter = self.config.get(resource, "file_filter")
             except configparser.NoOptionError:
                 file_filter = "$^"
+            if xliff:
+                # update the file-path in case of xliff option
+                file_filter += '.xlf'
             source_lang = self.config.get(resource, "source_lang")
             source_file = self.get_source_file(resource)
             expr_re = utils.regex_from_filefilter(file_filter, self.root)
@@ -349,9 +352,6 @@ class Project(object):
                     if lang != source_lang:
                         f_path = os.path.relpath(f_path, self.root)
                         if f_path != source_file:
-                            if xliff:
-                                # update the file-path in case of xliff option
-                                f_path += '.xlf'
                             tr_files.update({lang: f_path})
 
             for (name, value) in self.config.items(resource):
@@ -654,7 +654,7 @@ class Project(object):
 
         params = {}
         if xliff:
-            params.update({'file': 'xliff'})
+            params.update({'file_type': 'xliff'})
 
         for resource in resource_list:
             push_languages = []
@@ -924,7 +924,8 @@ class Project(object):
         kwargs.update(self.url_info)
         url = API_URLS[api_call] % kwargs
 
-        if params:
+        # in case of GET we need to add xliff option as get parameter
+        if params and method == 'GET':
             # update url params
             # in case we need to add extra params on a url, we first get the
             # already existing query, create a dict which will be merged with
@@ -945,6 +946,9 @@ class Project(object):
                     "language": info.split(';')[1],
                     "uploaded_file": (name, open(filename, 'rb').read())
                 }
+                # in case of PUT we add xliff option as form data
+                if method == 'PUT':
+                    data.update(params)
         return utils.make_request(
             method, hostname, url, username, passwd, data,
             skip_decode=skip_decode
