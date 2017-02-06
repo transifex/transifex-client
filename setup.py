@@ -10,12 +10,13 @@ def get_file_content(filename):
     with open(filename, 'r', encoding='UTF-8') as f:
         return f.read()
 
+
 setup(
     name="transifex-client",
     version=txclib.__version__,
     entry_points={'console_scripts': ['tx=txclib.cmdline:main']},
     description="A command line interface for Transifex",
-    long_description=get_file_content('README.rst'),
+    long_description=get_file_content('README.md'),
     author="Transifex",
     author_email="admin@transifex.com",
     url="https://www.transifex.com",
