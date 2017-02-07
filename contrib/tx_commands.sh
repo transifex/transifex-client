@@ -12,22 +12,24 @@ git clone https://github.com/transifex/txci.git
 cd txci
 rm -rf .tx
 $TX init --host="https://www.transifex.com" --user=$TRANSIFEX_USER --pass=$TRANSIFEX_PASSWORD
-$TX set --auto-local -r txci.$BRANCH -s en 'locale/<lang>/LC_MESSAGES/django.po' -t PO --execute
+$TX set --auto-local -r txci.$BRANCH\_$TRANSIFEX_USER -s en 'locale/<lang>/LC_MESSAGES/django.po' -t PO --execute
 
 # push/pull without XLIFF
+echo "Pushing Source..."
 $TX --traceback push -s
-$TX --traceback pull -l pt_BR -f
+echo "Pushing Brazilian..."
+yes | $TX --traceback push -t -l pt_BR -f
+yes | $TX --traceback pull -l pt_BR -f
 
-# # Push dummy translation to pt_BR language
-# cp locale/en/LC_MESSAGES/django.po locale/pt_BR/LC_MESSAGES/django.po
-# yes | $TX --traceback push -t -l pt_BR -f
-#
-# # try to download translation xliff
-# $TX --traceback pull -l pt_BR -f --xliff
-# echo 'Checking if translation xlf file has been downloaded...'
-# ls locale/pt_BR/LC_MESSAGES/django.po.xlf
-#
-# # upload xliff
-# yes | $TX --traceback push -t -l pt_BR -f --xliff
+# try to download translation xliff
+echo "Pulling xliff for pt_BR"
+$TX --traceback pull -l pt_BR --xliff
+echo "Checking if translation xlf file has been downloaded..."
+ls locale/pt_BR/LC_MESSAGES/django.po.xlf
+
+# upload xliff
+echo "Pushing xliff for pt_BR"
+$TX --traceback push -t -l pt_BR --xliff
+
 
 $TX --traceback delete -f
