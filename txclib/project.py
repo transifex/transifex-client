@@ -25,7 +25,9 @@ from txclib import web
 from txclib import utils
 from urllib3.exceptions import SSLError
 from six.moves import input
-from txclib.exceptions import HttpNotFound, HttpNotAuthorized
+from txclib.exceptions import (
+    HttpNotFound, HttpNotAuthorized, MalformedConfigFile
+)
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict, CERT_REQUIRED
 from txclib.log import logger
@@ -349,7 +351,12 @@ class Project(object):
             for f_path in utils.files_in_project(self.root):
                 match = expr_rec.match(posix_path(f_path))
                 if match:
-                    lang = match.group(1)
+                    try:
+                        lang = match.group(1)
+                    except IndexError:
+                        msg = ("file_filter {} does not contain '<lang>' "
+                               "expresion".format(file_filter))
+                        raise MalformedConfigFile(msg)
                     if lang != source_lang:
                         f_path = os.path.relpath(f_path, self.root)
                         if f_path != source_file:
