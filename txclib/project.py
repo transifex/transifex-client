@@ -25,6 +25,7 @@ from txclib import web
 from txclib import utils
 from urllib3.exceptions import SSLError
 from six.moves import input
+from txclib.exceptions import HttpNotFound, HttpNotAuthorized
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict, CERT_REQUIRED
 from txclib.log import logger
@@ -482,7 +483,18 @@ class Project(object):
             logger.debug("URL data are: %s" % self.url_info)
 
             stats = self._get_stats_for_resource()
-            details_response, _ = self.do_url_request('resource_details')
+            try:
+                details_response, _ = self.do_url_request('resource_details')
+            except Exception as e:
+                if isinstance(e, SSLError):
+                    raise
+                if isinstance(e, HttpNotAuthorized):
+                    logger.error("Request is not authorized.")
+                    continue
+                if isinstance(e, HttpNotFound):
+                    msg = "Resource %s doesn't exist on the server."
+                    logger.error(msg % resource)
+                    continue
             details = utils.parse_json(details_response)
             if details['i18n_type'] in self.SKIP_DECODE_I18N_TYPES:
                 skip_decode = True
@@ -721,11 +733,10 @@ class Project(object):
                 except Exception as e:
                     if isinstance(e, SSLError):
                         raise
-                    code = getattr(e, 'code', None)
-                    if code == 401:
+                    if isinstance(e, HttpNotAuthorized):
                         logger.error("Request is not authorized.")
                         continue
-                    if code == 404:
+                    if isinstance(e, HttpNotFound):
                         msg = "Resource %s doesn't exist on the server."
                         logger.error(msg % resource)
                         continue
@@ -814,7 +825,18 @@ class Project(object):
                 'resource': resource_slug
             }
             logger.debug("URL data are: %s" % self.url_info)
-            json, _ = self.do_url_request('project_details', project=self)
+            try:
+                json, _ = self.do_url_request('project_details', project=self)
+            except Exception as e:
+                if isinstance(e, SSLError):
+                    raise
+                if isinstance(e, HttpNotAuthorized):
+                    logger.error("Request is not authorized.")
+                    continue
+                if isinstance(e, HttpNotFound):
+                    msg = "Resource %s doesn't exist on the server."
+                    logger.error(msg % resource)
+                    continue
             project_details = utils.parse_json(json)
             stats = self._get_stats_for_resource()
             delete_func(project_details, resource, stats, languages)
