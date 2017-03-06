@@ -773,7 +773,14 @@ class Project(object):
                     else:
                         remote_lang = lang
 
-                    local_file = files[local_lang]
+                    try:
+                        local_file = files[local_lang]
+                    except KeyError as e:
+                        msg = "No translation file found for language code '%s' in resource '%s'"
+                        logger.error(msg % (color_text(local_lang, "RED"), resource_slug))
+                        if not skip:
+                            raise e
+                        continue
 
                     kwargs = {
                         'lang': remote_lang,
