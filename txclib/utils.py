@@ -116,10 +116,12 @@ def make_request(method, host, url, username, password, fields=None,
     if host.lower().startswith("http://"):
         scheme = "http"
         if "http_proxy" in os.environ:
-            proxy_url = os.environ["http_proxy"]
+            proxy_url = urllib3.util.url.parse_url(os.environ["http_proxy"])
             managers["http"] = urllib3.ProxyManager(
-                proxy_url=proxy_url,
-                proxy_headers={"User-Agent": user_agent_identifier()},
+                proxy_url=proxy_url.url,
+                proxy_headers=urllib3.util.make_headers(
+                    user_agent=user_agent_identifier(),
+                    proxy_basic_auth=proxy_url.auth),
                 num_pools=num_pools
             )
         else:
@@ -127,10 +129,12 @@ def make_request(method, host, url, username, password, fields=None,
     elif host.lower().startswith("https://"):
         scheme = "https"
         if "https_proxy" in os.environ:
-            proxy_url = os.environ["https_proxy"]
+            proxy_url = urllib3.util.url.parse_url(os.environ["https_proxy"])
             managers["https"] = urllib3.ProxyManager(
-                proxy_url=proxy_url,
-                proxy_headers={"User-Agent": user_agent_identifier()},
+                proxy_url=proxy_url.url,
+                proxy_headers=urllib3.util.make_headers(
+                    user_agent=user_agent_identifier(),
+                    proxy_basic_auth=proxy_url.auth),
                 num_pools=num_pools,
                 cert_reqs=CERT_REQUIRED,
                 ca_certs=certs_file()
