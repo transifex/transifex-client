@@ -754,15 +754,11 @@ class Project(object):
                     push_languages = list(files.keys())
                 else:
                     push_languages = []
-                    f_langs = list(files.keys())
                     for l in languages:
                         if l in list(lang_map.keys()):
                             l = lang_map[l]
                         push_languages.append(l)
-                        if l not in f_langs:
-                            msg = "Warning: No mapping found for "
-                            "language code '%s'."
-                            logger.error(msg % utils.color_text(l, "RED"))
+
                 logger.debug("Languages to push are %s" % push_languages)
 
                 # Push translation files one by one
@@ -773,7 +769,12 @@ class Project(object):
                     else:
                         remote_lang = lang
 
-                    local_file = files[local_lang]
+                    local_file = files.get(local_lang)
+                    if not local_file:
+                        msg = ("Warning: No local translation file found for "
+                               "language code '%s'.")
+                        logger.error(msg % utils.color_text(lang, "RED"))
+                        continue
 
                     kwargs = {
                         'lang': remote_lang,
