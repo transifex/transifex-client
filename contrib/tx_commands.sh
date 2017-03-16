@@ -21,6 +21,9 @@ echo "Pushing Brazilian..."
 yes | $TX --traceback push -t -l pt_BR -f
 yes | $TX --traceback pull -l pt_BR -f
 
+echo "Pushing a file that doesn't exist..."
+yes | $TX --traceback push -t -l pt_PT -f
+
 # try to download translation xliff
 echo "Pulling xliff for pt_BR"
 $TX --traceback pull -l pt_BR --xliff
