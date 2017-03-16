@@ -18,11 +18,11 @@ $TX set --auto-local -r txci.$BRANCH\_$TRANSIFEX_USER\_$RANDOM -s en 'locale/<la
 echo "Pushing Source..."
 $TX --traceback push -s
 echo "Pushing Brazilian..."
-yes | $TX --traceback push -t -l pt_BR -f
-yes | $TX --traceback pull -l pt_BR -f
+$TX --traceback push -t -l pt_BR -f --no-interactive
+$TX --traceback pull -l pt_BR -f
 
 echo "Pushing a file that doesn't exist..."
-yes | $TX --traceback push -t -l pt_PT -f
+$TX --traceback push -t -l pt_PT -f --no-interactive
 
 # try to download translation xliff
 echo "Pulling xliff for pt_BR"
@@ -32,7 +32,7 @@ ls locale/pt_BR/LC_MESSAGES/django.po.xlf
 
 # upload xliff
 echo "Pushing xliff for pt_BR"
-$TX --traceback push -t -l pt_BR --xliff
+$TX --traceback push -t -l pt_BR --xliff -f --no-interactive
 
 
 $TX --traceback delete -f
