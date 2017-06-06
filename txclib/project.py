@@ -575,7 +575,6 @@ class Project(object):
                 else:
                     local_file = sfile
                 logger.debug("Using file %s" % local_file)
-
                 kwargs = {
                     'lang': remote_lang,
                     'stats': stats,
@@ -1030,6 +1029,10 @@ class Project(object):
         If local_file is None, skip the timestamps check (the file does
         not exist locally).
         """
+        if force:
+            logger.debug("Downloading translation due to -f")
+            return True
+
         try:
             lang_stats = stats[lang]
         except KeyError:
@@ -1039,10 +1042,6 @@ class Project(object):
         satisfies_min = self._satisfies_min_translated(lang_stats, mode)
         if not satisfies_min:
             return False
-
-        if force:
-            logger.debug("Downloading translation due to -f")
-            return True
 
         if local_file is not None:
             remote_update = self._extract_updated(lang_stats)
