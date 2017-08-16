@@ -109,7 +109,7 @@ class MakeRequestTestCase(unittest.TestCase):
         host = 'http://whynotestsforthisstuff.com'
         url = '/my_test_url/'
         self.assertRaises(
-            Exception,
+            exceptions.HttpNotAuthorized,
             utils.make_request,
             'GET',
             host,

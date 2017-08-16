@@ -173,7 +173,7 @@ def make_request(method, host, url, username, password, fields=None,
             if isinstance(data, bytes):
                 data = data.decode(charset)
         if response.status < 200 or response.status >= 400:
-            if response.status == 401:
+            if response.status in (401, 403):
                 raise HttpNotAuthorized(data)
             elif response.status == 404:
                 raise HttpNotFound(data)
