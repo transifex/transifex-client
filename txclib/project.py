@@ -52,6 +52,8 @@ PULL_MODE_URL_MAPPING = {
     PULL_MODE_SOURCEASTRANSLATION: 'pull_sourceastranslation_file',
 }
 
+DEFAULT_API_HOSTNAME = "https://api.transifex.com"
+
 
 class ProjectNotInit(Exception):
     pass
@@ -140,6 +142,11 @@ class Project(object):
         if not os.path.exists(self.txrc_file):
             return txrc
         for section in txrc.sections():
+            try:
+                api_hostname = txrc.get(section, 'api_hostname')
+            except configparser.NoOptionError:
+                txrc.set(section, 'api_hostname', DEFAULT_API_HOSTNAME)
+
             orig_hostname = txrc.get(section, 'hostname')
             hostname = visit_hostname(orig_hostname)
             if hostname != orig_hostname:
@@ -254,6 +261,7 @@ class Project(object):
             self.txrc.set(host, 'username', username)
             self.txrc.set(host, 'password', password)
             self.txrc.set(host, 'hostname', host)
+            self.txrc.set(host, 'api_hostname', DEFAULT_API_HOSTNAME)
             self.save()
         return username, password
 
