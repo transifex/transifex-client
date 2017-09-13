@@ -33,6 +33,7 @@ from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
     status_parser, pull_parser, set_parser, push_parser, init_parser
 from txclib.paths import posix_path
 from txclib.log import logger
+from txclib.wizard import Wizard
 
 
 def cmd_init(argv, path_to_tx):
@@ -110,11 +111,12 @@ initialize your project.
 
 def cmd_set(argv, path_to_tx):
     """Add local or remote files under transifex"""
-    parser = set_parser()
-    (options, args) = parser.parse_args(argv)
+    if len(argv) == 0:
+        options, args = Wizard(path_to_tx).run()
+    else:
+        parser = set_parser()
+        options, args = parser.parse_args(argv)
 
-    # Implement options/args checks
-    # TODO !!!!!!!
     if options.local:
         try:
             expression = args[0]
