@@ -75,6 +75,13 @@ def init_parser():
         help="Override .transifexrc file with the given credentials."
     )
 
+    parser.add_option(
+        "--skipsetup",
+        action="store_true",
+        dest="skipsetup",
+        default=False,
+        help="Don't start tx set interactive wizard after setting up credentials."
+    )
     parser.add_option("--token", action="store", dest="token", default=None,
                       help="Specify an api token.\nYou can get one from"
                       " user's settings")
@@ -186,9 +193,9 @@ def set_parser():
         "To set the source file:\n  $ tx set -r project.resource --source -l en <file>\n\n"\
         "To set a single translation file:\n  $ tx set -r project.resource -l de <file>\n\n"\
         "To automatically detect and assign the source files and translations:\n"\
-        " $ tx set --auto-local -r project.resource 'expr' --source-lang en\n\n"\
+        " $ tx set --auto-local -r project.resource 'expr' --source-language en\n\n"\
         "To set a specific file as a source and auto detect translations:\n"\
-        " $ tx set --auto-local -r project.resource 'expr' --source-lang en "\
+        " $ tx set --auto-local -r project.resource 'expr' --source-language en "\
         "--source-file <file>\n\n"\
         "To set a remote resource/project:\n"\
         "  $ tx set --auto-remote <transifex-url>\n"

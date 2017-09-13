@@ -22,9 +22,15 @@ API_URLS = {
     'delete_resource': '/api/2/project/%(project)s/resource/%(resource)s/',
     'organizations': '/organizations/',
     'projects': '/organizations/%(organization)s/projects/',
+    'user': '/user/',
 }
 
 HOSTNAMES = {
     'https://www.transifex.com': ['formats'],
-    'https://www.transifex.com': ['projects', 'organizations'],
+    'https://api.transifex.com': ['projects', 'organizations'],
+}
+
+HOSTNAMES = {
+    'http://127.0.0.1:8000': ['formats'],
+    'http://127.0.0.1:8001': ['user', 'projects', 'organizations'],
 }
