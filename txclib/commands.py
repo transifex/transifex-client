@@ -46,24 +46,33 @@ def cmd_init(argv, path_to_tx):
     else:
         path_to_tx = os.getcwd()
 
+    intro = """
+ _____                    _  __
+|_   _| __ __ _ _ __  ___(_)/ _| _____  __
+  | || '__/ _` | '_ \/ __| | |_ / _ \ \/ /
+  | || | | (_| | | | \__ \ |  _|  __/>  <
+  |_||_|  \__,_|_| |_|___/_|_|  \___/_/\_\
+
+
+Welcome to Transifex Client! Please follow the instructions to
+initialize your project.
+"""
+    logger.info(intro)
     save = options.save
     # if we already have a config file and we are not told to override it
     # in the args we have to ask
-    if os.path.isdir(os.path.join(path_to_tx, ".tx")) and not save:
-        logger.info("tx: There is already a tx folder!")
-        if not utils.confirm(
-            prompt='Do you want to delete it and reinit the project?',
-            default=False
-        ):
-            return
-        # Clean the old settings
-        # FIXME: take a backup
-        else:
-            save = True
-            rm_dir = os.path.join(path_to_tx, ".tx")
-            shutil.rmtree(rm_dir)
+    if os.path.isdir(os.path.join(path_to_tx, ".tx")):
+        if not save:
+            logger.info("It seems that this project is already intitialized.")
+            if not utils.confirm(
+                prompt='Do you want to delete it and reinit the project?',
+                default=False
+            ):
+                return
+        rm_dir = os.path.join(path_to_tx, ".tx")
+        shutil.rmtree(rm_dir)
 
-    logger.info("Creating .tx folder...")
+    logger.info("\nCreating .tx folder...")
     os.mkdir(os.path.join(path_to_tx, ".tx"))
 
     default_transifex = "https://www.transifex.com"
@@ -90,11 +99,13 @@ def cmd_init(argv, path_to_tx):
         fh.close()
 
     prj = project.Project(path_to_tx)
-    prj.getset_host_credentials(transifex_host, username=options.user,
-                                password=options.password,
-                                token=options.token, save=save)
+    prj.getset_host_credentials(transifex_host, token=options.token, save=save)
     prj.save()
-    logger.info("Done.")
+
+    if not options.skipsetup:
+        cmd_set([], path_to_tx)
+    else:
+        logger.info("Done.")
 
 
 def cmd_set(argv, path_to_tx):
@@ -134,7 +145,7 @@ def cmd_set(argv, path_to_tx):
         try:
             url = args[0]
         except IndexError:
-            parser.error("Please specify an remote url")
+            parser.error("Please specify a remote url")
         _auto_remote(path_to_tx, url)
         _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
         _set_mode(options.resource, options.mode, path_to_tx)

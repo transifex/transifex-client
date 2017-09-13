@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import getpass
 import os
 import re
 import fnmatch
@@ -33,7 +32,6 @@ from txclib.config import OrderedRawConfigParser, Flipdict, CERT_REQUIRED
 from txclib.log import logger
 from txclib.processors import visit_hostname
 from txclib.paths import posix_path, native_path, posix_sep
-from txclib.utils import confirm
 
 
 DEFAULT_PULL_URL = 'pull_file'
@@ -53,6 +51,18 @@ PULL_MODE_URL_MAPPING = {
 }
 
 DEFAULT_API_HOSTNAME = "https://api.transifex.com"
+
+token_instructions = """
+Transifex Client needs a Transifex API token to authenticate.
+If you don’t have one yet, you can generate a token at
+https://www.transifex.com/user/settings/api/.
+"""
+
+validation_failed_error = """
+Error: Invalid token. You can generate a new token at
+https://www.transifex.com/user/settings/api/.
+"""
+token_msg = "Please enter your api token: "
 
 
 class ProjectNotInit(Exception):
@@ -143,7 +153,7 @@ class Project(object):
             return txrc
         for section in txrc.sections():
             try:
-                api_hostname = txrc.get(section, 'api_hostname')
+                txrc.get(section, 'api_hostname')
             except configparser.NoOptionError:
                 txrc.set(section, 'api_hostname', DEFAULT_API_HOSTNAME)
 
@@ -189,72 +199,45 @@ class Project(object):
         """To ensure the json structure is correctly formed."""
         pass
 
+    def validate_token(self, token):
+        """Check if api token is valid."""
+        return True
+
     def getset_host_credentials(
-        self,
-        host,
-        username=None,
-        password=None,
-        token=None,
-        save=False
+        self, host, username=None, password=None,
+        token=None, save=False
     ):
-        """Read .transifexrc and report user,
-        pass or a token for a specific host else ask the user for input.
         """
-        # from_config is a flag that tells us if we got the credentials
-        # from the config file
-        from_config = False
-        # first check if a token has been given it should override everything
+        Read .transifexrc and report user, pass or a token
+        for a specific host else ask the user for input.
+        """
+
         if token:
-            password = token
             username = 'api'
-        # if neither a token nor a username or a password were given
-        # try to get them from the rc file
-        elif not (username and password):
+            password = token
+        else:
             try:
                 username = self.txrc.get(host, 'username')
                 password = self.txrc.get(host, 'password')
             except (configparser.NoOptionError, configparser.NoSectionError):
-                # if the rc has no credentials, we have to ask the user and
-                # update the rc file
                 save = True
-                # Ask the user if they have an api token
-                if confirm(
-                    prompt="\nDid you know that you can create an api"
-                    "token under your transifex user's settings?\n"
-                    "(Read more at https://docs.transifex.com/api/"
-                    "introduction#authentication)\n"
-                    "So, do you have an api token?",
-                    default=False
 
-                ):
-                    token_msg = "Please enter your api token: "
-                    while not token:
-                        token = input(token_msg)
-                    # Since we got a token, we use api as the username
-                    # and the token as the password
-                    username = 'api'
-                    password = token
-                else:
-                    username_msg = "Please enter your transifex username: "
-                    while not username:
-                        username = input(username_msg)
-                    while (not password):
-                        password = getpass.getpass()
-            else:
-                from_config = True
-
-        # lets see if there is a default username or a password
-        # unless we got the files from the config
-        if not from_config:
-            try:
-                username = self.txrc.get(host, 'username')
-                password = self.txrc.get(host, 'password')
-            except (configparser.NoOptionError, configparser.NoSectionError):
-                # if we do not have defaults, save the give credentials
-                save = True
+        if not (username and password):
+            logger.info(token_instructions)
+            while not token:
+                token = input(token_msg)
+                if not self.validate_token(token):
+                    logger.info(validation_failed_error)
+                    token = None
+            username = 'api'
+            password = token
 
         if save:
-            logger.info("Updating %s file..." % self.txrc_file)
+            # cover the case that the token was passed as an argument
+            if not self.validate_token(token):
+                logger.info(validation_failed_error)
+                return
+            logger.info("\nUpdating %s file..." % self.txrc_file)
             if not self.txrc.has_section(host):
                 logger.info("No entry found for host %s. Creating..." % host)
                 self.txrc.add_section(host)
