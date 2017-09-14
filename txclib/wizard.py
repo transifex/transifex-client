@@ -1,5 +1,6 @@
 import os
 import inquirer
+from txclib import messages
 from slugify import slugify
 from txclib.api import Api
 from txclib.project import Project
@@ -13,69 +14,6 @@ def validate_source_file(answers, path):
 
 def validate_expression(answers, expression):
     return '<lang>' in expression
-
-TEXTS = {
-    "source_file": {
-        "type": inquirer.Text,
-        "description": ("""
-The Transifex Client syncs files between your local directory and Transifex.
-The mapping configuration between the two is stored in a file called .tx/config
-in your current directory. For more information, visit
-https://docs.transifex.com/client/set/.
-"""),
-        "error": ("No file was found in that path. Please correct the path "
-                  "or make sure a file exists in that location."),
-        "processing": "",
-        "message": "Enter a path to your local source file"
-    },
-    "expression": {
-        "type": inquirer.Text,
-        "description": ("""
-Next, we’ll need a path expression pointing to the location of the
-translation files (whether they exist yet or not) associated with
-the source file ‘locale/en/main.yml’. You should use <lang> as a
-wildcard for the language code.
-"""),
-        "error": "The path expression doesn’t contain the <lang> placeholder.",
-        "message": "Enter a path expression"
-    },
-    "formats": {
-        "type": inquirer.List,
-        "description": ("""
-Here’s a list of the supported file formats. For more information,
-check our docs at https://docs.transifex.com/formats/.
-"""),
-        "error": "",
-        "message": "Select the file format type",
-    },
-    "organization": {
-        "type": inquirer.List,
-        "description": ("""
-You’ll now choose a project in a Transifex organization to sync with your
-local files.
-You belong to these organizations in Transifex:
-"""),
-        "error": ("""
-You don’t have any projects in the ‘Waze’ organization. To create a new
-project, head to https://www.transifex.com/waze/add.  Once you’ve created
-a project, you can continue.
-"""),
-        "message": "Select the organization",
-    },
-    "projects": {
-        "type": inquirer.List,
-        "description": ("""We found these projects in your organization."""),
-        "error": "",
-        "message": "Select project",
-    },
-}
-
-epilog = """
-The Transifex Client syncs files between your local directory and Transifex.
-The mapping configuration between the two is stored in a file called
-.tx/config in your current directory. For more information, visit
-https://docs.transifex.com/client/set/.
-"""
 
 
 class Wizard(object):
@@ -125,7 +63,8 @@ class Wizard(object):
         Returns: the populated (options, args) tuple.
         """
 
-        options, args = set_parser().parse_args()
+        TEXTS = messages.TEXTS
+        options, args = set_parser().parse_args([])
         options.local = True
         options.execute = True
         logger.info(TEXTS['source_file']['description'])
@@ -134,15 +73,19 @@ class Wizard(object):
             inquirer.Text('source_file',
                           message=TEXTS['source_file']['message'],
                           validate=validate_source_file)
-        ])
+        ], raise_keyboard_interrupt=True)
         options.source_file = ans['source_file']
 
-        logger.info(TEXTS['expression']['description'])
+        logger.info(
+            TEXTS['expression']['description'].format(
+                source_file=options.source_file
+            )
+        )
         ans = inquirer.prompt([
             inquirer.Text('expression',
                           message=TEXTS['expression']['message'],
                           validate=validate_expression)
-        ])
+        ], raise_keyboard_interrupt=True)
         args.append(ans['expression'])
 
         formats = self.get_formats(os.path.basename(options.source_file))
@@ -150,52 +93,53 @@ class Wizard(object):
         ans = inquirer.prompt([
             inquirer.List('i18n_type', message=TEXTS['formats']['message'],
                           choices=formats)
-        ])
+        ], raise_keyboard_interrupt=True)
         options.i18n_type = ans['i18n_type']
 
         organizations = self.get_organizations()
         logger.info(TEXTS['organization']['description'])
-        ans = inquirer.prompt([
+        org_answer = inquirer.prompt([
             inquirer.List('organization',
                           message=TEXTS['organization']['message'],
                           choices=organizations)
-        ])
+        ], raise_keyboard_interrupt=True)
 
         projects = []
         first_time = True
-        while len(projects) == 0:
+        create_project = ("Create new project (show instructions)...",
+                          'tx:new_project')
+        project = None
+        while not project:
             if not first_time:
-                inquirer.Text(
-                    message="Hit Enter to try selecting a project again:")
+                inquirer.prompt([inquirer.Text(
+                    'retry',
+                    message="Hit Enter to try selecting a project again")
+                ], raise_keyboard_interrupt=True)
 
-            projects = self.get_projects_for_org(ans['organization'])
-            create_project = ("Create new project (show instructions)...",
-                              'tx:new_project')
-            project = None
+            projects = self.get_projects_for_org(org_answer['organization'])
+            p_choices = [(p['name'], p['slug']) for p in projects]
             if projects:
-                p_choices = [(p['name'], p['slug']) for p in projects]
                 logger.info(TEXTS['projects']['description'])
-                first_time = False
-                ans = inquirer.prompt([
-                    inquirer.List('project',
-                                  message=TEXTS['projects']['message'],
-                                  choices=p_choices + [create_project])
-                    ])
-                if ans['project'] == 'tx:new_project':
-                    logger.info("To create a new project, head to "
-                                "https://www.transifex.com/{}/add. Once "
-                                "you’ve created the project, you can continue."
-                                "".format(ans['organization']))
-                else:
-                    project = [p for p in projects
-                               if p['slug'] == ans['project']][0]
-                    options.source_language = project['source_language_code']
-                    project_slug = ans['project']
-
-        if not project:
-            return (options, args)
+            else:
+                logger.info("We found no projects in this organization!")
+            first_time = False
+            ans = inquirer.prompt([
+                inquirer.List('project',
+                              message=TEXTS['projects']['message'],
+                              choices=p_choices + [create_project])
+            ], raise_keyboard_interrupt=True)
+            if ans['project'] == 'tx:new_project':
+                logger.info(
+                    messages.create_project_instructions.format(
+                        org=org_answer['organization'])
+                )
+            else:
+                project = [p for p in projects
+                           if p['slug'] == ans['project']][0]
+                options.source_language = project['source_language_code']
+                project_slug = project['slug']
 
         resource_slug = slugify(os.path.basename(options.source_file))
         options.resource = '{}.{}'.format(project_slug, resource_slug)
 
-        return options, args
+        return (options, args)

@@ -27,5 +27,5 @@ API_URLS = {
 
 HOSTNAMES = {
     'https://www.transifex.com': ['formats'],
-    'https://www.transifex.com': ['projects', 'organizations'],
+    'https://api.transifex.com': ['projects', 'organizations'],
 }

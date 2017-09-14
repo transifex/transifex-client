@@ -96,6 +96,7 @@ def cmd_init(argv, path_to_tx):
     prj.save()
 
     if not options.skipsetup:
+        logger.info(messages.running_tx_set)
         cmd_set([], path_to_tx)
     else:
         logger.info("Done.")
@@ -103,10 +104,13 @@ def cmd_init(argv, path_to_tx):
 
 def cmd_set(argv, path_to_tx):
     """Add local or remote files under transifex"""
+    parser = set_parser()
     if len(argv) == 0:
-        options, args = Wizard(path_to_tx).run()
+        try:
+            options, args = Wizard(path_to_tx).run()
+        except KeyboardInterrupt:
+            exit(1)
     else:
-        parser = set_parser()
         options, args = parser.parse_args(argv)
 
     if options.local:
@@ -133,6 +137,7 @@ def cmd_set(argv, path_to_tx):
                               path_to_tx)
             _set_mode(options.resource, options.mode, path_to_tx)
             _set_type(options.resource, options.i18n_type, path_to_tx)
+            _print_instructions(options.resource, path_to_tx)
         return
 
     if options.remote:
@@ -195,6 +200,14 @@ def cmd_set(argv, path_to_tx):
 
     logger.info("Done.")
     return
+
+
+def _print_instructions(resource, path_to_tx):
+    keys = ['source_file', 'file_filter', 'source_lang', 'type']
+    prj = project.Project(path_to_tx)
+    fmt_kwargs = {k: prj.config.get(resource, k) for k in keys}
+    fmt_kwargs.update({'resource': resource})
+    logger.info(messages.final_instr.format(**fmt_kwargs))
 
 
 def _auto_local(path_to_tx, resource, source_language, expression,
