@@ -68,19 +68,6 @@ a project, you can continue.
         "error": "",
         "message": "Select project",
     },
-    "token": {
-        "type": inquirer.Text,
-        "description": ("""
-Welcome! To start, the Transifex Client needs a Transifex API token to
-authenticate. If you don’t have one yet, you can generate a token at
-https://www.transifex.com/user/settings/api/.
-        """),
-        "error": """
-Error: Invalid token. You can generate a new token at
-https://www.transifex.com/user/settings/api/.
-""",
-        "message": "Enter your Transifex token",
-    },
 }
 
 epilog = """

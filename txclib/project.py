@@ -8,6 +8,7 @@ import time
 import sys
 import urllib3
 import six
+import inquirer
 
 try:
     import urlparse
@@ -20,8 +21,12 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
+from requests.exceptions import HTTPError
+
 from txclib import web
+from txclib import api
 from txclib import utils
+from txclib import messages
 from urllib3.exceptions import SSLError
 from six.moves import input
 from txclib.exceptions import (
@@ -51,18 +56,6 @@ PULL_MODE_URL_MAPPING = {
 }
 
 DEFAULT_API_HOSTNAME = "https://api.transifex.com"
-
-token_instructions = """
-Transifex Client needs a Transifex API token to authenticate.
-If you don’t have one yet, you can generate a token at
-https://www.transifex.com/user/settings/api/.
-"""
-
-validation_failed_error = """
-Error: Invalid token. You can generate a new token at
-https://www.transifex.com/user/settings/api/.
-"""
-token_msg = "Please enter your api token: "
 
 
 class ProjectNotInit(Exception):
@@ -201,6 +194,14 @@ class Project(object):
 
     def validate_token(self, token):
         """Check if api token is valid."""
+        try:
+            api.Api(token).get('user')
+            return True
+        except HTTPError as e:
+            if e.response.status_code == 401:
+                return False
+            raise
+
         return True
 
     def getset_host_credentials(
@@ -223,11 +224,13 @@ class Project(object):
                 save = True
 
         if not (username and password):
-            logger.info(token_instructions)
+            logger.info(messages.token_instructions)
             while not token:
-                token = input(token_msg)
+                token = inquirer.prompt([
+                    inquirer.Text('token', message=messages.token_msg)
+                ])['token']
                 if not self.validate_token(token):
-                    logger.info(validation_failed_error)
+                    logger.info(messages.token_validation_failed)
                     token = None
             username = 'api'
             password = token
@@ -235,7 +238,7 @@ class Project(object):
         if save:
             # cover the case that the token was passed as an argument
             if not self.validate_token(token):
-                logger.info(validation_failed_error)
+                logger.info(messages.token_validation_failed)
                 return
             logger.info("\nUpdating %s file..." % self.txrc_file)
             if not self.txrc.has_section(host):

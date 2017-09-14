@@ -22,6 +22,7 @@ API_URLS = {
     'delete_resource': '/api/2/project/%(project)s/resource/%(resource)s/',
     'organizations': '/organizations/',
     'projects': '/organizations/%(organization)s/projects/',
+    'user': '/user/',
 }
 
 HOSTNAMES = {

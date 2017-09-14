@@ -18,13 +18,11 @@ import os
 import re
 import shutil
 import sys
-
+import inquirer
 try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
-
-from six.moves import input
 
 from txclib import utils, project
 from txclib.config import OrderedRawConfigParser
@@ -34,6 +32,7 @@ from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
 from txclib.paths import posix_path
 from txclib.log import logger
 from txclib.wizard import Wizard
+from txclib import messages
 
 
 def cmd_init(argv, path_to_tx):
@@ -47,41 +46,34 @@ def cmd_init(argv, path_to_tx):
     else:
         path_to_tx = os.getcwd()
 
-    intro = """
- _____                    _  __
-|_   _| __ __ _ _ __  ___(_)/ _| _____  __
-  | || '__/ _` | '_ \/ __| | |_ / _ \ \/ /
-  | || | | (_| | | | \__ \ |  _|  __/>  <
-  |_||_|  \__,_|_| |_|___/_|_|  \___/_/\_\
-
-
-Welcome to Transifex Client! Please follow the instructions to
-initialize your project.
-"""
-    logger.info(intro)
+    logger.info(messages.init_intro)
     save = options.save
     # if we already have a config file and we are not told to override it
     # in the args we have to ask
     if os.path.isdir(os.path.join(path_to_tx, ".tx")):
         if not save:
-            logger.info("It seems that this project is already intitialized.")
-            if not utils.confirm(
-                prompt='Do you want to delete it and reinit the project?',
+            logger.info(messages.init_initialized)
+            answer = inquirer.prompt([inquirer.Confirm(
+                'reinit',
+                message=messages.init_reinit,
                 default=False
-            ):
+            )])
+            if not answer['reinit']:
                 return
         rm_dir = os.path.join(path_to_tx, ".tx")
         shutil.rmtree(rm_dir)
 
-    logger.info("\nCreating .tx folder...")
+    logger.info("Creating .tx folder...")
     os.mkdir(os.path.join(path_to_tx, ".tx"))
 
     default_transifex = "https://www.transifex.com"
-    transifex_host = options.host or input("Transifex instance [%s]: " %
-                                           default_transifex)
+    transifex_host = options.host or inquirer.prompt([
+        inquirer.Text(
+            'host', message=messages.init_host,
+            default=default_transifex
+        )
+    ])['host']
 
-    if not transifex_host:
-        transifex_host = default_transifex
     if not transifex_host.startswith(('http://', 'https://')):
         transifex_host = 'https://' + transifex_host
 

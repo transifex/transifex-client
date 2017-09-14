@@ -11,7 +11,7 @@ from txclib.log import logger
 class Api(object):
 
     USERNAME = 'api'
-    VALID_CALLS = ['projects', 'organizations', 'formats']
+    VALID_CALLS = ['user', 'projects', 'organizations', 'formats']
 
     @classmethod
     def map_paths_to_hostnames(cls):
@@ -55,6 +55,7 @@ class Api(object):
             response = requests.get(
                 url, auth=HTTPBasicAuth(self.USERNAME, self.token)
             )
+            response.raise_for_status()
             all_data = parse_json(response.content)
         except Exception as e:
             logger.debug(six.u(str(e)))
@@ -67,6 +68,7 @@ class Api(object):
                     next_page['url'],
                     auth=HTTPBasicAuth(self.USERNAME, self.token)
                 )
+                response.raise_for_status()
                 all_data.extend(parse_json(response.content))
                 next_page = response.links.get('next')
             except Exception as e:
