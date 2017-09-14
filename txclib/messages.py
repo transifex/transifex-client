@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 init_intro = """
  _____                    _  __
 |_   _| __ __ _ _ __  ___(_)/ _| _____  __
   | || '__/ _` | '_ \/ __| | |_ / _ \ \/ /
   | || | | (_| | | | \__ \ |  _|  __/>  <
-  |_||_|  \__,_|_| |_|___/_|_|  \___/_/\_\
+  |_||_|  \__,_|_| |_|___/_|_|  \___/_/\_\\
 
 
 Welcome to Transifex Client! Please follow the instructions to
@@ -44,7 +45,6 @@ https://docs.transifex.com/client/set/.
 """),
         "error": ("No file was found in that path. Please correct the path "
                   "or make sure a file exists in that location."),
-        "processing": "",
         "message": "Enter a path to your local source file"
     },
     "expression": {
@@ -72,9 +72,7 @@ local files.
 You belong to these organizations in Transifex:
 """),
         "error": ("""
-You don’t have any projects in the ‘Waze’ organization. To create a new
-project, head to https://www.transifex.com/waze/add.  Once you’ve created
-a project, you can continue.
+You don’t have any projects in the ‘{organization}’ organization.
 """),
         "message": "Select the organization",
     },

@@ -29,3 +29,8 @@ HOSTNAMES = {
     'https://www.transifex.com': ['formats'],
     'https://api.transifex.com': ['projects', 'organizations'],
 }
+
+HOSTNAMES = {
+    'http://127.0.0.1:8000': ['formats'],
+    'http://127.0.0.1:8001': ['user', 'projects', 'organizations'],
+}
