@@ -139,7 +139,7 @@ class Wizard(object):
                 options.source_language = project['source_language_code']
                 project_slug = project['slug']
 
-        resource_slug = slugify(os.path.basename(options.source_file))
+        resource_slug = slugify(unicode(os.path.basename(options.source_file)))
         options.resource = '{}.{}'.format(project_slug, resource_slug)
 
         return (options, args)
