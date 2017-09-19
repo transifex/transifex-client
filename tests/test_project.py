@@ -13,9 +13,11 @@ from os.path import dirname
 from sys import modules
 
 from txclib.exceptions import AuthenticationError
-from txclib.project import Project, ProjectNotInit, \
-    PULL_MODE_SOURCEASTRANSLATION, DEFAULT_PULL_URL
+from txclib.project import (Project, DEFAULT_PULL_URL,
+                            PULL_MODE_SOURCEASTRANSLATION)
+
 from txclib.config import Flipdict
+from txclib import utils
 
 
 class TestProject(unittest.TestCase):
@@ -25,28 +27,26 @@ class TestProject(unittest.TestCase):
         """Test _get_tx_dir_path function"""
         expected_path = '/tmp/'
         m_find_dot_tx.return_value = expected_path
-        p = Project(init=False)
-        path = p._get_tx_dir_path(path_to_tx=None)
+        path = utils.get_tx_dir_path(path_to_tx=None)
         self.assertEqual(path, expected_path)
         m_find_dot_tx.assert_called_once_with()
 
         expected_path = '/opt/'
-        path = p._get_tx_dir_path(path_to_tx=expected_path)
+        path = utils.get_tx_dir_path(path_to_tx=expected_path)
         self.assertEqual(path, expected_path)
         # make sure it has not been called twice
         m_find_dot_tx.assert_called_once_with()
 
     @patch('os.path.exists')
     def test_get_config_file_path(self, m_exists):
-        """Test _get_config_file_path function"""
-        p = Project(init=False)
+        """Test get_config_file_path function"""
         m_exists.return_value = True
-        p._get_config_file_path('/tmp/')
+        utils.get_config_file_path('/tmp/')
         m_exists.assert_called_once_with('/tmp/.tx/config')
 
         m_exists.return_value = False
-        with self.assertRaises(ProjectNotInit):
-            p._get_config_file_path('/tmp/')
+        with self.assertRaises(utils.ProjectNotInit):
+            utils.get_config_file_path('/tmp/')
 
     @patch('txclib.utils.confirm')
     @patch('txclib.config.configparser')

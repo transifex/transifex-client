@@ -3,7 +3,7 @@ import requests
 
 from requests.auth import HTTPBasicAuth
 
-from txclib.utils import parse_json
+from txclib import utils
 from txclib.urls import API_URLS, HOSTNAMES
 from txclib.log import logger
 
@@ -13,12 +13,11 @@ class Api(object):
     USERNAME = 'api'
     VALID_CALLS = ['user', 'projects', 'organizations', 'formats']
 
-    @classmethod
-    def map_paths_to_hostnames(cls):
+    def map_paths_to_hostnames(cls, path_to_tx=None, host=None):
+        domains = utils.get_api_domains(path_to_tx, host)
         return {
-            path: hostname for hostname, paths in HOSTNAMES.items()
+            path: domains[key] for key, paths in HOSTNAMES.items()
             for path in paths
-
         }
 
     def __init__(self, token=None, username=None, password=None):
@@ -56,7 +55,7 @@ class Api(object):
                 url, auth=HTTPBasicAuth(self.USERNAME, self.token)
             )
             response.raise_for_status()
-            all_data = parse_json(response.content)
+            all_data = utils.parse_json(response.content)
         except Exception as e:
             logger.debug(six.u(str(e)))
             raise
@@ -69,7 +68,7 @@ class Api(object):
                     auth=HTTPBasicAuth(self.USERNAME, self.token)
                 )
                 response.raise_for_status()
-                all_data.extend(parse_json(response.content))
+                all_data.extend(utils.parse_json(response.content))
                 next_page = response.links.get('next')
             except Exception as e:
                 logger.debug(six.u(str(e)))
