@@ -25,6 +25,7 @@ token_validation_failed = """
 Error: Invalid token. You can generate a new token at
 https://www.transifex.com/user/settings/api/.
 """
+update_txrc = "Overwrite credentials in .transifexrc?"
 
 token_msg = "Please enter your api token"
 
