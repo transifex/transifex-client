@@ -79,11 +79,7 @@ class Project(object):
             self.config_file = utils.get_config_file_path(self.root)
             self.config = utils.read_config_file(self.config_file)
 
-            local_txrc_file = utils.get_transifex_file(os.getcwd())
-            if os.path.exists(local_txrc_file):
-                self.txrc_file = local_txrc_file
-            else:
-                self.txrc_file = self._get_transifex_file()
+            self.txrc_file = utils.get_transifex_file()
             self.txrc = utils.get_transifex_config(self.txrc_file)
         except ProjectNotInit as e:
             logger.error('\n'.join([six.u(str(e)), instructions]))

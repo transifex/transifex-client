@@ -463,7 +463,7 @@ def migrate_txrc_file(txrc_file, txrc):
                 logger.info(msg)
             else:
                 hostname = orig_hostname
-        save_txrc_file(txrc)
+        save_txrc_file(txrc_file, txrc)
     return txrc
 
 
@@ -471,9 +471,12 @@ def get_transifex_file(directory=None):
     """Fetch the path of the .transifexrc file.
     It is in the home directory of the user by default.
     """
-    if directory is not None:
-        logger.debug(".transifexrc file is at %s" % directory)
-        return os.path.join(directory, ".transifexrc")
+    directory = find_dot_tx()
+    if directory:
+        local_txrc_file = os.path.join(directory, ".transifexrc")
+        if os.path.exists(local_txrc_file):
+            logger.debug(".transifexrc file is at %s" % directory)
+            return local_txrc_file
 
     directory = os.path.expanduser('~')
     txrc_file = os.path.join(directory, ".transifexrc")
