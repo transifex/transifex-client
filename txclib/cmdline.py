@@ -3,6 +3,7 @@
 
 import os
 import sys
+import platform
 from optparse import OptionParser
 from urllib3.exceptions import SSLError
 
@@ -58,9 +59,14 @@ def main(argv=None):
                   " check the available commands issue `%prog help` or if you"\
                   " just want help with a specific command issue `%prog help"\
                   " command`"
-
+    version = '%s, py %s.%s, %s' % (
+        txclib.__version__,
+        sys.version_info.major,
+        sys.version_info.minor,
+        platform.machine()
+    )
     parser = OptionParser(
-        usage=usage, version=txclib.__version__, description=description
+        usage=usage, version=version, description=description
     )
     parser.disable_interspersed_args()
     parser.add_option(
