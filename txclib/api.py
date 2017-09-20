@@ -13,15 +13,16 @@ class Api(object):
     USERNAME = 'api'
     VALID_CALLS = ['user', 'projects', 'organizations', 'formats']
 
-    def map_paths_to_hostnames(cls, path_to_tx=None, host=None):
+    def map_paths_to_hostnames(cls, path_to_tx, host):
         domains = utils.get_api_domains(path_to_tx, host)
         return {
             path: domains[key] for key, paths in HOSTNAMES.items()
             for path in paths
         }
 
-    def __init__(self, token=None, username=None, password=None):
-        self.hostnames = self.map_paths_to_hostnames()
+    def __init__(self, token=None, username=None, password=None,
+                 path_to_tx=None, host=None):
+        self.hostnames = self.map_paths_to_hostnames(path_to_tx, host)
         if token:
             self.token = token
             self.username = self.USERNAME

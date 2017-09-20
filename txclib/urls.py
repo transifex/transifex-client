@@ -27,5 +27,5 @@ API_URLS = {
 
 HOSTNAMES = {
     'hostname': ['formats'],
-    'api_hostname': ['projects', 'organizations'],
+    'api_hostname': ['user', 'projects', 'organizations'],
 }
