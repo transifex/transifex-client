@@ -112,40 +112,44 @@ class Project(object):
             raise
         return True
 
-    def getset_host_credentials(
-        self, host, username=None, password=None,
-        token=None
-    ):
-        """
-        Read .transifexrc and report user, pass or a token
-        for a specific host else ask the user for input.
+    def getset_host_credentials(self, host, username=None, password=None,
+                                token=None):
+        """Read .transifexrc and report user,
+        pass or a token for a specific host else ask the user for input.
+        If the credentials provided are different from the .transifexrc file
+        ask for confirmation and update them
         """
 
-        import pdb; pdb.set_trace()
         save = False
-        if token:
-            username = 'api'
-            password = token
-            if not self.txrc.has_section(host):
-                save = True
-        else:
-            try:
-                username = self.txrc.get(host, 'username')
-                password = self.txrc.get(host, 'password')
-            except (configparser.NoOptionError, configparser.NoSectionError):
-                save = True
+        config_username, config_password = None, None
+        try:
+            config_username = self.txrc.get(host, 'username')
+            config_password = self.txrc.get(host, 'password')
+        except (configparser.NoOptionError, configparser.NoSectionError):
+            save = True
 
-        if not (username and password):
-            logger.info(messages.token_instructions)
-            while not token:
-                token = inquirer.prompt([
-                    inquirer.Text('token', message=messages.token_msg)
-                ])['token']
-                if not self.validate_token(token, host):
-                    logger.info(messages.token_validation_failed)
-                    token = None
+        if token:
+            password = token
+            username = 'api'
+
+        if not (username and password) and not\
+               (config_username and config_password):
+            token = self._token_prompt(host)
             username = 'api'
             password = token
+            save = True
+        elif config_username and config_password:
+            if username == config_username and password == config_password:
+                return username, password
+            elif username and password:
+                if inquirer.prompt([
+                    inquirer.Confirm('update_txrc',
+                                     message=messages.update_txrc)
+                ], raise_keyboard_interrupt=True)['update_txrc']:
+                    save = True
+            else:
+                username = config_username
+                password = config_password
 
         if save:
             # cover the case that the token was passed as an argument
@@ -159,9 +163,21 @@ class Project(object):
             self.txrc.set(host, 'username', username)
             self.txrc.set(host, 'password', password)
             self.txrc.set(host, 'hostname', host)
-            self.txrc.set(host, 'api_hostname', utils.DEFAULT_API_HOSTNAME)
+            self.txrc.set(host, 'api_hostname',
+                          utils.DEFAULT_HOSTNAMES['api_hostname'])
             self.save()
         return username, password
+
+    def _token_prompt(self, host):
+        token = None
+        while not token:
+            token = inquirer.prompt([
+                inquirer.Text('token', message=messages.token_msg)
+            ])['token']
+            if not self.validate_token(token, host):
+                logger.info(messages.token_validation_failed)
+                token = None
+        return token
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
                             file_filter=None):

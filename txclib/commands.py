@@ -92,7 +92,9 @@ def cmd_init(argv, path_to_tx):
         fh.close()
 
     prj = project.Project(path_to_tx)
-    prj.getset_host_credentials(transifex_host, token=options.token, save=save)
+    prj.getset_host_credentials(transifex_host, username=options.user,
+                                password=options.password,
+                                token=options.token)
     prj.save()
 
     if not options.skipsetup:
