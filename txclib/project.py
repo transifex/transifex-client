@@ -113,16 +113,20 @@ class Project(object):
 
     def getset_host_credentials(
         self, host, username=None, password=None,
-        token=None, save=False
+        token=None
     ):
         """
         Read .transifexrc and report user, pass or a token
         for a specific host else ask the user for input.
         """
 
+        import pdb; pdb.set_trace()
+        save = False
         if token:
             username = 'api'
             password = token
+            if not self.txrc.has_section(host):
+                save = True
         else:
             try:
                 username = self.txrc.get(host, 'username')

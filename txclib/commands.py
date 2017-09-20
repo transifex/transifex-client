@@ -72,7 +72,7 @@ def cmd_init(argv, path_to_tx):
             'host', message=messages.init_host,
             default=default_transifex
         )
-    ], raise_keyboard_interupt=True)['host']
+    ], raise_keyboard_interrupt=True)['host']
 
     if not transifex_host.startswith(('http://', 'https://')):
         transifex_host = 'https://' + transifex_host
