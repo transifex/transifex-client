@@ -102,27 +102,32 @@ class Project(object):
     def validate_token(self, token, host=None):
         """Check if api token is valid."""
         try:
-            api.Api(token).get('user')
+            api.Api(
+                token=token, path_to_tx=self.txrc_file, host=host
+            ).get('auth_check')
             return True
         except HTTPError as e:
             if e.response.status_code == 401:
                 return False
             raise
-
         return True
 
     def getset_host_credentials(
         self, host, username=None, password=None,
-        token=None, save=False
+        token=None
     ):
         """
         Read .transifexrc and report user, pass or a token
         for a specific host else ask the user for input.
         """
 
+        import pdb; pdb.set_trace()
+        save = False
         if token:
             username = 'api'
             password = token
+            if not self.txrc.has_section(host):
+                save = True
         else:
             try:
                 username = self.txrc.get(host, 'username')
@@ -333,7 +338,7 @@ class Project(object):
         """Store the config dictionary
         in the .tx/config file of the project.
         """
-        utils.save_tx_config(self.config)
+        utils.save_tx_config(self.config_file, self.config)
         utils.save_txrc_file(self.txrc_file, self.txrc)
 
     def get_full_path(self, relpath):

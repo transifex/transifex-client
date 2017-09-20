@@ -520,5 +520,6 @@ def get_api_domains(path_to_tx, host):
             'hostname': txrc.get(host, 'hostname'),
             'api_hostname': txrc.get(host, 'api_hostname')
         }
-    except (ProjectNotInit, configparser.NoConfigOption):
+    except (ProjectNotInit, configparser.NoOptionError,
+            configparser.NoSectionError):
         return DEFAULT_HOSTNAMES

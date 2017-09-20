@@ -31,7 +31,7 @@ token_msg = "Please enter your api token"
 running_tx_set = "Running tx set command for you..."
 
 
-create_project_instructions = """To create a new project, head to https://www.transifex.com/{org}/add.
+create_project_instructions = """To create a new project, head to {host}/{org}/add.
 Once you’ve created the project, you can continue.
 """
 

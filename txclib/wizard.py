@@ -17,12 +17,13 @@ def validate_expression(answers, expression):
 
 
 class Wizard(object):
-    DEFAULTS = {'host': 'http://127.0.0.1:8000', }
 
     def __init__(self, path_to_tx):
-        username, token_or_password = Project(path_to_tx).\
-            getset_host_credentials(self.DEFAULTS['host'])
-        self.api = Api(username=username, password=token_or_password)
+        p = Project(path_to_tx)
+        self.host = p.config.get('main', 'host')
+        username, token_or_password = p.getset_host_credentials(self.host)
+        self.api = Api(username=username, password=token_or_password,
+                       host=self.host, path_to_tx=p.txrc_file)
 
     def get_organizations(self):
         try:
@@ -34,10 +35,11 @@ class Wizard(object):
 
     def get_projects_for_org(self, organization):
         try:
-            return self.api.get('projects', organization=organization)
+            projects = self.api.get('projects', organization=organization)
         except Exception as e:
             logger.error(unicode(e))
             exit(1)
+        return [p for p in projects if not p['archived']]
 
     def get_formats(self, filename):
         _, extension = os.path.splitext(filename)
@@ -124,9 +126,11 @@ class Wizard(object):
                 logger.info("We found no projects in this organization!")
             first_time = False
             ans = inquirer.prompt([
-                inquirer.List('project',
-                              message=TEXTS['projects']['message'],
-                              choices=p_choices + [create_project])
+                inquirer.List(
+                    'project',
+                    message=TEXTS['projects']['message'].format(self.host),
+                    choices=p_choices + [create_project]
+                )
             ], raise_keyboard_interrupt=True)
             if ans['project'] == 'tx:new_project':
                 logger.info(
