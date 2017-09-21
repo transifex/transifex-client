@@ -67,12 +67,15 @@ def cmd_init(argv, path_to_tx):
     os.mkdir(os.path.join(path_to_tx, ".tx"))
 
     default_transifex = "https://www.transifex.com"
-    transifex_host = options.host or inquirer.prompt([
-        inquirer.Text(
-            'host', message=messages.init_host,
-            default=default_transifex
-        )
-    ], raise_keyboard_interrupt=True)['host']
+    if options.no_interactive:
+        transifex_host = options.host or default_transifex
+    else:
+        transifex_host = options.host or inquirer.prompt([
+            inquirer.Text(
+                'host', message=messages.init_host,
+                default=default_transifex
+            )
+        ], raise_keyboard_interrupt=True)['host']
 
     if not transifex_host.startswith(('http://', 'https://')):
         transifex_host = 'https://' + transifex_host
@@ -94,10 +97,11 @@ def cmd_init(argv, path_to_tx):
     prj = project.Project(path_to_tx)
     prj.getset_host_credentials(transifex_host, username=options.user,
                                 password=options.password,
-                                token=options.token)
+                                token=options.token,
+                                no_interactive=options.no_interactive)
     prj.save()
 
-    if not options.skipsetup:
+    if not options.skipsetup and not options.no_interactive:
         logger.info(messages.running_tx_set)
         cmd_set([], path_to_tx)
     else:

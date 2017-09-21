@@ -102,11 +102,10 @@ class TestProject(unittest.TestCase):
         p.save = Mock()
         p.txrc_file = '/tmp'
         p.validate_token = Mock(return_value=True)
-        p.txrc.get.side_effect = {
+        p.txrc.get.side_effect = [
             'foo', 'bar'
-        }
+        ]
         # transifexrc does not get updated if credentials are the same
-        m_prompt.return_value = {'update_txrc': False}
         username, password = p.getset_host_credentials(
             'test', username='foo', password='bar'
         )
@@ -117,9 +116,9 @@ class TestProject(unittest.TestCase):
         self.assertEqual(p.save.call_count, 0)
 
         # transifexrc is not updated if confirm is no
-        p.txrc.get.side_effect = {
+        p.txrc.get.side_effect = [
             'foo', 'bar'
-        }
+        ]
         m_prompt.return_value = {'update_txrc': False}
         username, password = p.getset_host_credentials('test',
                                                        token=dummy_token)
@@ -130,9 +129,9 @@ class TestProject(unittest.TestCase):
         self.assertEqual(p.save.call_count, 0)
 
         # transifexrc is not updated if confirm is yes
-        p.txrc.get.side_effect = {
+        p.txrc.get.side_effect = [
             'foo', 'bar'
-        }
+        ]
         m_prompt.return_value = {'update_txrc': True}
         m_prompt.reset_mock()
         username, password = p.getset_host_credentials('test',
