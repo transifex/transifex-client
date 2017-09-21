@@ -113,7 +113,7 @@ class Project(object):
         return True
 
     def getset_host_credentials(self, host, username=None, password=None,
-                                token=None):
+                                token=None, no_interactive=False):
         """Read .transifexrc and report user,
         pass or a token for a specific host else ask the user for input.
         If the credentials provided are different from the .transifexrc file
@@ -142,7 +142,7 @@ class Project(object):
             if username == config_username and password == config_password:
                 return username, password
             elif username and password:
-                if inquirer.prompt([
+                if not no_interactive and inquirer.prompt([
                     inquirer.Confirm('update_txrc',
                                      message=messages.update_txrc)
                 ], raise_keyboard_interrupt=True)['update_txrc']:

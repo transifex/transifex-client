@@ -80,11 +80,15 @@ def init_parser():
         action="store_true",
         dest="skipsetup",
         default=False,
-        help="Don't start tx set interactive wizard after setting up credentials."
+        help="Don't start tx set interactive wizard after setting up "
+             "credentials."
     )
     parser.add_option("--token", action="store", dest="token", default=None,
                       help="Specify an api token.\nYou can get one from"
                       " user's settings")
+    parser.add_option("--no-interactive", action="store_true",
+                      dest="no_interactive", default=False,
+                      help="Don't require user input when forcing a push.")
     return parser
 
 
