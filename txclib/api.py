@@ -11,7 +11,7 @@ from txclib.log import logger
 class Api(object):
 
     USERNAME = 'api'
-    VALID_CALLS = ['user', 'projects', 'organizations', 'formats']
+    VALID_CALLS = ['auth_check', 'projects', 'organizations', 'formats']
 
     def map_paths_to_hostnames(cls, path_to_tx, host):
         domains = utils.get_api_domains(path_to_tx, host)
