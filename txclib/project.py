@@ -1312,7 +1312,9 @@ class Project(object):
             res = utils.parse_json(json)
             return res[i18n_type]['file-extensions'].split(',')[0]
         except Exception as e:
-            logger.error(e)
+            logger.error(
+                "WARNING: The file extension for i18n_type %s is not found."
+                % e.message)
             return ''
 
     def _resource_exists(self, stats):
