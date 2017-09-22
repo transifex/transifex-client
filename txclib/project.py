@@ -103,7 +103,7 @@ class Project(object):
         try:
             api.Api(
                 token=token, path_to_tx=self.txrc_file, host=host
-            ).get('user')
+            ).get('auth_check')
             return True
         except HTTPError as e:
             if e.response.status_code == 401:

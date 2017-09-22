@@ -35,10 +35,11 @@ class Wizard(object):
 
     def get_projects_for_org(self, organization):
         try:
-            return self.api.get('projects', organization=organization)
+            projects = self.api.get('projects', organization=organization)
         except Exception as e:
             logger.error(unicode(e))
             exit(1)
+        return [p for p in projects if not p['archived']]
 
     def get_formats(self, filename):
         _, extension = os.path.splitext(filename)
