@@ -1,4 +1,5 @@
 # These are the Transifex API urls
+# flake8: noqa
 
 API_URLS = {
     'get_resources': '/api/2/project/%(project)s/resources/',
@@ -7,6 +8,7 @@ API_URLS = {
     'pull_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file',
     'pull_pseudo_file': '/api/2/project/%(project)s/resource/%(resource)s/pseudo/?pseudo_type=MIXED',
     'pull_reviewed_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=reviewed',
+    'pull_sourceastranslation_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=sourceastranslation',
     'pull_translator_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=translator',
     'pull_onlytranslated_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=onlytranslated',
     'pull_onlyreviewed_file': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/?file&mode=onlyreviewed',

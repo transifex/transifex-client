@@ -8,7 +8,8 @@ except ImportError:
     import simplejson as json
 from mock import Mock, patch
 
-from txclib.project import Project, ProjectNotInit
+from txclib.project import Project, ProjectNotInit, \
+    PULL_MODE_SOURCEASTRANSLATION, DEFAULT_PULL_URL
 from txclib.config import Flipdict
 
 
@@ -568,6 +569,20 @@ class TestProjectPull(unittest.TestCase):
                 self.assertEqual(res, True)
                 res = self.p._should_download('pt', self.stats, None, True)
                 self.assertEqual(res, True)
+
+    def test_get_url_by_pull_mode(self):
+        self.assertEqual(
+            'pull_sourceastranslation_file',
+            self.p._get_url_by_pull_mode(mode=PULL_MODE_SOURCEASTRANSLATION)
+        )
+        self.assertEqual(
+            DEFAULT_PULL_URL,
+            self.p._get_url_by_pull_mode(mode='invalid mode')
+        )
+        self.assertEqual(
+            DEFAULT_PULL_URL,
+            self.p._get_url_by_pull_mode(mode=None)
+        )
 
 
 class TestFormats(unittest.TestCase):
