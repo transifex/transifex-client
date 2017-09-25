@@ -13,7 +13,7 @@ _logger.setLevel(logging.CRITICAL)
 _logger = logging.getLogger('txclib')
 _logger.setLevel(logging.INFO)
 
-_formatter = logging.Formatter('%(message)s')
+_formatter = logging.Formatter('tx %(levelname)s: %(message)s')
 
 _error_handler = logging.StreamHandler(sys.stderr)
 _error_handler.setLevel(logging.ERROR)

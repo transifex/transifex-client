@@ -113,10 +113,9 @@ def main(argv=None):
         logger.error("SSl error %s" % e)
         sys.exit(1)
     except utils.UnknownCommandError:
-        logger.error("tx: Command %s not found" % cmd)
-    except SystemExit:
-        sys.exit()
-    except:
+        logger.error("Command %s not found" % cmd)
+        sys.exit(1)
+    except Exception:
         import traceback
         if options.trace:
             traceback.print_exc()
