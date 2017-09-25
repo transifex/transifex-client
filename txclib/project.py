@@ -36,6 +36,23 @@ from txclib.paths import posix_path, native_path, posix_sep
 from txclib.utils import confirm
 
 
+DEFAULT_PULL_URL = 'pull_file'
+PULL_MODE_REVIEWED = 'reviewed'
+PULL_MODE_TRANSLATOR = 'translator'
+PULL_MODE_DEVELOPER = 'developer'
+PULL_MODE_ONLY_TRANSLATED = 'onlytranslated'
+PULL_MODE_ONLY_REVIEWED = 'onlyreviewed'
+PULL_MODE_SOURCEASTRANSLATION = 'sourceastranslation'
+PULL_MODE_URL_MAPPING = {
+    PULL_MODE_REVIEWED: 'pull_reviewed_file',
+    PULL_MODE_TRANSLATOR: 'pull_translator_file',
+    PULL_MODE_DEVELOPER: 'pull_developer_file',
+    PULL_MODE_ONLY_TRANSLATED: 'pull_onlytranslated_file',
+    PULL_MODE_ONLY_REVIEWED: 'pull_onlyreviewed_file',
+    PULL_MODE_SOURCEASTRANSLATION: 'pull_sourceastranslation_file',
+}
+
+
 class ProjectNotInit(Exception):
     pass
 
@@ -457,18 +474,7 @@ class Project(object):
         skip_decode = False
         params = {}
 
-        if mode == 'reviewed':
-            url = 'pull_reviewed_file'
-        elif mode == 'translator':
-            url = 'pull_translator_file'
-        elif mode == 'developer':
-            url = 'pull_developer_file'
-        elif mode == 'onlytranslated':
-            url = 'pull_onlytranslated_file'
-        elif mode == 'onlyreviewed':
-            url = 'pull_onlyreviewed_file'
-        else:
-            url = 'pull_file'
+        url = self._get_url_by_pull_mode(mode=mode)
 
         for resource in resource_list:
             logger.debug("Handling resource %s" % resource)
@@ -1377,6 +1383,21 @@ class Project(object):
             method, hostname, url, username, passwd, data
         )
         return r
+
+    def _get_url_by_pull_mode(self, mode):
+        """Get the url by the pull mode.
+
+        If the pull mode is not valid, the default pull mode will be used.
+        """
+        url = None
+        if mode is not None:
+            try:
+                url = PULL_MODE_URL_MAPPING[mode]
+            except KeyError:
+                logger.warning('WARNING: invalid mode provided. ' +
+                               'Default pull mode will be used')
+
+        return DEFAULT_PULL_URL if url is None else url
 
     def _get_option(self, resource, option):
         """Get the value for the option in the config file.
