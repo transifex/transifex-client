@@ -53,7 +53,7 @@ class Api(object):
 
         try:
             response = requests.get(
-                url, auth=HTTPBasicAuth(self.USERNAME, self.token)
+                url, auth=HTTPBasicAuth(self.username, self.token)
             )
             response.raise_for_status()
             all_data = utils.parse_json(response.content)
