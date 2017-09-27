@@ -26,7 +26,8 @@ from txclib import utils
 from urllib3.exceptions import SSLError
 from six.moves import input
 from txclib.exceptions import (
-    HttpNotFound, HttpNotAuthorized, MalformedConfigFile
+    HttpNotFound, HttpNotAuthorized, MalformedConfigFile,
+    InvalidAuthenticationCredentials
 )
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict, CERT_REQUIRED
@@ -65,10 +66,11 @@ class Project(object):
     SKIP_DECODE_I18N_TYPES = ['DOCX', 'XLSX']
     FILE_FILTER = "translations<sep>%(proj)s.%(res)s<sep><lang>.%(extension)s"
 
-    def __init__(self, path_to_tx=None, init=True):
+    def __init__(self, path_to_tx=None, init=True, non_interactive_mode=False):
         """Initialize the Project attributes."""
         if init:
             self._init(path_to_tx)
+            self.non_interactive_mode = non_interactive_mode
 
     def _init(self, path_to_tx=None):
         instructions = "Run 'tx init' to initialize your project first!"
@@ -145,7 +147,9 @@ class Project(object):
             if hostname != orig_hostname:
                 msg = "Hostname %s should be changed to %s."
                 logger.info(msg % (orig_hostname, hostname))
-                if (sys.stdin.isatty() and sys.stdout.isatty() and
+                if (self.non_interactive_mode is False and
+                        sys.stdin.isatty() and
+                        sys.stdout.isatty() and
                         utils.confirm('Change it now? ', default=True)):
                     txrc.set(section, 'hostname', hostname)
                     msg = 'Hostname changed'
@@ -188,7 +192,7 @@ class Project(object):
         username=None,
         password=None,
         token=None,
-        save=False
+        save=False,
     ):
         """Read .transifexrc and report user,
         pass or a token for a specific host else ask the user for input.
@@ -207,6 +211,11 @@ class Project(object):
                 username = self.txrc.get(host, 'username')
                 password = self.txrc.get(host, 'password')
             except (configparser.NoOptionError, configparser.NoSectionError):
+                # check for non-interactive option
+                if self.non_interactive_mode:
+                    raise InvalidAuthenticationCredentials(
+                        "Your authentication credentials where not provided"
+                    )
                 # if the rc has no credentials, we have to ask the user and
                 # update the rc file
                 save = True
@@ -218,7 +227,6 @@ class Project(object):
                     "introduction#authentication)\n"
                     "So, do you have an api token?",
                     default=False
-
                 ):
                     token_msg = "Please enter your api token: "
                     while not token:

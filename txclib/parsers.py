@@ -68,6 +68,14 @@ def init_parser():
     parser.add_option("--pass", action="store", dest="password", default=None,
                       help="Specify password for Transifex server.")
     parser.add_option(
+        "-y",
+        "--assume-yes",
+        action="store_true",
+        dest="assume_yes",
+        default=None,
+        help="Automatic yes to prompts and run non-interactively"
+    )
+    parser.add_option(
         "--force-save",
         action="store_true",
         dest="save",
