@@ -1,5 +1,6 @@
 # These are the Transifex API urls
 
+DEFAULT_TRANSIFEX_URL = "https://www.transifex.com"
 API_URLS = {
     'get_resources': '/api/2/project/%(project)s/resources/',
     'project_details': '/api/2/project/%(project)s/?details',

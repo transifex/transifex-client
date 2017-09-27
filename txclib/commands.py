@@ -14,7 +14,8 @@ adding code to this file you must take care of the following:
  * All functions should use the OptionParser and should have a usage and
    descripition field.
 """
-import os
+from os.path import isdir, join, exists, abspath, normpath, relpath
+from os import mkdir, getcwd, curdir, chdir
 import re
 import shutil
 import sys
@@ -26,13 +27,17 @@ except ImportError:
 
 from six.moves import input
 
-from txclib import utils, project
+from txclib.utils import color_text, confirm, discover_commands, \
+    files_in_project, get_details, parse_tx_url, regex_from_filefilter,\
+    valid_slug
+from txclib.project import Project
 from txclib.config import OrderedRawConfigParser
-from txclib.exceptions import UnInitializedError
+from txclib.exceptions import ProjectAlreadyInitialized, UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
     status_parser, pull_parser, set_parser, push_parser, init_parser
 from txclib.paths import posix_path
 from txclib.log import logger
+from txclib.urls import DEFAULT_TRANSIFEX_URL
 
 
 def cmd_init(argv, path_to_tx):
@@ -44,14 +49,15 @@ def cmd_init(argv, path_to_tx):
     if args:
         path_to_tx = args[0]
     else:
-        path_to_tx = os.getcwd()
+        path_to_tx = getcwd()
 
     save = options.save
-    # if we already have a config file and we are not told to override it
-    # in the args we have to ask
-    if os.path.isdir(os.path.join(path_to_tx, ".tx")) and not save:
-        logger.info("tx: There is already a tx folder!")
-        if not utils.confirm(
+    dir_exists = isdir(join(path_to_tx, ".tx"))
+    # if in interactive mode, config file already created and no
+    # argument to force save, then ask for user input
+    if dir_exists and not save and not options.assume_yes:
+        logger.info("There is already a tx folder!")
+        if not confirm(
             prompt='Do you want to delete it and reinit the project?',
             default=False
         ):
@@ -60,41 +66,75 @@ def cmd_init(argv, path_to_tx):
         # FIXME: take a backup
         else:
             save = True
-            rm_dir = os.path.join(path_to_tx, ".tx")
-            shutil.rmtree(rm_dir)
+            _create_tx_path(path_to_tx, overwrite=True)
+    # if in non-interactive mode, config file already created and no
+    # argument to force save, then stop execution
+    elif dir_exists and not save and options.assume_yes:
+        raise ProjectAlreadyInitialized(
+            "Project's already initialized, use --force-save flag to overwrite"
+        )
+    # if in non-interactive mode, config file already created wth force save
+    # argument, then proceed
+    elif dir_exists and save and options.assume_yes:
+        _create_tx_path(path_to_tx, overwrite=True)
+    else:
+        _create_tx_path(path_to_tx)
 
-    logger.info("Creating .tx folder...")
-    os.mkdir(os.path.join(path_to_tx, ".tx"))
+    tx_host = _get_host_from_options(options)
 
-    default_transifex = "https://www.transifex.com"
-    transifex_host = options.host or input("Transifex instance [%s]: " %
-                                           default_transifex)
+    config_file_path = join(path_to_tx, ".tx", "config")
+    if not exists(config_file_path):
+        _create_config_file(config_file_path, tx_host)
 
-    if not transifex_host:
-        transifex_host = default_transifex
-    if not transifex_host.startswith(('http://', 'https://')):
-        transifex_host = 'https://' + transifex_host
-
-    config_file = os.path.join(path_to_tx, ".tx", "config")
-    if not os.path.exists(config_file):
-        # The path to the config file (.tx/config)
-        logger.info("Creating skeleton...")
-        # Handle the credentials through transifexrc
-        config = OrderedRawConfigParser()
-        config.add_section('main')
-        config.set('main', 'host', transifex_host)
-        # Touch the file if it doesn't exist
-        logger.info("Creating config file...")
-        fh = open(config_file, 'w')
-        config.write(fh)
-        fh.close()
-
-    prj = project.Project(path_to_tx)
-    prj.getset_host_credentials(transifex_host, username=options.user,
+    prj = Project(path_to_tx, non_interactive_mode=options.assume_yes)
+    prj.getset_host_credentials(tx_host, username=options.user,
                                 password=options.password,
-                                token=options.token, save=save)
+                                token=options.token,
+                                save=save)
     prj.save()
     logger.info("Done.")
+
+
+def _get_host_from_options(options):
+    """Get the host url from options
+    or default if non-interactive mode or from user input
+    """
+    if options.host:
+        tx_host = options.host
+    elif options.host is None and options.assume_yes:
+        tx_host = DEFAULT_TRANSIFEX_URL
+    elif options.host is None:
+        tx_host = input("Transifex instance [%s]: " % DEFAULT_TRANSIFEX_URL)
+
+    if not tx_host:
+        tx_host = DEFAULT_TRANSIFEX_URL
+    if not tx_host.startswith(('http://', 'https://')):
+        tx_host = 'https://' + tx_host
+
+    return tx_host
+
+
+def _create_tx_path(path_to_tx, overwrite=False):
+    """Create dir to store client configuration"""
+    if overwrite:
+        rm_dir = join(path_to_tx, ".tx")
+        shutil.rmtree(rm_dir)
+    logger.info("Creating .tx folder...")
+    return mkdir(join(path_to_tx, ".tx"))
+
+
+def _create_config_file(config_file, tx_host):
+    # The path to the config file (.tx/config)
+    logger.info("Creating skeleton...")
+    # Handle the credentials through transifexrc
+    config = OrderedRawConfigParser()
+    config.add_section('main')
+    config.set('main', 'host', tx_host)
+    # Touch the file if it doesn't exist
+    logger.info("Creating config file...")
+    fh = open(config_file, 'w')
+    config.write(fh)
+    fh.close()
 
 
 def cmd_set(argv, path_to_tx):
@@ -115,7 +155,7 @@ def cmd_set(argv, path_to_tx):
             parser.error("Please specify a source language.")
         if '<lang>' not in expression:
             parser.error("The expression you have provided is not valid.")
-        if not utils.valid_slug(options.resource):
+        if not valid_slug(options.resource):
             parser.error("Invalid resource slug. The format is <project_slug>"
                          ".<resource_slug> and the valid characters include"
                          " [_-\w].")
@@ -153,14 +193,14 @@ def cmd_set(argv, path_to_tx):
         if len(args) != 1:
             parser.error("Please specify a file.")
 
-        if not utils.valid_slug(resource):
+        if not valid_slug(resource):
             parser.error("Invalid resource slug. The format is <project_slug>"
                          ".<resource_slug> and the valid characters include "
                          "[_-\w].")
 
         file = args[0]
         # Calculate relative path
-        path_to_file = os.path.relpath(file, path_to_tx)
+        path_to_file = relpath(file, path_to_tx)
         _set_source_file(path_to_tx, resource, options.language, path_to_file)
     elif options.resource or options.language:
         resource = options.resource
@@ -170,15 +210,15 @@ def cmd_set(argv, path_to_tx):
             parser.error("Please specify a file")
 
         # Calculate relative path
-        path_to_file = os.path.relpath(args[0], path_to_tx)
+        path_to_file = relpath(args[0], path_to_tx)
 
         try:
             _go_to_dir(path_to_tx)
         except UnInitializedError as e:
-            utils.logger.error(e)
+            logger.error(e)
             return
 
-        if not utils.valid_slug(resource):
+        if not valid_slug(resource):
             parser.error("Invalid resource slug. The format is <project_slug>"
                          ".<resource_slug> and the valid characters include "
                          "[_-\w].")
@@ -196,10 +236,10 @@ def _auto_local(path_to_tx, resource, source_language, expression,
                 execute=False, source_file=None, regex=False):
     """Auto configure local project."""
     # The path everything will be relative to
-    curpath = os.path.abspath(os.curdir)
+    curpath = abspath(curdir)
 
     # Force expr to be a valid regex expr (escaped) but keep <lang> intact
-    expr_re = utils.regex_from_filefilter(expression, curpath)
+    expr_re = regex_from_filefilter(expression, curpath)
     expr_rec = re.compile(expr_re)
 
     if not execute:
@@ -209,7 +249,7 @@ def _auto_local(path_to_tx, resource, source_language, expression,
     # First, let's construct a dictionary of all matching files.
     # Note: Only the last matching file of a language will be stored.
     translation_files = {}
-    for f_path in utils.files_in_project(curpath):
+    for f_path in files_in_project(curpath):
         match = expr_rec.match(posix_path(f_path))
         if match:
             lang = match.group(1)
@@ -224,18 +264,18 @@ def _auto_local(path_to_tx, resource, source_language, expression,
                         "or provide the source file with the -s flag.")
     if execute:
         logger.info("Updating source for resource %s ( %s -> %s )." % (
-                    resource, source_language, os.path.relpath(
+                    resource, source_language, relpath(
                         source_file, path_to_tx)
                     ))
         _set_source_file(path_to_tx, resource, source_language,
-                         os.path.relpath(source_file, path_to_tx))
+                         relpath(source_file, path_to_tx))
     else:
         logger.info('\ntx set --source -r %(res)s -l %(lang)s %(file)s\n' % {
             'res': resource,
             'lang': source_language,
-            'file': os.path.relpath(source_file, curpath)})
+            'file': relpath(source_file, curpath)})
 
-    prj = project.Project(path_to_tx)
+    prj = Project(path_to_tx)
 
     if execute:
         try:
@@ -251,7 +291,7 @@ def _auto_local(path_to_tx, resource, source_language, expression,
                     resource, expression))
         # Eval file_filter relative to root dir
         file_filter = posix_path(
-            os.path.relpath(os.path.join(curpath, expression), path_to_tx)
+            relpath(join(curpath, expression), path_to_tx)
         )
         prj.config.set("%s" % resource, "file_filter", file_filter)
     else:
@@ -259,7 +299,7 @@ def _auto_local(path_to_tx, resource, source_language, expression,
             logger.info('tx set -r %(res)s -l %(lang)s %(file)s' % {
                 'res': resource,
                 'lang': lang,
-                'file': os.path.relpath(f_path, curpath)})
+                'file': relpath(f_path, curpath)})
 
     if execute:
         prj.save()
@@ -269,13 +309,13 @@ def _auto_remote(path_to_tx, url):
     """Initialize a remote project/resource to the current directory."""
     logger.info("Auto configuring local project from remote URL...")
 
-    type, vars = utils.parse_tx_url(url)
-    prj = project.Project(path_to_tx)
+    type, vars = parse_tx_url(url)
+    prj = Project(path_to_tx)
     username, password = prj.getset_host_credentials(vars['hostname'])
 
     if type.startswith('project'):
         logger.info("Getting details for project %s" % vars['project'])
-        proj_info = utils.get_details(
+        proj_info = get_details(
             'project_details',
             username, password,
             hostname=vars['hostname'],
@@ -285,7 +325,7 @@ def _auto_remote(path_to_tx, url):
         logger.info("%s resources found. Configuring..." % len(resources))
     elif type == 'release':
         logger.info("Getting details for release %s" % vars['release'])
-        rel_info = utils.get_details(
+        rel_info = get_details(
             'release_details',
             username, password,
             hostname=vars['hostname'],
@@ -307,7 +347,7 @@ def _auto_remote(path_to_tx, url):
     for resource in resources:
         logger.info("Configuring resource %s." % resource)
         proj, res = resource.split('.')
-        res_info = utils.get_details(
+        res_info = get_details(
             'resource_details',
             username, password,
             hostname=vars['hostname'],
@@ -338,7 +378,7 @@ def cmd_push(argv, path_to_tx):
     resources = parse_csv_option(options.resources)
     skip = options.skip_errors
     xliff = options.xliff
-    prj = project.Project(path_to_tx)
+    prj = Project(path_to_tx)
     if not (options.push_source or options.push_translations):
         parser.error("You need to specify at least one of the -s|--source, "
                      "-t|--translations flags with the push command.")
@@ -371,11 +411,11 @@ def cmd_pull(argv, path_to_tx):
     try:
         _go_to_dir(path_to_tx)
     except UnInitializedError as e:
-        utils.logger.error(e)
+        logger.error(e)
         return
 
-    # instantiate the project.Project
-    prj = project.Project(path_to_tx)
+    # instantiate the Project
+    prj = Project(path_to_tx)
     prj.pull(
         languages=languages, resources=resources, overwrite=options.overwrite,
         fetchall=options.fetchall, fetchsource=options.fetchsource,
@@ -399,26 +439,26 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     try:
         _go_to_dir(path_to_tx)
     except UnInitializedError as e:
-        utils.logger.error(e)
+        logger.error(e)
         return
 
-    if not os.path.exists(path_to_file):
+    if not exists(path_to_file):
         raise Exception("tx: File ( %s ) does not exist." %
-                        os.path.join(path_to_tx, path_to_file))
+                        join(path_to_tx, path_to_file))
 
-    # instantiate the project.Project
-    prj = project.Project(path_to_tx)
-    root_dir = os.path.abspath(path_to_tx)
+    # instantiate the Project
+    prj = Project(path_to_tx)
+    root_dir = abspath(path_to_tx)
 
-    if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
+    if root_dir not in normpath(abspath(path_to_file)):
         raise Exception("File must be under the project root directory.")
 
     logger.info("Setting source file for resource %s.%s ( %s -> %s )." % (
         proj, res, lang, path_to_file))
 
-    path_to_file = os.path.relpath(path_to_file, root_dir)
+    path_to_file = relpath(path_to_file, root_dir)
 
-    prj = project.Project(path_to_tx)
+    prj = Project(path_to_tx)
 
     # FIXME: Check also if the path to source file already exists.
     try:
@@ -441,7 +481,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
     """Reusable method to set translation file."""
 
     proj, res = resource.split('.')
-    if not project or not resource:
+    if not resource:
         raise Exception("\"%s\" is not a valid resource identifier. "
                         "It should be in the following format "
                         "project_slug.resource_slug." %
@@ -450,18 +490,18 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
     try:
         _go_to_dir(path_to_tx)
     except UnInitializedError as e:
-        utils.logger.error(e)
+        logger.error(e)
         return
 
     # Warn the user if the file doesn't exist
-    if not os.path.exists(path_to_file):
+    if not exists(path_to_file):
         logger.info("Warning: File '%s' doesn't exist." % path_to_file)
 
-    # instantiate the project.Project
-    prj = project.Project(path_to_tx)
-    root_dir = os.path.abspath(path_to_tx)
+    # instantiate the Project
+    prj = Project(path_to_tx)
+    root_dir = abspath(path_to_tx)
 
-    if root_dir not in os.path.normpath(os.path.abspath(path_to_file)):
+    if root_dir not in normpath(abspath(path_to_file)):
         raise Exception("File must be under the project root directory.")
 
     if lang == prj.config.get("%s.%s" % (proj, res), "source_lang"):
@@ -471,7 +511,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 
     logger.info("Updating translations for resource %s ( %s -> %s )." % (
                 resource, lang, path_to_file))
-    path_to_file = os.path.relpath(path_to_file, root_dir)
+    path_to_file = relpath(path_to_file, root_dir)
     prj.config.set(
         "%s.%s" % (proj, res), "trans.%s" % lang, posix_path(path_to_file)
     )
@@ -484,7 +524,7 @@ def cmd_status(argv, path_to_tx):
     parser = status_parser()
     (options, args) = parser.parse_args(argv)
     resources = parse_csv_option(options.resources)
-    prj = project.Project(path_to_tx)
+    prj = Project(path_to_tx)
     resources = prj.get_chosen_resources(resources)
     resources_num = len(resources)
     for idx, res in enumerate(resources):
@@ -494,8 +534,8 @@ def cmd_status(argv, path_to_tx):
         slang = prj.get_resource_option(res, 'source_lang')
         sfile = prj.get_resource_option(res, 'source_file') or "N/A"
         lang_map = prj.get_resource_lang_mapping(res)
-        logger.info(" - %s: %s (%s)" % (utils.color_text(slang, "RED"),
-                    sfile, utils.color_text("source", "YELLOW")))
+        logger.info(" - %s: %s (%s)" % (color_text(slang, "RED"),
+                    sfile, color_text("source", "YELLOW")))
         files = prj.get_resource_files(res)
         fkeys = list(files.keys())
         fkeys.sort()
@@ -503,7 +543,7 @@ def cmd_status(argv, path_to_tx):
             local_lang = lang
             if lang in list(lang_map.values()):
                 local_lang = lang_map.flip[lang]
-            logger.info(" - %s: %s" % (utils.color_text(local_lang, "RED"),
+            logger.info(" - %s: %s" % (color_text(local_lang, "RED"),
                         files[lang]))
         logger.info("")
 
@@ -516,14 +556,14 @@ def cmd_help(argv, path_to_tx):
         parser.error("Multiple arguments received. Exiting...")
 
     # Get all commands
-    fns = utils.discover_commands()
+    fns = discover_commands()
 
     # Print help for specific command
     if len(args) == 1:
         try:
             fns[argv[0]](['--help'], path_to_tx)
         except KeyError:
-            utils.logger.error("Command %s not found" % argv[0])
+            logger.error("Command %s not found" % argv[0])
     # or print summary of all commands
 
     # the code below will only be executed if the KeyError exception is thrown
@@ -547,7 +587,7 @@ def cmd_delete(argv, path_to_tx):
     resources = parse_csv_option(options.resources)
     skip = options.skip_errors
     force = options.force_delete
-    prj = project.Project(path_to_tx)
+    prj = Project(path_to_tx)
     prj.delete(resources, languages, skip, force)
     logger.info("Done.")
 
@@ -566,7 +606,7 @@ def _go_to_dir(path):
             "Directory has not been initialzied. "
             "Did you forget to run 'tx init' first?"
         )
-    os.chdir(path)
+    chdir(path)
 
 
 def _set_minimum_perc(resource, value, path_to_tx):
@@ -597,6 +637,6 @@ def _set_project_option(resource, name, value, path_to_tx, func_name):
     else:
         logger.debug("Setting the %s for resource %s." % (name, resource))
         resources = [resource, ]
-    prj = project.Project(path_to_tx)
+    prj = Project(path_to_tx)
     getattr(prj, func_name)(resources, value)
     prj.save()

@@ -12,12 +12,19 @@ class UnInitializedError(Exception):
 class UnknownCommandError(Exception):
     """The provided command is not supported."""
 
+
 class MalformedConfigFile(Exception):
     pass
 
+
+class InvalidAuthenticationCredentials(Exception):
+    pass
+
+
+class ProjectAlreadyInitialized(Exception):
+    pass
+
 # HTTP exceptions
-
-
 class HttpNotFound(Exception):
     pass
 
