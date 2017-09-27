@@ -81,7 +81,7 @@ class TestProject(unittest.TestCase):
         dummy_token = 'salala'
         p.txrc = m_parser
         p.save = Mock()
-        p.validate_token = Mock(return_value=True)
+        p.validate_credentials = Mock(return_value=True)
         p.txrc_file = '/tmp'
         p.txrc.get.side_effect = configparser.NoSectionError('test')
         m_prompt.return_value = {'token': dummy_token}
@@ -101,7 +101,7 @@ class TestProject(unittest.TestCase):
         p.txrc = m_parser
         p.save = Mock()
         p.txrc_file = '/tmp'
-        p.validate_token = Mock(return_value=True)
+        p.validate_credentials = Mock(return_value=True)
         p.txrc.get.side_effect = [
             'foo', 'bar'
         ]

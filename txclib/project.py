@@ -98,11 +98,12 @@ class Project(object):
         """To ensure the json structure is correctly formed."""
         pass
 
-    def validate_token(self, token, host=None):
-        """Check if api token is valid."""
+    def validate_credentials(self, username, password, host=None):
+        """Check if api credentials are valid."""
         try:
             api.Api(
-                token=token, path_to_tx=self.txrc_file, host=host
+                username=username, password=password,
+                path_to_tx=self.txrc_file, host=host
             ).get('auth_check')
             return True
         except HTTPError as e:
@@ -152,7 +153,7 @@ class Project(object):
 
         if save:
             # cover the case that the token was passed as an argument
-            if not self.validate_token(token, host):
+            if not self.validate_credentials(username, password, host):
                 logger.info(messages.token_validation_failed)
                 return
             logger.info("\nUpdating %s file..." % self.txrc_file)
@@ -173,7 +174,7 @@ class Project(object):
             token = inquirer.prompt([
                 inquirer.Text('token', message=messages.token_msg)
             ])['token']
-            if not self.validate_token(token, host):
+            if not self.validate_credentials('api', token, host):
                 logger.info(messages.token_validation_failed)
                 token = None
         return token
