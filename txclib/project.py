@@ -1318,8 +1318,8 @@ class Project(object):
             res = utils.parse_json(json)
             return res[i18n_type]['file-extensions'].split(',')[0]
         except Exception as e:
-            logger.error(
-                "WARNING: The file extension for i18n_type %s is not found."
+            logger.warning(
+                "The file extension for i18n_type %s is not found."
                 % e.message)
             return ''
 
@@ -1394,7 +1394,7 @@ class Project(object):
             try:
                 url = PULL_MODE_URL_MAPPING[mode]
             except KeyError:
-                logger.warning('WARNING: invalid mode provided. ' +
+                logger.warning('Invalid mode provided. ' +
                                'Default pull mode will be used')
 
         return DEFAULT_PULL_URL if url is None else url

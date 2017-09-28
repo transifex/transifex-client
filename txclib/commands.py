@@ -172,11 +172,7 @@ def cmd_set(argv, path_to_tx):
         # Calculate relative path
         path_to_file = os.path.relpath(args[0], path_to_tx)
 
-        try:
-            _go_to_dir(path_to_tx)
-        except UnInitializedError as e:
-            utils.logger.error(e)
-            return
+        _go_to_dir(path_to_tx)
 
         if not utils.valid_slug(resource):
             parser.error("Invalid resource slug. The format is <project_slug>"
@@ -368,11 +364,7 @@ def cmd_pull(argv, path_to_tx):
     skip = options.skip_errors
     minimum_perc = options.minimum_perc or None
 
-    try:
-        _go_to_dir(path_to_tx)
-    except UnInitializedError as e:
-        utils.logger.error(e)
-        return
+    _go_to_dir(path_to_tx)
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
@@ -396,11 +388,7 @@ def _set_source_file(path_to_tx, resource, lang, path_to_file):
     if not lang:
         raise Exception("You haven't specified a source language.")
 
-    try:
-        _go_to_dir(path_to_tx)
-    except UnInitializedError as e:
-        utils.logger.error(e)
-        return
+    _go_to_dir(path_to_tx)
 
     if not os.path.exists(path_to_file):
         raise Exception("tx: File ( %s ) does not exist." %
@@ -447,11 +435,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
                         "project_slug.resource_slug." %
                         resource)
 
-    try:
-        _go_to_dir(path_to_tx)
-    except UnInitializedError as e:
-        utils.logger.error(e)
-        return
+    _go_to_dir(path_to_tx)
 
     # Warn the user if the file doesn't exist
     if not os.path.exists(path_to_file):
@@ -563,7 +547,7 @@ def _go_to_dir(path):
     """
     if path is None:
         raise UnInitializedError(
-            "Directory has not been initialzied. "
+            "Directory has not been initialized. "
             "Did you forget to run 'tx init' first?"
         )
     os.chdir(path)
