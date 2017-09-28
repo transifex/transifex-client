@@ -56,7 +56,7 @@ class Api(object):
                 url, auth=HTTPBasicAuth(self.username, self.token)
             )
             response.raise_for_status()
-            all_data = utils.parse_json(response.content)
+            all_data = response.json()
         except Exception as e:
             logger.debug(six.u(str(e)))
             raise
@@ -69,7 +69,7 @@ class Api(object):
                     auth=HTTPBasicAuth(self.USERNAME, self.token)
                 )
                 response.raise_for_status()
-                all_data.extend(utils.parse_json(response.content))
+                all_data.extend(response.json())
                 next_page = response.links.get('next')
             except Exception as e:
                 logger.debug(six.u(str(e)))

@@ -67,23 +67,13 @@ def cmd_init(argv, path_to_tx):
     os.mkdir(os.path.join(path_to_tx, ".tx"))
 
     default_transifex = "https://www.transifex.com"
-    if options.no_interactive:
-        transifex_host = options.host or default_transifex
-    else:
-        transifex_host = options.host or inquirer.prompt([
-            inquirer.Text(
-                'host', message=messages.init_host,
-                default=default_transifex
-            )
-        ], raise_keyboard_interrupt=True)['host']
+    transifex_host = options.host or default_transifex
 
     if not transifex_host.startswith(('http://', 'https://')):
         transifex_host = 'https://' + transifex_host
 
     config_file = os.path.join(path_to_tx, ".tx", "config")
     if not os.path.exists(config_file):
-        # The path to the config file (.tx/config)
-        logger.info("Creating skeleton...")
         # Handle the credentials through transifexrc
         config = OrderedRawConfigParser()
         config.add_section('main')

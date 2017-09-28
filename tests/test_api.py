@@ -17,7 +17,7 @@ class ApiTestCase(unittest.TestCase):
             'api_hostname': 'https://api.foo.bar'
         }
         response_mock = MagicMock()
-        response_mock.content = '{"some": "json data"}'
+        response_mock.json.return_value = {"some": "json data"}
         response_mock.links = {}
         requests_mock.return_value = response_mock
         api = Api(token=token)
@@ -43,11 +43,11 @@ class ApiTestCase(unittest.TestCase):
             'api_hostname': 'https://api.foo.bar'
         }
         first_response_mock = MagicMock()
-        first_response_mock.content = '[{"key1": "json data"}]'
+        first_response_mock.json.return_value = [{"key1": "json data"}]
         first_response_mock.links = {
             'next': {'url': 'https://www.foo.bar/api/2/formats/?page=2'}}
         second_response_mock = MagicMock()
-        second_response_mock.content = '[{"key2": "json data"}]'
+        second_response_mock.json.return_value = [{"key2": "json data"}]
         second_response_mock.links = {}
         requests_mock.side_effect = [
             first_response_mock,

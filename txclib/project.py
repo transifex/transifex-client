@@ -114,7 +114,8 @@ class Project(object):
         return True
 
     def getset_host_credentials(self, host, username=None, password=None,
-                                token=None, no_interactive=False):
+                                token=None, no_interactive=False,
+                                only_token=False):
         """Read .transifexrc and report user,
         pass or a token for a specific host else ask the user for input.
         If the credentials provided are different from the .transifexrc file
@@ -133,7 +134,7 @@ class Project(object):
             password = token
             username = 'api'
 
-        if not (username and password) and not\
+        if not (username and password) and not \
                (config_username and config_password):
             token = self._token_prompt(host)
             username = 'api'
@@ -141,7 +142,7 @@ class Project(object):
             save = True
         elif config_username and config_password:
             if username == config_username and password == config_password:
-                return username, password
+                pass
             elif username and password:
                 if not no_interactive and inquirer.prompt([
                     inquirer.Confirm('update_txrc',
@@ -152,11 +153,16 @@ class Project(object):
                 username = config_username
                 password = config_password
 
+        # In the cases where we need to use the credentials with the new
+        # api we can only use a token and not a password so we do an extra
+        # validation and prompt the use for a token if the validation fails
+        if only_token and not self.validate_credentials(username, password):
+            logger.info("You need an api token to proceed")
+            username = 'api'
+            password = self._token_prompt(host)
+            save = True
+
         if save:
-            # cover the case that the token was passed as an argument
-            if not self.validate_credentials(username, password, host):
-                logger.info(messages.token_validation_failed)
-                return
             logger.info("\nUpdating %s file..." % self.txrc_file)
             if not self.txrc.has_section(host):
                 logger.info("No entry found for host %s. Creating..." % host)

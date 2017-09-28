@@ -21,7 +21,9 @@ class Wizard(object):
     def __init__(self, path_to_tx):
         p = Project(path_to_tx)
         self.host = p.config.get('main', 'host')
-        username, token_or_password = p.getset_host_credentials(self.host)
+        username, token_or_password = p.getset_host_credentials(
+            self.host, only_token=True)
+
         self.api = Api(username=username, password=token_or_password,
                        host=self.host, path_to_tx=p.txrc_file)
 
@@ -29,7 +31,7 @@ class Wizard(object):
         try:
             organizations = self.api.get('organizations')
         except Exception as e:
-            logger.error(unicode(e))
+            logger.error(e)
             exit(1)
         return [(o['name'], o['slug']) for o in organizations]
 
@@ -37,7 +39,7 @@ class Wizard(object):
         try:
             projects = self.api.get('projects', organization=organization)
         except Exception as e:
-            logger.error(unicode(e))
+            logger.error(e)
             exit(1)
         return [p for p in projects if not p['archived']]
 
@@ -46,7 +48,7 @@ class Wizard(object):
         try:
             formats = self.api.get('formats')
         except Exception as e:
-            logger.error(unicode(e))
+            logger.error(e)
             exit(1)
 
         def display_format(v):
@@ -143,7 +145,7 @@ class Wizard(object):
                 options.source_language = project['source_language_code']
                 project_slug = project['slug']
 
-        resource_slug = slugify(unicode(os.path.basename(options.source_file)))
+        resource_slug = slugify(os.path.basename(options.source_file))
         options.resource = '{}.{}'.format(project_slug, resource_slug)
 
         return (options, args)
