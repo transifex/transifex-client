@@ -18,13 +18,11 @@ import os
 import re
 import shutil
 import sys
-
+import inquirer
 try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
-
-from six.moves import input
 
 from txclib import utils, project
 from txclib.config import OrderedRawConfigParser
@@ -33,6 +31,8 @@ from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
     status_parser, pull_parser, set_parser, push_parser, init_parser
 from txclib.paths import posix_path
 from txclib.log import logger
+from txclib.wizard import Wizard
+from txclib import messages
 
 
 def cmd_init(argv, path_to_tx):
@@ -46,32 +46,37 @@ def cmd_init(argv, path_to_tx):
     else:
         path_to_tx = os.getcwd()
 
+    logger.info(messages.init_intro)
     save = options.save
     # if we already have a config file and we are not told to override it
     # in the args we have to ask
-    if os.path.isdir(os.path.join(path_to_tx, ".tx")) and not save:
-        logger.info("tx: There is already a tx folder!")
-        if not utils.confirm(
-            prompt='Do you want to delete it and reinit the project?',
-            default=False
-        ):
-            return
-        # Clean the old settings
-        # FIXME: take a backup
-        else:
-            save = True
-            rm_dir = os.path.join(path_to_tx, ".tx")
-            shutil.rmtree(rm_dir)
+    if os.path.isdir(os.path.join(path_to_tx, ".tx")):
+        if not save:
+            logger.info(messages.init_initialized)
+            answer = inquirer.prompt([inquirer.Confirm(
+                'reinit',
+                message=messages.init_reinit,
+                default=False
+            )])
+            if not answer['reinit']:
+                return
+        rm_dir = os.path.join(path_to_tx, ".tx")
+        shutil.rmtree(rm_dir)
 
     logger.info("Creating .tx folder...")
     os.mkdir(os.path.join(path_to_tx, ".tx"))
 
     default_transifex = "https://www.transifex.com"
-    transifex_host = options.host or input("Transifex instance [%s]: " %
-                                           default_transifex)
+    if options.no_interactive:
+        transifex_host = options.host or default_transifex
+    else:
+        transifex_host = options.host or inquirer.prompt([
+            inquirer.Text(
+                'host', message=messages.init_host,
+                default=default_transifex
+            )
+        ], raise_keyboard_interrupt=True)['host']
 
-    if not transifex_host:
-        transifex_host = default_transifex
     if not transifex_host.startswith(('http://', 'https://')):
         transifex_host = 'https://' + transifex_host
 
@@ -92,18 +97,28 @@ def cmd_init(argv, path_to_tx):
     prj = project.Project(path_to_tx)
     prj.getset_host_credentials(transifex_host, username=options.user,
                                 password=options.password,
-                                token=options.token, save=save)
+                                token=options.token,
+                                no_interactive=options.no_interactive)
     prj.save()
-    logger.info("Done.")
+
+    if not options.skipsetup and not options.no_interactive:
+        logger.info(messages.running_tx_set)
+        cmd_set([], path_to_tx)
+    else:
+        logger.info("Done.")
 
 
 def cmd_set(argv, path_to_tx):
     """Add local or remote files under transifex"""
     parser = set_parser()
-    (options, args) = parser.parse_args(argv)
+    if len(argv) == 0:
+        try:
+            options, args = Wizard(path_to_tx).run()
+        except KeyboardInterrupt:
+            exit(1)
+    else:
+        options, args = parser.parse_args(argv)
 
-    # Implement options/args checks
-    # TODO !!!!!!!
     if options.local:
         try:
             expression = args[0]
@@ -128,13 +143,14 @@ def cmd_set(argv, path_to_tx):
                               path_to_tx)
             _set_mode(options.resource, options.mode, path_to_tx)
             _set_type(options.resource, options.i18n_type, path_to_tx)
+            _print_instructions(options.resource, path_to_tx)
         return
 
     if options.remote:
         try:
             url = args[0]
         except IndexError:
-            parser.error("Please specify an remote url")
+            parser.error("Please specify a remote url")
         _auto_remote(path_to_tx, url)
         _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
         _set_mode(options.resource, options.mode, path_to_tx)
@@ -190,6 +206,14 @@ def cmd_set(argv, path_to_tx):
 
     logger.info("Done.")
     return
+
+
+def _print_instructions(resource, path_to_tx):
+    keys = ['source_file', 'file_filter', 'source_lang', 'type']
+    prj = project.Project(path_to_tx)
+    fmt_kwargs = {k: prj.config.get(resource, k) for k in keys}
+    fmt_kwargs.update({'resource': resource})
+    logger.info(messages.final_instr.format(**fmt_kwargs))
 
 
 def _auto_local(path_to_tx, resource, source_language, expression,

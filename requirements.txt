@@ -1,2 +1,5 @@
 urllib3
 six
+git+git://github.com/SofiaMargariti/python-inquirer.git
+requests
+slugify

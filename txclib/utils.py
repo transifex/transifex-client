@@ -12,6 +12,10 @@ try:
     from json import loads as parse_json
 except ImportError:
     from simplejson import loads as parse_json
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 
 from email.parser import Parser
 from urllib3.exceptions import SSLError
@@ -23,7 +27,18 @@ from txclib.exceptions import (
 from txclib.paths import posix_path, native_path, posix_sep
 from txclib.web import user_agent_identifier, certs_file
 from txclib.log import logger
-from txclib.config import CERT_REQUIRED
+from txclib.config import OrderedRawConfigParser, CERT_REQUIRED
+from txclib.processors import visit_hostname
+
+
+class ProjectNotInit(Exception):
+    pass
+
+
+DEFAULT_HOSTNAMES = {
+    'hostname': 'https://www.transifex.com',
+    'api_hostname': 'https://api.transifex.com'
+}
 
 
 def get_base_dir():
@@ -380,3 +395,128 @@ def _encode_anything(thing, encoding='utf-8', keys_as_unicode=False):
     else:
         raise TypeError("Could not encode, unknown type: {}".
                         format(type(thing)))
+
+
+def get_config_file_path(root_path):
+    """Check the .tx/config file exists."""
+    config_file = os.path.join(root_path, ".tx", "config")
+    logger.debug("Config file is %s" % config_file)
+    if not os.path.exists(config_file):
+        msg = "Cannot find the config file (.tx/config)!"
+        raise ProjectNotInit(msg)
+    return config_file
+
+
+def get_tx_dir_path(path_to_tx):
+    """Check the .tx directory exists."""
+    root_path = path_to_tx or find_dot_tx()
+    logger.debug("Path to tx is %s." % root_path)
+    if not root_path:
+        msg = "Cannot find any .tx directory!"
+        raise ProjectNotInit(msg)
+    return root_path
+
+
+def read_config_file(config_file):
+    """Parse the config file and return its contents."""
+    config = OrderedRawConfigParser()
+    try:
+        config.read(config_file)
+    except Exception as err:
+        msg = "Cannot open/parse .tx/config file: %s" % err
+        raise ProjectNotInit(msg)
+    return config
+
+
+def get_transifex_config(txrc_file):
+    """Read the configuration from the .transifexrc files."""
+    txrc = OrderedRawConfigParser()
+    try:
+        txrc.read((txrc_file,))
+    except Exception as e:
+        msg = "Cannot read configuration file: %s" % e
+        raise ProjectNotInit(msg)
+    migrate_txrc_file(txrc_file, txrc)
+    return txrc
+
+
+def migrate_txrc_file(txrc_file, txrc):
+    """Migrate the txrc file, if needed."""
+    if not os.path.exists(txrc_file):
+        return txrc
+    for section in txrc.sections():
+        try:
+            txrc.get(section, 'api_hostname')
+        except configparser.NoOptionError:
+            txrc.set(section, 'api_hostname',
+                     DEFAULT_HOSTNAMES['api_hostname'])
+
+        orig_hostname = txrc.get(section, 'hostname')
+        hostname = visit_hostname(orig_hostname)
+        if hostname != orig_hostname:
+            msg = "Hostname %s should be changed to %s."
+            logger.info(msg % (orig_hostname, hostname))
+            if (sys.stdin.isatty() and sys.stdout.isatty() and
+                    confirm('Change it now? ', default=True)):
+                txrc.set(section, 'hostname', hostname)
+                msg = 'Hostname changed'
+                logger.info(msg)
+            else:
+                hostname = orig_hostname
+        save_txrc_file(txrc_file, txrc)
+    return txrc
+
+
+def get_transifex_file(directory=None):
+    """Fetch the path of the .transifexrc file.
+    It is in the home directory of the user by default.
+    """
+    directory = find_dot_tx()
+    if directory:
+        local_txrc_file = os.path.join(directory, ".transifexrc")
+        if os.path.exists(local_txrc_file):
+            logger.debug(".transifexrc file is at %s" % directory)
+            return local_txrc_file
+
+    directory = os.path.expanduser('~')
+    txrc_file = os.path.join(directory, ".transifexrc")
+    logger.debug(".transifexrc file is at %s" % directory)
+    if not os.path.exists(txrc_file):
+        msg = "%s not found." % (txrc_file)
+        logger.info(msg)
+        mask = os.umask(0o077)
+        open(txrc_file, 'w').close()
+        os.umask(mask)
+        if os.path.exists(txrc_file):
+            logger.info('Created %s ' % txrc_file)
+        else:
+            logger.info('Could not create %s ' % txrc_file)
+    return txrc_file
+
+
+def save_tx_config(config_file, config):
+    """Save the local config file."""
+    fh = open(config_file, "w")
+    config.write(fh)
+    fh.close()
+
+
+def save_txrc_file(txrc_file, txrc):
+    """Save the .transifexrc file."""
+    mask = os.umask(0o077)
+    fh = open(txrc_file, 'w')
+    txrc.write(fh)
+    fh.close()
+    os.umask(mask)
+
+
+def get_api_domains(path_to_tx, host):
+    try:
+        txrc = get_transifex_config(get_transifex_file(path_to_tx))
+        return {
+            'hostname': txrc.get(host, 'hostname'),
+            'api_hostname': txrc.get(host, 'api_hostname')
+        }
+    except (ProjectNotInit, configparser.NoOptionError,
+            configparser.NoSectionError):
+        return DEFAULT_HOSTNAMES

@@ -6,11 +6,17 @@ try:
     import json
 except ImportError:
     import simplejson as json
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 from mock import Mock, patch
 
-from txclib.project import Project, ProjectNotInit, \
-    PULL_MODE_SOURCEASTRANSLATION, DEFAULT_PULL_URL
+from txclib.project import (Project, DEFAULT_PULL_URL,
+                            PULL_MODE_SOURCEASTRANSLATION)
+
 from txclib.config import Flipdict
+from txclib import utils
 
 
 class TestProject(unittest.TestCase):
@@ -20,32 +26,29 @@ class TestProject(unittest.TestCase):
         """Test _get_tx_dir_path function"""
         expected_path = '/tmp/'
         m_find_dot_tx.return_value = expected_path
-        p = Project(init=False)
-        path = p._get_tx_dir_path(path_to_tx=None)
+        path = utils.get_tx_dir_path(path_to_tx=None)
         self.assertEqual(path, expected_path)
         m_find_dot_tx.assert_called_once_with()
 
         expected_path = '/opt/'
-        path = p._get_tx_dir_path(path_to_tx=expected_path)
+        path = utils.get_tx_dir_path(path_to_tx=expected_path)
         self.assertEqual(path, expected_path)
         # make sure it has not been called twice
         m_find_dot_tx.assert_called_once_with()
 
     @patch('os.path.exists')
     def test_get_config_file_path(self, m_exists):
-        """Test _get_config_file_path function"""
-        p = Project(init=False)
+        """Test get_config_file_path function"""
         m_exists.return_value = True
-        p._get_config_file_path('/tmp/')
+        utils.get_config_file_path('/tmp/')
         m_exists.assert_called_once_with('/tmp/.tx/config')
 
         m_exists.return_value = False
-        with self.assertRaises(ProjectNotInit):
-            p._get_config_file_path('/tmp/')
+        with self.assertRaises(utils.ProjectNotInit):
+            utils.get_config_file_path('/tmp/')
 
-    @patch('txclib.utils.confirm')
     @patch('txclib.config.configparser')
-    def test_getset_host_credentials(self, m_parser, m_confirm):
+    def test_getset_host_credentials(self, m_parser):
         p = Project(init=False)
         # let suppose a token has been set at the config
         dummy_token = 'salala'
@@ -68,6 +71,76 @@ class TestProject(unittest.TestCase):
         username, password = p.getset_host_credentials('test')
         self.assertEqual(username, 'username')
         self.assertEqual(password, 'passw0rdz')
+
+    @patch('txclib.project.inquirer.prompt')
+    @patch('txclib.config.configparser')
+    def test_getset_host_credentials_no_transifexrc(
+            self, m_parser, m_prompt):
+        p = Project(init=False)
+        # let suppose a token has been set at the config
+        dummy_token = 'salala'
+        p.txrc = m_parser
+        p.save = Mock()
+        p.validate_credentials = Mock(return_value=True)
+        p.txrc_file = '/tmp'
+        p.txrc.get.side_effect = configparser.NoSectionError('test')
+        m_prompt.return_value = {'token': dummy_token}
+        username, password = p.getset_host_credentials('test')
+        self.assertEqual(username, 'api')
+        self.assertEqual(password, dummy_token)
+        self.assertEqual(p.txrc.set.call_count, 4)
+        self.assertEqual(m_prompt.call_count, 1)
+        p.save.assert_called()
+
+    @patch('txclib.project.inquirer.prompt')
+    @patch('txclib.config.configparser')
+    def test_getset_host_credentials_update_transifexrc(
+            self, m_parser, m_prompt):
+        p = Project(init=False)
+        dummy_token = 'salala'
+        p.txrc = m_parser
+        p.save = Mock()
+        p.txrc_file = '/tmp'
+        p.validate_credentials = Mock(return_value=True)
+        p.txrc.get.side_effect = [
+            'foo', 'bar'
+        ]
+        # transifexrc does not get updated if credentials are the same
+        username, password = p.getset_host_credentials(
+            'test', username='foo', password='bar'
+        )
+        self.assertEqual(username, 'foo')
+        self.assertEqual(password, 'bar')
+        self.assertEqual(p.txrc.set.call_count, 0)
+        self.assertEqual(m_prompt.call_count, 0)
+        self.assertEqual(p.save.call_count, 0)
+
+        # transifexrc is not updated if confirm is no
+        p.txrc.get.side_effect = [
+            'foo', 'bar'
+        ]
+        m_prompt.return_value = {'update_txrc': False}
+        username, password = p.getset_host_credentials('test',
+                                                       token=dummy_token)
+        self.assertEqual(username, 'api')
+        self.assertEqual(password, dummy_token)
+        self.assertEqual(p.txrc.set.call_count, 0)
+        self.assertEqual(m_prompt.call_count, 1)
+        self.assertEqual(p.save.call_count, 0)
+
+        # transifexrc is not updated if confirm is yes
+        p.txrc.get.side_effect = [
+            'foo', 'bar'
+        ]
+        m_prompt.return_value = {'update_txrc': True}
+        m_prompt.reset_mock()
+        username, password = p.getset_host_credentials('test',
+                                                       token=dummy_token)
+        self.assertEqual(username, 'api')
+        self.assertEqual(password, dummy_token)
+        self.assertEqual(p.txrc.set.call_count, 4)
+        self.assertEqual(m_prompt.call_count, 1)
+        p.save.assert_called()
 
     def test_extract_fields(self):
         """Test the functions that extract a field from a stats object."""
