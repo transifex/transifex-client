@@ -6,8 +6,13 @@ try:
     import json
 except ImportError:
     import simplejson as json
+from functools import wraps
 from mock import Mock, patch
+from collections import namedtuple
+from os.path import dirname
+from sys import modules
 
+from txclib.exceptions import AuthenticationError
 from txclib.project import Project, ProjectNotInit, \
     PULL_MODE_SOURCEASTRANSLATION, DEFAULT_PULL_URL
 from txclib.config import Flipdict
@@ -583,6 +588,74 @@ class TestProjectPull(unittest.TestCase):
             DEFAULT_PULL_URL,
             self.p._get_url_by_pull_mode(mode=None)
         )
+
+    def fixture_mocked_project(func):
+        """A mock object with main os and http operations mocked"""
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            app_dir = dirname(modules['txclib'].__file__)
+            config_file = app_dir + "/../tests/templates/config"
+            transifex_file = app_dir + "/../tests/templates/transifexrc"
+            with patch("txclib.utils.encode_args") as mock_encode_args, \
+                patch("txclib.utils.determine_charset")\
+                    as mock_determine_charset, \
+                    patch("txclib.project.Project._get_transifex_file",
+                          return_value=transifex_file) \
+                    as mock_get_transifex_file, \
+                    patch("txclib.project.Project._get_config_file_path",
+                          return_value=config_file) \
+                    as mock_get_config_file_path, \
+                    patch("txclib.project.Project._save_txrc_file") \
+                    as mock_save_txrc_file, \
+                    patch("txclib.project.Project._get_stats_for_resource") \
+                    as mock_get_stats_for_resource:
+
+                # Create fake https response
+                def encode_args(*args, **kwargs):
+                    struct = namedtuple("response", "data status close")
+                    return struct(status=401, data="mock_response", close=Mock())
+                mock_determine_charset.return_value = "utf-8"
+                mock_encode_args.return_value = encode_args
+
+                # Mock configuration files
+                p = Project(init=False)
+                p._init(path_to_tx=app_dir + "/../templates")
+
+                kwargs['mock_project'] = p
+                kwargs['mocks'] = {
+                    'mock_determine_charset': mock_determine_charset,
+                    "mock_encode_args": mock_encode_args,
+                    "mock_get_config_file_path": mock_get_config_file_path,
+                    "mock_get_stats_for_resource": mock_get_stats_for_resource,
+                    "mock_get_transifex_file": mock_get_transifex_file,
+                    "mock_save_txrc_file": mock_save_txrc_file
+                }
+                return func(*args, **kwargs)
+        return wrapper
+
+    @fixture_mocked_project
+    @patch("txclib.project.logger.error")
+    def test_pull_raises_authentication_exception(self, mock_logger, **kwargs):
+        project = kwargs['mock_project']
+        with self.assertRaises(AuthenticationError):
+            project.pull()
+            mock_logger.assert_called_once_with(
+                Project.AUTHENTICATION_FAILED_MESSAGE)
+
+    @fixture_mocked_project
+    @patch("txclib.project.logger.error")
+    def test_push_raises_authentication_exception(self, mock_logger, **kwargs):
+        project = kwargs['mock_project']
+        with self.assertRaises(AuthenticationError):
+            project.push()
+
+    @fixture_mocked_project
+    @patch("txclib.project.logger.error")
+    def test_delete_raises_authentication_exception(self, mock_logger,
+                                                    **kwargs):
+        project = kwargs['mock_project']
+        with self.assertRaises(AuthenticationError):
+            project.delete()
 
 
 class TestFormats(unittest.TestCase):

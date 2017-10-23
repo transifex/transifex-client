@@ -1,0 +1,8 @@
+[main]
+host = https://fake.com
+
+[example.enpo]
+file_filter = translations/example.enpo/<lang>.po
+source_file = example.po
+source_lang = en
+type = PO

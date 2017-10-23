@@ -10,6 +10,7 @@ from urllib3.exceptions import SSLError
 import txclib
 from txclib import utils
 from txclib.log import set_log_level, logger
+from txclib.exceptions import AuthenticationError
 
 
 # use pyOpenSSL if available
@@ -115,6 +116,13 @@ def main(argv=None):
     except utils.UnknownCommandError:
         logger.error("Command %s not found" % cmd)
         sys.exit(1)
+    except AuthenticationError:
+        authentication_failed_message = """
+Error: Authentication failed. Please make sure your credentials are valid. You
+can update your credentials in the ~/.transifexrc file. For more information,
+visit https://docs.transifex.com/client/client-configuration#-transifexrc.
+"""
+        logger.error(authentication_failed_message)
     except Exception:
         import traceback
         if options.trace:

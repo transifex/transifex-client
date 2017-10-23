@@ -1,0 +1,4 @@
+[https://fake.com]
+hostname = https://fake.com
+password = dummy_api_token_password_12345
+username = api

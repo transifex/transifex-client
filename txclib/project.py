@@ -26,7 +26,8 @@ from txclib import utils
 from urllib3.exceptions import SSLError
 from six.moves import input
 from txclib.exceptions import (
-    HttpNotFound, HttpNotAuthorized, MalformedConfigFile
+    ConfigFileError, HttpNotFound, HttpNotAuthorized, MalformedConfigFile,
+    TransifexrcConfigFileError
 )
 from txclib.urls import API_URLS
 from txclib.config import OrderedRawConfigParser, Flipdict, CERT_REQUIRED
@@ -268,11 +269,7 @@ class Project(object):
 
         p_slug, r_slug = resource.split('.', 1)
         file_filter = file_filter.replace("<sep>", r"%s" % posix_sep)
-        self.url_info = {
-            'host': host,
-            'project': p_slug,
-            'resource': r_slug
-        }
+        self._set_url_info(host=host, project=p_slug, resource=r_slug)
         extension = self._extension_for(i18n_type)[1:]
 
         self.config.set(resource, 'source_lang', source_lang)
@@ -488,19 +485,14 @@ class Project(object):
             logger.debug("Language mapping is: %s" % lang_map)
             if mode is None:
                 mode = self._get_option(resource, 'mode')
-            self.url_info = {
-                'host': host,
-                'project': project_slug,
-                'resource': resource_slug
-            }
+            self._set_url_info(host=host, project=project_slug,
+                               resource=resource_slug)
             logger.debug("URL data are: %s" % self.url_info)
 
             stats = self._get_stats_for_resource()
             try:
                 details_response, _ = self.do_url_request('resource_details')
             except Exception as e:
-                if isinstance(e, SSLError):
-                    raise
                 if isinstance(e, HttpNotAuthorized):
                     logger.error("Request is not authorized.")
                     continue
@@ -508,6 +500,9 @@ class Project(object):
                     msg = "Resource %s doesn't exist on the server."
                     logger.error(msg % resource)
                     continue
+                if isinstance(e, SSLError) or not skip:
+                    raise
+
             details = utils.parse_json(details_response)
             if details['i18n_type'] in self.SKIP_DECODE_I18N_TYPES:
                 skip_decode = True
@@ -691,12 +686,8 @@ class Project(object):
             host = self.get_resource_host(resource)
             logger.debug("Language mapping is: %s" % lang_map)
             logger.debug("Using host %s" % host)
-            self.url_info = {
-                'host': host,
-                'project': project_slug,
-                'resource': resource_slug
-            }
-
+            self._set_url_info(host=host, project=project_slug,
+                               resource=resource_slug)
             logger.info("Pushing translations for resource %s:" % resource)
 
             stats = self._get_stats_for_resource()
@@ -744,8 +735,6 @@ class Project(object):
                 try:
                     self.do_url_request('resource_details')
                 except Exception as e:
-                    if isinstance(e, SSLError):
-                        raise
                     if isinstance(e, HttpNotAuthorized):
                         logger.error("Request is not authorized.")
                         continue
@@ -753,6 +742,8 @@ class Project(object):
                         msg = "Resource %s doesn't exist on the server."
                         logger.error(msg % resource)
                         continue
+                    if isinstance(e, SSLError) or not skip:
+                        raise
 
             if translations:
                 # Check if given language codes exist
@@ -833,17 +824,12 @@ class Project(object):
         for resource in resource_list:
             project_slug, resource_slug = resource.split('.', 1)
             host = self.get_resource_host(resource)
-            self.url_info = {
-                'host': host,
-                'project': project_slug,
-                'resource': resource_slug
-            }
+            self._set_url_info(host=host, project=project_slug,
+                               resource=resource_slug)
             logger.debug("URL data are: %s" % self.url_info)
             try:
                 json, _ = self.do_url_request('project_details', project=self)
             except Exception as e:
-                if isinstance(e, SSLError):
-                    raise
                 if isinstance(e, HttpNotAuthorized):
                     logger.error("Request is not authorized.")
                     continue
@@ -851,6 +837,9 @@ class Project(object):
                     msg = "Resource %s doesn't exist on the server."
                     logger.error(msg % resource)
                     continue
+                if isinstance(e, SSLError) or not skip:
+                    raise
+
             project_details = utils.parse_json(json)
             stats = self._get_stats_for_resource()
             delete_func(project_details, resource, stats, languages)
@@ -949,7 +938,7 @@ class Project(object):
         try:
             hostname = self.txrc.get(host, 'hostname')
         except configparser.NoSectionError:
-            raise Exception(
+            raise TransifexrcConfigFileError(
                 "No entry found for host %s. Edit"
                 " ~/.transifexrc and add the appropriate"
                 " info in there." % host
@@ -1353,9 +1342,10 @@ class Project(object):
             passwd = self.txrc.get(host, 'password')
             hostname = self.txrc.get(host, 'hostname')
         except configparser.NoSectionError:
-            raise Exception("No user credentials found for host %s. Edit "
-                            "~/.transifexrc and add the appropriate "
-                            "info in there." % host)
+            raise TransifexrcConfigFileError(
+                "No user credentials found for host %s. Edit "
+                "~/.transifexrc and add the appropriate "
+                "info in there." % host)
 
         # Create the Url
         kwargs['hostname'] = hostname
@@ -1365,7 +1355,7 @@ class Project(object):
 
         i18n_type = self._get_option(resource, 'type')
         if i18n_type is None:
-            raise Exception(
+            raise ConfigFileError(
                 "Please define the resource type in "
                 ".tx/config (eg. type = PO). "
                 "More info: http://bit.ly/txcconfig"
@@ -1449,3 +1439,10 @@ class Project(object):
             file_content = file_content.encode(charset)
         fd.write(file_content)
         fd.close()
+
+    def _set_url_info(self, host, project, resource):
+        self.url_info = {
+            'host': host,
+            'project': project,
+            'resource': resource
+        }
