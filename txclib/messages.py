@@ -46,7 +46,7 @@ https://docs.transifex.com/client/set/.
 """),
         "error": ("No file was found in that path. Please correct the path "
                   "or make sure a file exists in that location."),
-        "message": "Enter a path to your local source file"
+        "message": "[?] Enter the path to your local source file: "
     },
     "expression": {
         "description": ("""
@@ -56,15 +56,15 @@ the source file ‘{source_file}’. You should use <lang> as a
 wildcard for the language code.
 """),
         "error": "The path expression doesn’t contain the <lang> placeholder.",
-        "message": "Enter a path expression"
+        "message": "[?] Enter a path expression: "
     },
     "formats": {
         "description": ("""
 Here’s a list of the supported file formats. For more information,
 check our docs at https://docs.transifex.com/formats/.
 """),
-        "error": "",
-        "message": "Select the file format type",
+        "error": "Invalid choice",
+        "message": "[?] Select the file format type: ",
     },
     "organization": {
         "description": ("""
@@ -72,15 +72,13 @@ You’ll now choose a project in a Transifex organization to sync with your
 local files.
 You belong to these organizations in Transifex:
 """),
-        "error": ("""
-You don’t have any projects in the ‘{organization}’ organization.
-"""),
-        "message": "Select the organization",
+        "error": ("Invalid choice"),
+        "message": "[?] Select the organization: ",
     },
     "projects": {
         "description": ("""We found these projects in your organization."""),
         "error": "",
-        "message": "Select project",
+        "message": "[?] Select project: ",
     },
 }
 
@@ -100,7 +98,7 @@ file_filter = {file_filter}
 source_lang = {source_lang}
 type = {type}
 
-You could also generate the same configuration by running a single command like:
+You could also have generated the same configuration by running a single command like:
 
 tx set --auto-local -r {resource} -f {source_file} -s {source_lang} -t {type} '{file_filter}'
 

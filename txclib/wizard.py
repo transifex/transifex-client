@@ -1,19 +1,66 @@
 import os
-import inquirer
-from txclib import messages
 from slugify import slugify
+from txclib import messages
+from txclib import utils
 from txclib.api import Api
 from txclib.project import Project
 from txclib.log import logger
 from txclib.parsers import set_parser
+from six.moves import input
 
 
-def validate_source_file(answers, path):
+COLOR = "CYAN"
+
+
+def validate_source_file(path):
     return os.path.isfile(os.path.abspath(path))
 
 
-def validate_expression(answers, expression):
+def validate_expression(expression):
     return '<lang>' in expression
+
+
+def validate_int(choice, length):
+    try:
+        choice = int(choice)
+    except ValueError:
+        return False
+    return 0 < choice <= length
+
+
+def choice_prompt(l, key):
+    """
+    l: A list of tuples (key, display_value) with the valid choices
+    key: one of 'formats', 'organizations', 'projects'
+    returns the key of the selected choice
+    """
+    a = "\n".join(["  {}. {}".format(i+1, f[1])
+                   for i, f in enumerate(l)])
+    a = a + "\n"
+    logger.info(a)
+
+    choice = ''
+    first_time = True
+    while not validate_int(choice, len(l)):
+        if not first_time:
+            logger.info(messages.TEXTS[key]["error"])
+        choice = input(utils.color_text(messages.TEXTS[key]['message'],
+                                        COLOR))
+        first_time = False
+    return l[int(choice) - 1][0]
+
+
+def input_prompt(key, validation_method):
+    user_input = ''
+    first_time = True
+    while not validation_method(user_input):
+        if not first_time:
+            logger.info(messages.TEXTS[key]['error'])
+
+        user_input = input(
+            utils.color_text(messages.TEXTS[key]['message'], COLOR))
+        first_time = False
+    return user_input
 
 
 class Wizard(object):
@@ -33,7 +80,7 @@ class Wizard(object):
         except Exception as e:
             logger.error(e)
             exit(1)
-        return [(o['name'], o['slug']) for o in organizations]
+        return [(o['slug'], o['name']) for o in organizations]
 
     def get_projects_for_org(self, organization):
         try:
@@ -54,7 +101,7 @@ class Wizard(object):
         def display_format(v):
             return '{} - {}'.format(v['description'], v['file-extensions'])
 
-        formats = [(display_format(v), k) for k, v in formats.items()
+        formats = [(k, display_format(v)) for k, v in formats.items()
                    if extension in v['file-extensions']]
         return formats
 
@@ -68,82 +115,57 @@ class Wizard(object):
         """
 
         TEXTS = messages.TEXTS
+
         options, args = set_parser().parse_args([])
         options.local = True
         options.execute = True
-        logger.info(TEXTS['source_file']['description'])
 
-        ans = inquirer.prompt([
-            inquirer.Text('source_file',
-                          message=TEXTS['source_file']['message'],
-                          validate=validate_source_file)
-        ], raise_keyboard_interrupt=True)
-        options.source_file = ans['source_file']
+        logger.info(TEXTS['source_file']['description'])
+        options.source_file = input_prompt('source_file', validate_source_file)
 
         logger.info(
             TEXTS['expression']['description'].format(
                 source_file=options.source_file
             )
         )
-        ans = inquirer.prompt([
-            inquirer.Text('expression',
-                          message=TEXTS['expression']['message'],
-                          validate=validate_expression)
-        ], raise_keyboard_interrupt=True)
-        args.append(ans['expression'])
+        args.append(input_prompt('expression', validate_expression))
 
         formats = self.get_formats(os.path.basename(options.source_file))
         logger.info(TEXTS['formats']['description'])
-        ans = inquirer.prompt([
-            inquirer.List('i18n_type', message=TEXTS['formats']['message'],
-                          choices=formats)
-        ], raise_keyboard_interrupt=True)
-        options.i18n_type = ans['i18n_type']
+        options.i18n_type = choice_prompt(formats, 'formats')
 
         organizations = self.get_organizations()
         logger.info(TEXTS['organization']['description'])
-        org_answer = inquirer.prompt([
-            inquirer.List('organization',
-                          message=TEXTS['organization']['message'],
-                          choices=organizations)
-        ], raise_keyboard_interrupt=True)
+        org_slug = choice_prompt(organizations, 'organization')
 
         projects = []
         first_time = True
-        create_project = ("Create new project (show instructions)...",
-                          'tx:new_project')
+        create_project = ("tx:new_project",
+                          "Create new project (show instructions)...")
         project = None
         while not project:
             if not first_time:
-                inquirer.prompt([inquirer.Text(
-                    'retry',
-                    message="Hit Enter to try selecting a project again")
-                ], raise_keyboard_interrupt=True)
+                retry_message = "Hit Enter to try selecting a project again: "
+                input(utils.color_text(retry_message, COLOR))
 
-            projects = self.get_projects_for_org(org_answer['organization'])
-            p_choices = [(p['name'], p['slug']) for p in projects]
+            projects = self.get_projects_for_org(org_slug)
+            p_choices = [(p['slug'], p['name']) for p in projects]
+            p_choices.append(create_project)
             if projects:
                 logger.info(TEXTS['projects']['description'])
             else:
                 logger.info("We found no projects in this organization!")
             first_time = False
-            ans = inquirer.prompt([
-                inquirer.List(
-                    'project',
-                    message=TEXTS['projects']['message'].format(self.host),
-                    choices=p_choices + [create_project]
-                )
-            ], raise_keyboard_interrupt=True)
-            if ans['project'] == 'tx:new_project':
-                logger.info(
-                    messages.create_project_instructions.format(
-                        org=org_answer['organization'])
-                )
+            project_slug = choice_prompt(p_choices, 'projects')
+
+            if project_slug == 'tx:new_project':
+                logger.info(messages.create_project_instructions.format(
+                    host=self.host, org=org_slug
+                ))
             else:
                 project = [p for p in projects
-                           if p['slug'] == ans['project']][0]
+                           if p['slug'] == project_slug][0]
                 options.source_language = project['source_language_code']
-                project_slug = project['slug']
 
         resource_slug = slugify(os.path.basename(options.source_file))
         options.resource = '{}.{}'.format(project_slug, resource_slug)

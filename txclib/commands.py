@@ -18,7 +18,6 @@ import os
 import re
 import shutil
 import sys
-import inquirer
 try:
     import configparser
 except ImportError:
@@ -53,12 +52,7 @@ def cmd_init(argv, path_to_tx):
     if os.path.isdir(os.path.join(path_to_tx, ".tx")):
         if not save:
             logger.info(messages.init_initialized)
-            answer = inquirer.prompt([inquirer.Confirm(
-                'reinit',
-                message=messages.init_reinit,
-                default=False
-            )])
-            if not answer['reinit']:
+            if not utils.confirm(messages.init_reinit):
                 return
         rm_dir = os.path.join(path_to_tx, ".tx")
         shutil.rmtree(rm_dir)
@@ -104,7 +98,8 @@ def cmd_set(argv, path_to_tx):
     if len(argv) == 0:
         try:
             options, args = Wizard(path_to_tx).run()
-        except KeyboardInterrupt:
+        except SystemExit:
+            print("\n")
             exit(1)
     else:
         options, args = parser.parse_args(argv)

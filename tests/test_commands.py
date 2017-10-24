@@ -71,12 +71,9 @@ class TestInitCommand(unittest.TestCase):
         os.chdir(self.curr_dir)
         super(TestInitCommand, self).tearDown(*args, **kwargs)
 
-    @patch('txclib.commands.inquirer')
-    def test_init(self, inquirer_mock):
+    def test_init(self):
         argv = []
-        prompt_mock = MagicMock(return_value={'host': 'somehost'})
-        inquirer_mock.prompt = prompt_mock
-        config_text = "[main]\nhost = https://somehost\n\n"
+        config_text = "[main]\nhost = https://www.transifex.com\n\n"
         with patch('txclib.commands.project.Project') as project_mock:
             with patch('txclib.commands.cmd_set') as set_mock:
                 cmd_init(argv, '')
@@ -86,11 +83,8 @@ class TestInitCommand(unittest.TestCase):
         self.assertTrue(os.path.exists('./.tx/config'))
         self.assertEqual(open('.tx/config').read(), config_text)
 
-    @patch('txclib.commands.inquirer')
-    def test_init_skipsetup(self, inquirer_mock):
+    def test_init_skipsetup(self):
         argv = ['--skipsetup']
-        prompt_mock = MagicMock(return_value={'host': 'somehost'})
-        inquirer_mock.prompt = prompt_mock
         with patch('txclib.commands.project.Project') as project_mock:
             with patch('txclib.commands.cmd_set') as set_mock:
                 cmd_init(argv, '')
@@ -99,40 +93,33 @@ class TestInitCommand(unittest.TestCase):
         self.assertTrue(os.path.exists('./.tx'))
         self.assertTrue(os.path.exists('./.tx/config'))
 
-    @patch('txclib.commands.inquirer')
-    def test_init_save_N(self, inquirer_mock):
+    @patch('txclib.commands.utils.confirm')
+    def test_init_save_N(self, confirm_mock):
         os.mkdir('./.tx')
         argv = []
-        prompt_mock = MagicMock(return_value={'reinit': False})
-        inquirer_mock.prompt = prompt_mock
+        confirm_mock.return_value = False
         with patch('txclib.commands.project.Project') as project_mock:
                 cmd_init(argv, '')
                 self.assertEqual(project_mock.call_count, 0)
         self.assertTrue(os.path.exists('./.tx'))
-        self.assertEqual(prompt_mock.call_count, 1)
+        self.assertEqual(confirm_mock.call_count, 1)
 
-    @patch('txclib.commands.inquirer')
-    def test_init_save_y(self, inquirer_mock):
+    @patch('txclib.commands.utils.confirm')
+    def test_init_save_y(self, confirm_mock):
         os.mkdir('./.tx')
         argv = []
-        prompt_mock = MagicMock(
-            return_value={'host': 'somehost', 'reinit': True}
-        )
-        inquirer_mock.prompt = prompt_mock
+        confirm_mock.return_value = True
         with patch('txclib.commands.project.Project') as project_mock:
             with patch('txclib.commands.cmd_set') as set_mock:
                 cmd_init(argv, '')
                 project_mock.assert_called()
                 set_mock.assert_called()
         self.assertTrue(os.path.exists('./.tx'))
-        self.assertEqual(prompt_mock.call_count, 2)
+        self.assertEqual(confirm_mock.call_count, 1)
 
-    @patch('txclib.commands.inquirer')
-    def test_init_force_save(self, inquirer_mock):
+    def test_init_force_save(self):
         os.mkdir('./.tx')
         argv = ['--force-save']
-        prompt_mock = MagicMock(return_value={'host': 'somehost'})
-        inquirer_mock.prompt = prompt_mock
         with patch('txclib.commands.project.Project') as project_mock:
             with patch('txclib.commands.cmd_set') as set_mock:
                 cmd_init(argv, '')
@@ -140,4 +127,3 @@ class TestInitCommand(unittest.TestCase):
                 set_mock.assert_called()
         self.assertTrue(os.path.exists('./.tx'))
         self.assertTrue(os.path.exists('./.tx/config'))
-        self.assertEqual(prompt_mock.call_count, 1)

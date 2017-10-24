@@ -78,10 +78,10 @@ class TestProject(unittest.TestCase):
         self.assertEqual(username, 'username')
         self.assertEqual(password, 'passw0rdz')
 
-    @patch('txclib.project.inquirer.prompt')
+    @patch('txclib.project.input')
     @patch('txclib.config.configparser')
     def test_getset_host_credentials_no_transifexrc(
-            self, m_parser, m_prompt):
+            self, m_parser, m_input):
         p = Project(init=False)
         # let suppose a token has been set at the config
         dummy_token = 'salala'
@@ -90,18 +90,18 @@ class TestProject(unittest.TestCase):
         p.validate_credentials = Mock(return_value=True)
         p.txrc_file = '/tmp'
         p.txrc.get.side_effect = configparser.NoSectionError('test')
-        m_prompt.return_value = {'token': dummy_token}
+        m_input.return_value = dummy_token
         username, password = p.getset_host_credentials('test')
         self.assertEqual(username, 'api')
         self.assertEqual(password, dummy_token)
         self.assertEqual(p.txrc.set.call_count, 4)
-        self.assertEqual(m_prompt.call_count, 1)
+        self.assertEqual(m_input.call_count, 1)
         p.save.assert_called()
 
-    @patch('txclib.project.inquirer.prompt')
+    @patch('txclib.project.utils.confirm')
     @patch('txclib.config.configparser')
     def test_getset_host_credentials_update_transifexrc(
-            self, m_parser, m_prompt):
+            self, m_parser, m_input):
         p = Project(init=False)
         dummy_token = 'salala'
         p.txrc = m_parser
@@ -118,34 +118,34 @@ class TestProject(unittest.TestCase):
         self.assertEqual(username, 'foo')
         self.assertEqual(password, 'bar')
         self.assertEqual(p.txrc.set.call_count, 0)
-        self.assertEqual(m_prompt.call_count, 0)
+        self.assertEqual(m_input.call_count, 0)
         self.assertEqual(p.save.call_count, 0)
 
         # transifexrc is not updated if confirm is no
         p.txrc.get.side_effect = [
             'foo', 'bar'
         ]
-        m_prompt.return_value = {'update_txrc': False}
+        m_input.return_value = False
         username, password = p.getset_host_credentials('test',
                                                        token=dummy_token)
         self.assertEqual(username, 'api')
         self.assertEqual(password, dummy_token)
         self.assertEqual(p.txrc.set.call_count, 0)
-        self.assertEqual(m_prompt.call_count, 1)
+        self.assertEqual(m_input.call_count, 1)
         self.assertEqual(p.save.call_count, 0)
 
         # transifexrc is not updated if confirm is yes
         p.txrc.get.side_effect = [
             'foo', 'bar'
         ]
-        m_prompt.return_value = {'update_txrc': True}
-        m_prompt.reset_mock()
+        m_input.return_value = True
+        m_input.reset_mock()
         username, password = p.getset_host_credentials('test',
                                                        token=dummy_token)
         self.assertEqual(username, 'api')
         self.assertEqual(password, dummy_token)
         self.assertEqual(p.txrc.set.call_count, 4)
-        self.assertEqual(m_prompt.call_count, 1)
+        self.assertEqual(m_input.call_count, 1)
         p.save.assert_called()
 
     def test_extract_fields(self):

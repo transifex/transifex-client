@@ -1,5 +1,4 @@
 urllib3
 six
-inquirer
 requests
 python-slugify

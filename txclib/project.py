@@ -7,7 +7,6 @@ import datetime
 import time
 import urllib3
 import six
-import inquirer
 
 try:
     import urlparse
@@ -144,10 +143,7 @@ class Project(object):
             if username == config_username and password == config_password:
                 pass
             elif username and password:
-                if not no_interactive and inquirer.prompt([
-                    inquirer.Confirm('update_txrc',
-                                     message=messages.update_txrc)
-                ], raise_keyboard_interrupt=True)['update_txrc']:
+                if not no_interactive and utils.confirm(messages.update_txrc):
                     save = True
             else:
                 username = config_username
@@ -177,10 +173,10 @@ class Project(object):
 
     def _token_prompt(self, host):
         token = None
+        COLOR = "CYAN"
         while not token:
-            token = inquirer.prompt([
-                inquirer.Text('token', message=messages.token_msg)
-            ])['token']
+            token = input(utils.color_text(messages.token_msg, COLOR))
+            logger.info(utils.color_text("Verifyng token...", "YELLOW"))
             if not self.validate_credentials('api', token, host):
                 logger.info(messages.token_validation_failed)
                 token = None
