@@ -12,8 +12,17 @@ class UnInitializedError(Exception):
 class UnknownCommandError(Exception):
     """The provided command is not supported."""
 
-class MalformedConfigFile(Exception):
+
+class ConfigFileError(Exception):
+    """The .tx/config file has missing data"""
+
+
+class MalformedConfigFile(ConfigFileError):
     pass
+
+
+class TransifexrcConfigFileError(Exception):
+    """The ~/.transifexrc file has missing data"""
 
 # HTTP exceptions
 
@@ -23,4 +32,8 @@ class HttpNotFound(Exception):
 
 
 class HttpNotAuthorized(Exception):
+    pass
+
+
+class AuthenticationError(Exception):
     pass
