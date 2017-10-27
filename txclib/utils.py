@@ -233,19 +233,25 @@ def get_details(api_call, username, password, *args, **kwargs):
         raise
 
 
-def valid_slug(slug):
+def valid_resource_slug(slug):
     """
-    Check if a slug contains only valid characters.
-    Valid chars include [-_\w]
+    Check if a resource slug contains only valid characters.
+    Valid format is [-_\w].[-_\w] (<project>.<resource>)
     """
     try:
         a, b = slug.split('.')
     except ValueError:
         return False
     else:
-        if re.match("^[A-Za-z0-9_-]*$", a) and re.match("^[A-Za-z0-9_-]*$", b):
-            return True
-        return False
+        return valid_slug(a) and valid_slug(b)
+
+
+def valid_slug(slug):
+    """
+    Check if a slug contains only valid characters.
+    Valid chars include [-_\w]
+    """
+    return re.match("^[A-Za-z0-9_-]*$", slug)
 
 
 def discover_commands():

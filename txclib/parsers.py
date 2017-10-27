@@ -351,6 +351,66 @@ def set_parser(subparser=False):
     return parser
 
 
+def set_multi_parser():
+    """Return the command-line parser for the set_multi command."""
+    usage = "usage: %prog [tx_options] set_multi [options] [args]"
+    description = "This command can be used to create a mapping between files "\
+        "and projects for multiple resources at once, using local files. " \
+                  "Always assumes --auto-local."
+    epilog = "\nExamples:\n"\
+        "To set a series of HTML source files that reside inside locale/:\n"\
+        " $ tx set_multi -p project 'expr' --source-lang en --type HTML " \
+        "-f '.html' -d locale\n\n"\
+        "To set a series of KEYVAlUEJSON source files that reside " \
+        "inside locale/ but exclude files in locale/es/ and locale/jp/:\n"\
+        " $ tx set_multi -p project 'expr' --source-lang en " \
+        "--type KEYVAlUEJSON -f '.json' -d locale -i es -i jp\n\n"
+    parser = EpilogParser(usage=usage, description=description, epilog=epilog)
+    parser.add_option("-p", "--project", action="store", dest="project",
+                      default=None,
+                      help="Specify the slug of the project that you're "
+                      "setting up.")
+    parser.add_option(
+        "-d", "--source-file-dir", action="store", dest="source_file_dir",
+        default=None, help=(
+            "Directory to find source files to be mapped. "
+            "Example: locale/en/"
+        )
+    )
+    parser.add_option("-t", "--type", action="store", dest="i18n_type",
+                      help=("Specify the i18n type of the resources. "
+                            "This is only needed, if the resource(s) does not "
+                            "exist yet in Transifex. For a list of "
+                            "available i18n types, see "
+                            "http://docs.transifex.com/formats/"
+                            ))
+    parser.add_option("-s", "--source-language", action="store",
+                      dest="source_language", default=None,
+                      help="Specify the source language of the resources ")
+    parser.add_option("-f", "--file-extension", action="store",
+                      dest="file_extension", default=None,
+                      help="File extension of files to be mapped.")
+    parser.add_option("-i", "--ignore-dir", action="append",
+                      dest="ignore_dirs", default=[],
+                      help="Directory to ignore while looking for source "
+                           "files. Can be called multiple times. "
+                           "Example: `-i es -i fr`.'.")
+    parser.add_option("--minimum-perc", action="store", dest="minimum_perc",
+                      help=("Specify the minimum acceptable percentage "
+                            "of a translation in order to download it."
+                            ))
+    parser.add_option(
+        "--mode", action="store", dest="mode", help=(
+            "Specify the mode of the translation file to pull (e.g. "
+            "'reviewed'). See http://bit.ly/pullmode for the "
+            "available values."
+        )
+    )
+    parser.add_option("--execute", action="store_true", dest="execute",
+                     default=False, help="Execute commands ")
+    return parser
+
+
 def status_parser():
     """Return the command-line parser for the status command."""
     description = "Prints the status of the current project by reading the "\

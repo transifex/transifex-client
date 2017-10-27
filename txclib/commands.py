@@ -27,7 +27,8 @@ from txclib import utils, project
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
-    status_parser, pull_parser, set_parser, push_parser, init_parser
+    status_parser, pull_parser, set_parser, set_multi_parser, push_parser, \
+    init_parser
 from txclib.paths import posix_path
 from txclib.log import logger
 from txclib.wizard import Wizard
@@ -119,7 +120,7 @@ def cmd_set(argv, path_to_tx):
         if options.expression and '<lang>' not in options.expression:
             parser.error("The expression you have provided is not valid.")
 
-    if not utils.valid_slug(options.resource):
+    if not utils.valid_resource_slug(options.resource):
         parser.error("Invalid resource slug. The format is <project_slug>"
                      ".<resource_slug> and the valid characters include "
                      "[_-\w].")
@@ -185,6 +186,74 @@ def _print_instructions(resource, path_to_tx):
     fmt_kwargs = {k: prj.config.get(resource, k) for k in keys}
     fmt_kwargs.update({'resource': resource})
     print(messages.final_instr.format(**fmt_kwargs))
+
+
+def cmd_set_multi(argv, path_to_tx):
+    """Add local files for multiple resources under transifex"""
+    parser = set_multi_parser()
+    (options, args) = parser.parse_args(argv)
+
+    try:
+        expression = args[0]
+    except IndexError:
+        parser.error("Please specify an expression.")
+    if not options.project:
+        parser.error("Please specify a project.")
+    if not options.source_language:
+        parser.error("Please specify a source language.")
+    if not options.file_extension:
+        parser.error("Please specify a file extension.")
+    if not options.source_file_dir:
+        parser.error("Please specify a source file directory.")
+    if '<lang>' not in expression:
+        parser.error("The expression you have provided is not valid.")
+    if not utils.valid_slug(options.project):
+        parser.error("Invalid project slug. The valid characters include"
+                     " [_-\w].")
+
+    if not options.file_extension.startswith('.'):
+        file_extension = '.{}'.format(options.file_extension)
+    else:
+        file_extension = options.file_extension
+
+    curpath = os.path.join(path_to_tx, options.source_file_dir)
+
+    for root, dirs, files in os.walk(curpath):
+        for file_name in files:
+            if not file_name.endswith(file_extension):
+                continue
+
+            source_file = os.path.join(
+                root, file_name
+            ).split(path_to_tx)[1][1:]
+            resource = source_file.split('.')[0].replace('/', '_')
+            relpath = root.split(options.source_file_dir)[1]
+
+            should_continue = True
+            for directory in options.ignore_dirs:
+                if relpath.strip('/').startswith(directory):
+                    should_continue = False
+                    break
+
+            if not should_continue:
+                break
+
+            expr = expression.format(
+                filepath=relpath, filename=file_name.split('.')[0],
+                extension=options.file_extension
+            ).replace('//', '/')
+
+            full_resource = '{}.{}'.format(options.project, resource)
+            _auto_local(
+                path_to_tx, full_resource, options.source_language, expr,
+                source_file=source_file, execute=options.execute, regex=False,
+            )
+
+            if options.execute:
+                _set_minimum_perc(full_resource, options.minimum_perc,
+                                  path_to_tx)
+                _set_mode(full_resource, options.mode, path_to_tx)
+                _set_type(full_resource, options.i18n_type, path_to_tx)
 
 
 def _auto_local(path_to_tx, resource, source_language, expression,
