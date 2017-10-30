@@ -27,7 +27,7 @@ https://www.transifex.com/user/settings/api/.
 """
 update_txrc = "Overwrite credentials in .transifexrc?"
 
-token_msg = "Please enter your api token"
+token_msg = "[?] Please enter your api token: "
 
 running_tx_set = "Running tx set command for you..."
 
@@ -52,7 +52,7 @@ https://docs.transifex.com/client/set/.
         "description": ("""
 Next, we’ll need a path expression pointing to the location of the
 translation files (whether they exist yet or not) associated with
-the source file ‘{source_file}’. You should use <lang> as a
+the source file ‘{source_file}’. You should include <lang> as a
 wildcard for the language code.
 """),
         "error": "The path expression doesn’t contain the <lang> placeholder.",
@@ -63,22 +63,23 @@ wildcard for the language code.
 Here’s a list of the supported file formats. For more information,
 check our docs at https://docs.transifex.com/formats/.
 """),
-        "error": "Invalid choice",
-        "message": "[?] Select the file format type: ",
+        "error": "Error: Invalid choice. Enter the number corresponding with the format you wish to select.",
+        "message": "[?] Select the file format type [{r}]: ",
     },
     "organization": {
         "description": ("""
 You’ll now choose a project in a Transifex organization to sync with your
-local files.
-You belong to these organizations in Transifex:
+local files. You belong to these organizations in Transifex:
 """),
-        "error": ("Invalid choice"),
-        "message": "[?] Select the organization: ",
+        "error": ("""
+Error: Invalid choice. Enter the number corresponding with the organization you wish to select."""),
+        "message": "[?] Select the organization to use [{r}]: ",
     },
     "projects": {
         "description": ("""We found these projects in your organization."""),
-        "error": "",
-        "message": "[?] Select project: ",
+        "error": """
+Error: Invalid choice. Enter the number corresponding with the project you wish to select.""",
+        "message": "[?] Select the project to use [{r}]: ",
     },
 }
 
@@ -92,23 +93,23 @@ https://docs.transifex.com/client/set/.
 final_instr = """
 Here’s the content of the .tx/config file that was created:
 
-[{resource}]
-source_file = {source_file}
-file_filter = {file_filter}
-source_lang = {source_lang}
-type = {type}
+    [{resource}]
+    source_file = {source_file}
+    file_filter = {file_filter}
+    source_lang = {source_lang}
+    type = {type}
 
 You could also have generated the same configuration by running a single command like:
 
-tx set --auto-local -r {resource} -f {source_file} -s {source_lang} -t {type} '{file_filter}'
+    tx set --auto-local -r {resource} -f {source_file} -s {source_lang} -t {type} '{file_filter}'
 
-More info can be found at https://docs.transifex.com/client/set.
+To learn more about the Set command, visit https://docs.transifex.com/client/set.
 
 Here are some useful commands for your next steps:
 
-# Upload source files to Transifex:
-tx push  --source
+Upload source files to Transifex:
+    tx push  --source
 
-# Download translation files from Transifex once translations are done:
-tx pull --translations
+Download translation files from Transifex once translations are done:
+    tx pull --translations
 """

@@ -45,7 +45,7 @@ def cmd_init(argv, path_to_tx):
     else:
         path_to_tx = os.getcwd()
 
-    logger.info(messages.init_intro)
+    print(messages.init_intro)
     save = options.save
     # if we already have a config file and we are not told to override it
     # in the args we have to ask
@@ -95,9 +95,11 @@ def cmd_init(argv, path_to_tx):
 def cmd_set(argv, path_to_tx):
     """Add local or remote files under transifex"""
     parser = set_parser()
+    wizard_run = False
     if len(argv) == 0:
         try:
             options, args = Wizard(path_to_tx).run()
+            wizard_run = True
         except SystemExit:
             print("\n")
             exit(1)
@@ -128,7 +130,8 @@ def cmd_set(argv, path_to_tx):
                               path_to_tx)
             _set_mode(options.resource, options.mode, path_to_tx)
             _set_type(options.resource, options.i18n_type, path_to_tx)
-            _print_instructions(options.resource, path_to_tx)
+            if wizard_run:
+                _print_instructions(options.resource, path_to_tx)
         return
 
     if options.remote:
@@ -194,7 +197,7 @@ def _print_instructions(resource, path_to_tx):
     prj = project.Project(path_to_tx)
     fmt_kwargs = {k: prj.config.get(resource, k) for k in keys}
     fmt_kwargs.update({'resource': resource})
-    logger.info(messages.final_instr.format(**fmt_kwargs))
+    print(messages.final_instr.format(**fmt_kwargs))
 
 
 def _auto_local(path_to_tx, resource, source_language, expression,

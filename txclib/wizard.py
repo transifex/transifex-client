@@ -37,15 +37,17 @@ def choice_prompt(l, key):
     a = "\n".join(["  {}. {}".format(i+1, f[1])
                    for i, f in enumerate(l)])
     a = a + "\n"
-    logger.info(a)
+    print(a)
 
     choice = ''
     first_time = True
+    r = '1' if len(l) == 1 else '1-{}'.format(len(l))
+
     while not validate_int(choice, len(l)):
         if not first_time:
-            logger.info(messages.TEXTS[key]["error"])
-        choice = input(utils.color_text(messages.TEXTS[key]['message'],
-                                        COLOR))
+            print(messages.TEXTS[key]["error"])
+        choice = input(utils.color_text(
+            messages.TEXTS[key]['message'].format(r=r), COLOR))
         first_time = False
     return l[int(choice) - 1][0]
 
@@ -55,7 +57,7 @@ def input_prompt(key, validation_method):
     first_time = True
     while not validation_method(user_input):
         if not first_time:
-            logger.info(messages.TEXTS[key]['error'])
+            print(messages.TEXTS[key]['error'])
 
         user_input = input(
             utils.color_text(messages.TEXTS[key]['message'], COLOR))
@@ -120,10 +122,10 @@ class Wizard(object):
         options.local = True
         options.execute = True
 
-        logger.info(TEXTS['source_file']['description'])
+        print(TEXTS['source_file']['description'])
         options.source_file = input_prompt('source_file', validate_source_file)
 
-        logger.info(
+        print(
             TEXTS['expression']['description'].format(
                 source_file=options.source_file
             )
@@ -131,11 +133,11 @@ class Wizard(object):
         args.append(input_prompt('expression', validate_expression))
 
         formats = self.get_formats(os.path.basename(options.source_file))
-        logger.info(TEXTS['formats']['description'])
+        print(TEXTS['formats']['description'])
         options.i18n_type = choice_prompt(formats, 'formats')
 
         organizations = self.get_organizations()
-        logger.info(TEXTS['organization']['description'])
+        print(TEXTS['organization']['description'])
         org_slug = choice_prompt(organizations, 'organization')
 
         projects = []
@@ -152,14 +154,14 @@ class Wizard(object):
             p_choices = [(p['slug'], p['name']) for p in projects]
             p_choices.append(create_project)
             if projects:
-                logger.info(TEXTS['projects']['description'])
+                print(TEXTS['projects']['description'])
             else:
-                logger.info("We found no projects in this organization!")
+                print("We found no projects in this organization!")
             first_time = False
             project_slug = choice_prompt(p_choices, 'projects')
 
             if project_slug == 'tx:new_project':
-                logger.info(messages.create_project_instructions.format(
+                print(messages.create_project_instructions.format(
                     host=self.host, org=org_slug
                 ))
             else:

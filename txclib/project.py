@@ -159,7 +159,7 @@ class Project(object):
             save = True
 
         if save:
-            logger.info("\nUpdating %s file..." % self.txrc_file)
+            logger.info("Updating %s file..." % self.txrc_file)
             if not self.txrc.has_section(host):
                 logger.info("No entry found for host %s. Creating..." % host)
                 self.txrc.add_section(host)
@@ -176,7 +176,7 @@ class Project(object):
         COLOR = "CYAN"
         while not token:
             token = input(utils.color_text(messages.token_msg, COLOR))
-            logger.info(utils.color_text("Verifyng token...", "YELLOW"))
+            print(utils.color_text("Verifying token...", "YELLOW"))
             if not self.validate_credentials('api', token, host):
                 logger.info(messages.token_validation_failed)
                 token = None
