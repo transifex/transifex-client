@@ -50,7 +50,7 @@ def cmd_init(argv, path_to_tx):
     # if we already have a config file and we are not told to override it
     # in the args we have to ask
     if os.path.isdir(os.path.join(path_to_tx, ".tx")) and not save:
-        logger.info("tx: There is already a tx folder!")
+        logger.info("There is already a tx folder!")
         if not utils.confirm(
             prompt='Do you want to delete it and reinit the project?',
             default=False
@@ -473,13 +473,13 @@ def cmd_status(argv, path_to_tx):
     resources_num = len(resources)
     for idx, res in enumerate(resources):
         p, r = res.split('.')
-        logger.info("%s -> %s (%s of %s)" % (p, r, idx + 1, resources_num))
-        logger.info("Translation Files:")
+        print("%s -> %s (%s of %s)" % (p, r, idx + 1, resources_num))
+        print("Translation Files:")
         slang = prj.get_resource_option(res, 'source_lang')
         sfile = prj.get_resource_option(res, 'source_file') or "N/A"
         lang_map = prj.get_resource_lang_mapping(res)
-        logger.info(" - %s: %s (%s)" % (utils.color_text(slang, "RED"),
-                    sfile, utils.color_text("source", "YELLOW")))
+        print(" - %s: %s (%s)" % (utils.color_text(slang, "RED"),
+              sfile, utils.color_text("source", "YELLOW")))
         files = prj.get_resource_files(res)
         fkeys = list(files.keys())
         fkeys.sort()
@@ -487,9 +487,9 @@ def cmd_status(argv, path_to_tx):
             local_lang = lang
             if lang in list(lang_map.values()):
                 local_lang = lang_map.flip[lang]
-            logger.info(" - %s: %s" % (utils.color_text(local_lang, "RED"),
-                        files[lang]))
-        logger.info("")
+            print(" - %s: %s" % (utils.color_text(local_lang, "RED"),
+                  files[lang]))
+        print("")
 
 
 def cmd_help(argv, path_to_tx):
@@ -516,11 +516,11 @@ def cmd_help(argv, path_to_tx):
     keys = list(fns.keys())
     keys.sort()
 
-    logger.info("Transifex command line client.\n")
-    logger.info("Available commands are:")
+    print("Transifex command line client.\n")
+    print("Available commands are:")
     for key in keys:
-        logger.info("  %-15s\t%s" % (key, getattr(fns[key], '__doc__')))
-    logger.info("\nFor more information run %s command --help" % sys.argv[0])
+        print("  %-15s\t%s" % (key, getattr(fns[key], '__doc__')))
+    print("\nFor more information run %s command --help" % sys.argv[0])
 
 
 def cmd_delete(argv, path_to_tx):
