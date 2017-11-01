@@ -299,10 +299,9 @@ class Project(object):
                 lang_map.update({k: v})
         except configparser.NoOptionError:
             pass
-        except (ValueError, KeyError):
-            raise Exception(
-                "Your lang map configuration is not correct."
-                "Check that there are no duplicate keys or values.")
+        except ValueError:
+            raise MalformedConfigFile(
+                "Your lang map configuration is not correct.")
 
         if self.config.has_section(resource):
             res_lang_map = Flipdict()
@@ -313,10 +312,9 @@ class Project(object):
                     res_lang_map.update({k: v})
             except configparser.NoOptionError:
                 pass
-            except (ValueError, KeyError):
-                raise Exception(
-                    "Your lang map configuration is not correct."
-                    "Check that there are no duplicate keys or values.")
+            except ValueError:
+                raise MalformedConfigFile(
+                    "Your lang map configuration is not correct.")
 
         # merge the lang maps and return result
         lang_map.update(res_lang_map)

@@ -5,6 +5,8 @@ except ImportError:
 
 import six
 
+from txclib.exceptions import MalformedConfigFile
+
 
 class OrderedRawConfigParser(configparser.RawConfigParser):
     """
@@ -67,7 +69,9 @@ class Flipdict(dict):
     def __setitem__(self, key, val):
         k = self._flip.get(val, _NOTFOUND)
         if not (k is _NOTFOUND or k == key):
-            raise KeyError('(key,val) would erase mapping for value %r' % val)
+            raise MalformedConfigFile("Your lang map configuration is not correct. "
+                                      "Duplicate entry detected with value '%s'. "
+                                      "Keys and values should be unique." % val)
 
         v = self.get(key, _NOTFOUND)
         if v is not _NOTFOUND:
