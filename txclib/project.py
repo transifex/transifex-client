@@ -299,8 +299,9 @@ class Project(object):
                 lang_map.update({k: v})
         except configparser.NoOptionError:
             pass
-        except (ValueError, KeyError):
-            raise Exception("Your lang map configuration is not correct.")
+        except ValueError:
+            raise MalformedConfigFile(
+                "Your lang map configuration is not correct.")
 
         if self.config.has_section(resource):
             res_lang_map = Flipdict()
@@ -311,8 +312,9 @@ class Project(object):
                     res_lang_map.update({k: v})
             except configparser.NoOptionError:
                 pass
-            except (ValueError, KeyError):
-                raise Exception("Your lang map configuration is not correct.")
+            except ValueError:
+                raise MalformedConfigFile(
+                    "Your lang map configuration is not correct.")
 
         # merge the lang maps and return result
         lang_map.update(res_lang_map)
@@ -688,7 +690,7 @@ class Project(object):
             logger.debug("Using host %s" % host)
             self._set_url_info(host=host, project=project_slug,
                                resource=resource_slug)
-            logger.info("Pushing translations for resource %s:" % resource)
+            logger.info("Pushing resource %s:" % resource)
 
             stats = self._get_stats_for_resource()
 
@@ -711,7 +713,7 @@ class Project(object):
                     continue
                 # Push source file
                 try:
-                    logger.warning("Pushing source file (%s)" % sfile)
+                    logger.info("Pushing source file (%s)" % sfile)
                     if not self._resource_exists(stats):
                         logger.info("Resource does not exist.  Creating...")
                         fileinfo = "%s;%s" % (resource_slug, slang)
@@ -727,7 +729,12 @@ class Project(object):
                         params=params,
                     )
                 except Exception as e:
-                    if isinstance(e, SSLError) or not skip:
+                    if isinstance(e, SSLError):
+                        raise
+                    elif not skip:
+                        logger.error("Could not upload source file. "
+                                     "You can use --skip to ignore this "
+                                     "error and continue the execution.")
                         raise
                     else:
                         logger.error(e)
@@ -805,7 +812,12 @@ class Project(object):
                             logger.error("Resource hasn't been created. "
                                          "Try pushing source file.")
                     except Exception as e:
-                        if isinstance(e, SSLError) or not skip:
+                        if isinstance(e, SSLError):
+                            raise
+                        elif not skip:
+                            logger.error("Could not push translations. "
+                                         "You can use --skip to ignore this "
+                                         "error and continue the execution.")
                             raise
                         else:
                             logger.error(e)
