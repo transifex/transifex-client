@@ -673,13 +673,13 @@ class TestProjectPull(unittest.TestCase):
             with patch("txclib.utils.encode_args") as mock_encode_args, \
                 patch("txclib.utils.determine_charset")\
                     as mock_determine_charset, \
-                    patch("txclib.project.Project._get_transifex_file",
+                    patch("txclib.utils.get_transifex_file",
                           return_value=transifex_file) \
                     as mock_get_transifex_file, \
-                    patch("txclib.project.Project._get_config_file_path",
+                    patch("txclib.utils.get_config_file_path",
                           return_value=config_file) \
                     as mock_get_config_file_path, \
-                    patch("txclib.project.Project._save_txrc_file") \
+                    patch("txclib.utils.save_txrc_file") \
                     as mock_save_txrc_file, \
                     patch("txclib.project.Project._get_stats_for_resource") \
                     as mock_get_stats_for_resource:
