@@ -7,7 +7,6 @@ from txclib import utils
 from txclib.api import Api
 from txclib.project import Project
 from txclib.log import logger
-from txclib.parsers import set_parser
 from six.moves import input
 
 
@@ -123,23 +122,17 @@ class Wizard(object):
 
         TEXTS = messages.TEXTS
 
-        options, args = set_parser().parse_args([])
-        options.local = True
-        options.execute = True
-
         print(TEXTS['source_file']['description'])
-        options.source_file = input_prompt('source_file', validate_source_file)
+        source_file = input_prompt('source_file', validate_source_file)
 
         print(
-            TEXTS['expression']['description'].format(
-                source_file=options.source_file
-            )
+            TEXTS['expression']['description'].format(source_file=source_file)
         )
-        args.append(input_prompt('expression', validate_expression))
+        expression = input_prompt('expression', validate_expression)
 
-        formats = self.get_formats(os.path.basename(options.source_file))
+        formats = self.get_formats(os.path.basename(source_file))
         print(TEXTS['formats']['description'])
-        options.i18n_type = choice_prompt(formats, 'formats')
+        i18n_type = choice_prompt(formats, 'formats')
 
         organizations = self.get_organizations()
         print(TEXTS['organization']['description'])
@@ -172,9 +165,16 @@ class Wizard(object):
             else:
                 project = [p for p in projects
                            if p['slug'] == project_slug][0]
-                options.source_language = project['source_language_code']
+                source_language = project['source_language_code']
 
-        resource_slug = slugify(os.path.basename(options.source_file))
-        options.resource = '{}.{}'.format(project_slug, resource_slug)
+        resource_slug = slugify(os.path.basename(source_file))
+        resource = '{}.{}'.format(project_slug, resource_slug)
 
-        return (options, args)
+        options = {
+            'source_file': source_file,
+            'expression': expression,
+            'i18n_type': i18n_type,
+            'source_language': source_language,
+            'resource': resource,
+        }
+        return options

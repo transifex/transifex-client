@@ -97,12 +97,22 @@ def cmd_set(argv, path_to_tx):
     parser = set_parser()
     wizard_run = False
     if len(argv) == 0:
+        # Run the wizard and configure parse with the wizard inputs
         try:
-            options, args = Wizard(path_to_tx).run()
+            wizard_options = Wizard(path_to_tx).run()
             wizard_run = True
         except SystemExit:
             print("\n")
             exit(1)
+
+        options, args = set_parser().parse_args([])
+        args.append(wizard_options.get('expression'))
+        options.source_file = wizard_options.get('source_file')
+        options.source_language = wizard_options.get('source_language')
+        options.i18n_type = wizard_options.get('i18n_type')
+        options.resource = wizard_options.get('resource')
+        options.local = True
+        options.execute = True
     else:
         options, args = parser.parse_args(argv)
 
