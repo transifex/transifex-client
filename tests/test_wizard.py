@@ -32,7 +32,7 @@ class WizardCase(unittest.TestCase):
         orgs = self.wizard.get_organizations()
         self.assertEqual(
             orgs,
-            [("transifex", "Transifex"), ("dunder-mifflin", "Dunder Mifflin")]
+            [("dunder-mifflin", "Dunder Mifflin"), ("transifex", "Transifex")]
         )
 
     def test_get_projects_excludes_archived(self, api_mock):

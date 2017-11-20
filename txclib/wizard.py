@@ -86,7 +86,12 @@ class Wizard(object):
         except Exception as e:
             logger.error(e)
             exit(1)
-        return [(o['slug'], o['name']) for o in organizations]
+
+        # return org list sorted by name
+        return sorted(
+            [(o['slug'], o['name']) for o in organizations],
+            key=lambda x: x[1]
+        )
 
     def get_projects_for_org(self, organization):
         try:
@@ -94,7 +99,12 @@ class Wizard(object):
         except Exception as e:
             logger.error(e)
             exit(1)
-        return [p for p in projects if not p['archived']]
+
+        # return project list sorted by name
+        return sorted(
+            [p for p in projects if not p['archived']],
+            key=lambda x: x['name']
+        )
 
     def get_formats(self, filename):
         _, extension = os.path.splitext(filename)
@@ -109,7 +119,7 @@ class Wizard(object):
 
         formats = [(k, display_format(v)) for k, v in formats.items()
                    if extension in v['file-extensions']]
-        return formats
+        return sorted(formats, key=lambda x: x[0])
 
     def run(self):
         """
