@@ -17,6 +17,11 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
+try:
+    from urlparse import urljoin  # Python 2
+except ImportError:
+    from urllib.parse import urljoin  # Python 3
+
 from email.parser import Parser
 from urllib3.exceptions import SSLError
 from six.moves import input
@@ -179,7 +184,7 @@ def make_request(method, host, url, username, password, fields=None,
         encoded_request = encode_args(manager.request)
         response = encoded_request(
             method,
-            host + url,
+            urljoin(host, url),
             headers=dict(headers),
             fields=fields
         )

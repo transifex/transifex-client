@@ -5,6 +5,15 @@ from urllib3.exceptions import SSLError
 from txclib import utils, exceptions
 
 
+# XXX: Taken from https://stackoverflow.com/a/21611963
+def Any():
+    """A method that will match any parameter."""
+    class Any(object):
+        def __eq__(self, *args):
+            return True
+    return Any()
+
+
 class MakeRequestTestCase(unittest.TestCase):
 
     @patch('urllib3.PoolManager')
@@ -177,3 +186,28 @@ class MakeRequestTestCase(unittest.TestCase):
         )
         mock_manager.assert_called_once_with(num_pools=1)
         mock_connection.request.assert_called_once()
+
+    @patch('urllib3.PoolManager')
+    def test_url_format(self, mock_manager):
+        response_mock = MagicMock()
+        response_mock.status = 200
+        response_mock.data = None
+
+        mock_connection = MagicMock()
+        mock_connection.request.return_value = response_mock
+        mock_manager.return_value = mock_connection
+
+        host = 'http://test.com/'
+        url = '/path/to/we/'
+        expected_url = 'http://test.com/path/to/we/'
+        utils.make_request(
+            'GET',
+            host,
+            url,
+            'a_user',
+            'a_pass'
+        )
+        mock_connection.request.assert_called_once_with('GET',
+                                                        expected_url,
+                                                        fields=Any(),
+                                                        headers=Any())
