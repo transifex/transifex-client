@@ -112,10 +112,8 @@ def main(argv=None):
         utils.exec_command(cmd, args[1:], path_to_tx)
     except SSLError as e:
         logger.error("SSl error %s" % e)
-        sys.exit(1)
     except utils.UnknownCommandError:
         logger.error("Command %s not found" % cmd)
-        sys.exit(1)
     except AuthenticationError:
         authentication_failed_message = """
 Error: Authentication failed. Please make sure your credentials are valid. You
@@ -130,7 +128,12 @@ visit https://docs.transifex.com/client/client-configuration#-transifexrc.
         else:
             msg = "Unknown error" if not str(e) else str(e)
             logger.error(msg)
-        sys.exit(1)
+    # The else statement will be executed only if the command raised no
+    # exceptions. If an exception was raised, we want to return a non-zero exit
+    # code
+    else:
+        return
+    sys.exit(1)
 
 
 # Run baby :) ... run
