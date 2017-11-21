@@ -23,7 +23,7 @@ from six.moves import input
 from txclib.urls import API_URLS
 from txclib.exceptions import (
     UnknownCommandError, HttpNotFound, HttpNotAuthorized,
-    AuthenticationError
+    AuthenticationError, TXConnectionError,
 )
 from txclib.paths import posix_path, native_path, posix_sep
 from txclib.web import user_agent_identifier, certs_file
@@ -195,8 +195,12 @@ def make_request(method, host, url, username, password, fields=None,
                 raise HttpNotAuthorized(data)
             elif response.status == 404:
                 raise HttpNotFound(data)
+            elif response.status >= 500:
+                msg = "Failed to connect. Server responded with HTTP code {}"
+                raise TXConnectionError(msg.format(response.status),
+                                        code=response.status)
             else:
-                raise Exception(data)
+                raise Exception("Error received from server: {}".format(data))
         return data, charset
     except SSLError:
         logger.error("Invalid SSL certificate")

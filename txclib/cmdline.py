@@ -123,13 +123,13 @@ can update your credentials in the ~/.transifexrc file. For more information,
 visit https://docs.transifex.com/client/client-configuration#-transifexrc.
 """
         logger.error(authentication_failed_message)
-    except Exception:
+    except Exception as e:
         import traceback
         if options.trace:
             traceback.print_exc()
         else:
-            formatted_lines = traceback.format_exc().splitlines()
-            logger.error(formatted_lines[-1])
+            msg = "Unknown error" if not str(e) else str(e)
+            logger.error(msg)
         sys.exit(1)
 
 

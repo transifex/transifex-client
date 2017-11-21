@@ -141,6 +141,22 @@ class MakeRequestTestCase(unittest.TestCase):
         )
 
     @patch('urllib3.PoolManager')
+    def test_makes_request_connection_error(self, mock_manager):
+        """Tests for common 50X connection errors."""
+        for code in range(500, 506):
+            mock_connection = MagicMock()
+            mock_connection.request.return_value = MagicMock(status=code,
+                                                             data=None)
+            mock_manager.return_value = mock_connection
+
+            host = 'http://whynotestsforthisstuff.com'
+            url = '/my_test_url/'
+            args = ('GET', host, url, 'a_user', 'a_pass',)
+            with self.assertRaises(exceptions.TXConnectionError) as err:
+                utils.make_request(*args)
+            self.assertEqual(err.exception.response_code, code)
+
+    @patch('urllib3.PoolManager')
     def test_makes_request_None(self, mock_manager):
         response_mock = MagicMock()
         response_mock.status = 200
