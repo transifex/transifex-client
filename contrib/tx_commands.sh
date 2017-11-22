@@ -1,5 +1,5 @@
-if [[ -z "$TRANSIFEX_USER" ]] ; then
-	echo "NB: Skipping tests of $TX since TRANSIFEX_USER is undefined or empty"
+if [[ -z "$TRANSIFEX_USER" || -z "$TRANSIFEX_TOKEN" ]] ; then
+	echo "NB: Skipping tests of $TX since TRANSIFEX_USER or TRANSIFEX_TOKEN is undefined or empty"
 	exit 0
 fi
 
@@ -11,7 +11,7 @@ rm -rf txci
 git clone https://github.com/transifex/txci.git
 cd txci
 rm -rf .tx
-$TX init --host="https://www.transifex.com" --user=$TRANSIFEX_USER --pass=$TRANSIFEX_PASSWORD
+$TX init --host="https://www.transifex.com" --token=$TRANSIFEX_TOKEN --skipsetup --no-interactive
 $TX set --auto-local -r txci.$BRANCH\_$TRANSIFEX_USER\_$RANDOM -s en 'locale/<lang>/LC_MESSAGES/django.po' -t PO --execute
 
 # push/pull without XLIFF

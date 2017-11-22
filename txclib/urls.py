@@ -20,4 +20,12 @@ API_URLS = {
     'delete_translation': '/api/2/project/%(project)s/resource/%(resource)s/translation/%(language)s/',
     'formats': '/api/2/formats/',
     'delete_resource': '/api/2/project/%(project)s/resource/%(resource)s/',
+    'organizations': '/organizations/',
+    'projects': '/organizations/%(organization)s/projects/',
+    'auth_check': '/auth_check/',
+}
+
+HOSTNAMES = {
+    'hostname': ['formats'],
+    'api_hostname': ['auth_check', 'projects', 'organizations'],
 }

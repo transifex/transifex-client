@@ -16,15 +16,11 @@ adding code to this file you must take care of the following:
 """
 import os
 import re
-import shutil
 import sys
-
 try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
-
-from six.moves import input
 
 from txclib import utils, project
 from txclib.config import OrderedRawConfigParser
@@ -33,6 +29,8 @@ from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
     status_parser, pull_parser, set_parser, push_parser, init_parser
 from txclib.paths import posix_path
 from txclib.log import logger
+from txclib.wizard import Wizard
+from txclib import messages
 
 
 def cmd_init(argv, path_to_tx):
@@ -46,39 +44,29 @@ def cmd_init(argv, path_to_tx):
     else:
         path_to_tx = os.getcwd()
 
+    print(messages.init_intro)
     save = options.save
     # if we already have a config file and we are not told to override it
     # in the args we have to ask
-    if os.path.isdir(os.path.join(path_to_tx, ".tx")) and not save:
-        logger.info("There is already a tx folder!")
-        if not utils.confirm(
-            prompt='Do you want to delete it and reinit the project?',
-            default=False
-        ):
-            return
-        # Clean the old settings
-        # FIXME: take a backup
-        else:
-            save = True
-            rm_dir = os.path.join(path_to_tx, ".tx")
-            shutil.rmtree(rm_dir)
+    config_file = os.path.join(path_to_tx, ".tx", "config")
+    if os.path.isfile(config_file):
+        if not save:
+            logger.info(messages.init_initialized)
+            if not utils.confirm(messages.init_reinit):
+                return
+        os.remove(config_file)
 
-    logger.info("Creating .tx folder...")
-    os.mkdir(os.path.join(path_to_tx, ".tx"))
+    if not os.path.isdir(os.path.join(path_to_tx, ".tx")):
+        logger.info("Creating .tx folder...")
+        os.mkdir(os.path.join(path_to_tx, ".tx"))
 
     default_transifex = "https://www.transifex.com"
-    transifex_host = options.host or input("Transifex instance [%s]: " %
-                                           default_transifex)
+    transifex_host = options.host or default_transifex
 
-    if not transifex_host:
-        transifex_host = default_transifex
     if not transifex_host.startswith(('http://', 'https://')):
         transifex_host = 'https://' + transifex_host
 
-    config_file = os.path.join(path_to_tx, ".tx", "config")
     if not os.path.exists(config_file):
-        # The path to the config file (.tx/config)
-        logger.info("Creating skeleton...")
         # Handle the credentials through transifexrc
         config = OrderedRawConfigParser()
         config.add_section('main')
@@ -92,18 +80,41 @@ def cmd_init(argv, path_to_tx):
     prj = project.Project(path_to_tx)
     prj.getset_host_credentials(transifex_host, username=options.user,
                                 password=options.password,
-                                token=options.token, save=save)
+                                token=options.token,
+                                no_interactive=options.no_interactive)
     prj.save()
-    logger.info("Done.")
+
+    if not options.skipsetup and not options.no_interactive:
+        logger.info(messages.running_tx_set)
+        cmd_set([], path_to_tx)
+    else:
+        logger.info("Done.")
 
 
 def cmd_set(argv, path_to_tx):
     """Add local or remote files under transifex"""
     parser = set_parser()
-    (options, args) = parser.parse_args(argv)
+    wizard_run = False
+    if len(argv) == 0:
+        # Run the wizard and configure parse with the wizard inputs
+        try:
+            wizard_options = Wizard(path_to_tx).run()
+            wizard_run = True
+        except SystemExit:
+            print("\n")
+            sys.exit(1)
 
-    # Implement options/args checks
-    # TODO !!!!!!!
+        options, args = set_parser().parse_args([])
+        args.append(wizard_options.get('expression'))
+        options.source_file = wizard_options.get('source_file')
+        options.source_language = wizard_options.get('source_language')
+        options.i18n_type = wizard_options.get('i18n_type')
+        options.resource = wizard_options.get('resource')
+        options.local = True
+        options.execute = True
+    else:
+        options, args = parser.parse_args(argv)
+
     if options.local:
         try:
             expression = args[0]
@@ -128,13 +139,15 @@ def cmd_set(argv, path_to_tx):
                               path_to_tx)
             _set_mode(options.resource, options.mode, path_to_tx)
             _set_type(options.resource, options.i18n_type, path_to_tx)
+            if wizard_run:
+                _print_instructions(options.resource, path_to_tx)
         return
 
     if options.remote:
         try:
             url = args[0]
         except IndexError:
-            parser.error("Please specify an remote url")
+            parser.error("Please specify a remote url")
         _auto_remote(path_to_tx, url)
         _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
         _set_mode(options.resource, options.mode, path_to_tx)
@@ -186,6 +199,14 @@ def cmd_set(argv, path_to_tx):
 
     logger.info("Done.")
     return
+
+
+def _print_instructions(resource, path_to_tx):
+    keys = ['source_file', 'file_filter', 'source_lang', 'type']
+    prj = project.Project(path_to_tx)
+    fmt_kwargs = {k: prj.config.get(resource, k) for k in keys}
+    fmt_kwargs.update({'resource': resource})
+    print(messages.final_instr.format(**fmt_kwargs))
 
 
 def _auto_local(path_to_tx, resource, source_language, expression,

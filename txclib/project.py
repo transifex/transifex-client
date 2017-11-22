@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import getpass
 import os
 import re
 import fnmatch
 import datetime
 import time
-import sys
 import urllib3
 import six
 
@@ -21,8 +19,12 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
+from requests.exceptions import HTTPError
+
 from txclib import web
+from txclib import api
 from txclib import utils
+from txclib import messages
 from urllib3.exceptions import SSLError
 from six.moves import input
 from txclib.exceptions import (
@@ -30,11 +32,9 @@ from txclib.exceptions import (
     TransifexrcConfigFileError
 )
 from txclib.urls import API_URLS
-from txclib.config import OrderedRawConfigParser, Flipdict, CERT_REQUIRED
+from txclib.config import Flipdict, CERT_REQUIRED
 from txclib.log import logger
-from txclib.processors import visit_hostname
 from txclib.paths import posix_path, native_path, posix_sep
-from txclib.utils import confirm
 
 
 DEFAULT_PULL_URL = 'pull_file'
@@ -53,9 +53,10 @@ PULL_MODE_URL_MAPPING = {
     PULL_MODE_SOURCEASTRANSLATION: 'pull_sourceastranslation_file',
 }
 
+DEFAULT_API_HOSTNAME = "https://api.transifex.com"
 
-class ProjectNotInit(Exception):
-    pass
+
+from txclib.utils import ProjectNotInit
 
 
 class Project(object):
@@ -74,16 +75,12 @@ class Project(object):
     def _init(self, path_to_tx=None):
         instructions = "Run 'tx init' to initialize your project first!"
         try:
-            self.root = self._get_tx_dir_path(path_to_tx)
-            self.config_file = self._get_config_file_path(self.root)
-            self.config = self._read_config_file(self.config_file)
+            self.root = utils.get_tx_dir_path(path_to_tx)
+            self.config_file = utils.get_config_file_path(self.root)
+            self.config = utils.read_config_file(self.config_file)
 
-            local_txrc_file = self._get_transifex_file(os.getcwd())
-            if os.path.exists(local_txrc_file):
-                self.txrc_file = local_txrc_file
-            else:
-                self.txrc_file = self._get_transifex_file()
-            self.txrc = self._get_transifex_config([self.txrc_file, ])
+            self.txrc_file = utils.get_transifex_file()
+            self.txrc = utils.get_transifex_config(self.txrc_file)
         except ProjectNotInit as e:
             logger.error('\n'.join([six.u(str(e)), instructions]))
             raise
@@ -97,155 +94,69 @@ class Project(object):
         else:
             self.conn = urllib3.connection_from_url(host)
 
-    def _get_config_file_path(self, root_path):
-        """Check the .tx/config file exists."""
-        config_file = os.path.join(root_path, ".tx", "config")
-        logger.debug("Config file is %s" % config_file)
-        if not os.path.exists(config_file):
-            msg = "Cannot find the config file (.tx/config)!"
-            raise ProjectNotInit(msg)
-        return config_file
-
-    def _get_tx_dir_path(self, path_to_tx):
-        """Check the .tx directory exists."""
-        root_path = path_to_tx or utils.find_dot_tx()
-        logger.debug("Path to tx is %s." % root_path)
-        if not root_path:
-            msg = "Cannot find any .tx directory!"
-            raise ProjectNotInit(msg)
-        return root_path
-
-    def _read_config_file(self, config_file):
-        """Parse the config file and return its contents."""
-        config = OrderedRawConfigParser()
-        try:
-            config.read(config_file)
-        except Exception as err:
-            msg = "Cannot open/parse .tx/config file: %s" % err
-            raise ProjectNotInit(msg)
-        return config
-
-    def _get_transifex_config(self, txrc_files):
-        """Read the configuration from the .transifexrc files."""
-        txrc = OrderedRawConfigParser()
-        try:
-            txrc.read(txrc_files)
-        except Exception as e:
-            msg = "Cannot read configuration file: %s" % e
-            raise ProjectNotInit(msg)
-        self._migrate_txrc_file(txrc)
-        return txrc
-
-    def _migrate_txrc_file(self, txrc):
-        """Migrate the txrc file, if needed."""
-        if not os.path.exists(self.txrc_file):
-            return txrc
-        for section in txrc.sections():
-            orig_hostname = txrc.get(section, 'hostname')
-            hostname = visit_hostname(orig_hostname)
-            if hostname != orig_hostname:
-                msg = "Hostname %s should be changed to %s."
-                logger.info(msg % (orig_hostname, hostname))
-                if (sys.stdin.isatty() and sys.stdout.isatty() and
-                        utils.confirm('Change it now? ', default=True)):
-                    txrc.set(section, 'hostname', hostname)
-                    msg = 'Hostname changed'
-                    logger.info(msg)
-                else:
-                    hostname = orig_hostname
-            self._save_txrc_file(txrc)
-        return txrc
-
-    def _get_transifex_file(self, directory=None):
-        """Fetch the path of the .transifexrc file.
-        It is in the home directory of the user by default.
-        """
-        if directory is not None:
-            logger.debug(".transifexrc file is at %s" % directory)
-            return os.path.join(directory, ".transifexrc")
-
-        directory = os.path.expanduser('~')
-        txrc_file = os.path.join(directory, ".transifexrc")
-        logger.debug(".transifexrc file is at %s" % directory)
-        if not os.path.exists(txrc_file):
-            msg = "%s not found." % (txrc_file)
-            logger.info(msg)
-            mask = os.umask(0o077)
-            open(txrc_file, 'w').close()
-            os.umask(mask)
-            if os.path.exists(txrc_file):
-                logger.info('Created %s ' % txrc_file)
-            else:
-                logger.info('Could not create %s ' % txrc_file)
-        return txrc_file
-
     def validate_config(self):
         """To ensure the json structure is correctly formed."""
         pass
 
-    def getset_host_credentials(
-        self,
-        host,
-        username=None,
-        password=None,
-        token=None,
-        save=False
-    ):
+    def validate_credentials(self, username, password, host=None):
+        """Check if api credentials are valid."""
+        try:
+            api.Api(
+                username=username, password=password,
+                path_to_tx=self.txrc_file, host=host
+            ).get('auth_check')
+            return True
+        except HTTPError as e:
+            if e.response.status_code == 401:
+                return False
+            raise
+        return True
+
+    def getset_host_credentials(self, host, username=None, password=None,
+                                token=None, no_interactive=False,
+                                only_token=False):
         """Read .transifexrc and report user,
         pass or a token for a specific host else ask the user for input.
+        If the credentials provided are different from the .transifexrc file
+        ask for confirmation and update them
         """
-        # from_config is a flag that tells us if we got the credentials
-        # from the config file
-        from_config = False
-        # first check if a token has been given it should override everything
+
+        save = False
+        config_username, config_password = None, None
+        try:
+            config_username = self.txrc.get(host, 'username')
+            config_password = self.txrc.get(host, 'password')
+        except (configparser.NoOptionError, configparser.NoSectionError):
+            save = True
+
         if token:
             password = token
             username = 'api'
-        # if neither a token nor a username or a password were given
-        # try to get them from the rc file
-        elif not (username and password):
-            try:
-                username = self.txrc.get(host, 'username')
-                password = self.txrc.get(host, 'password')
-            except (configparser.NoOptionError, configparser.NoSectionError):
-                # if the rc has no credentials, we have to ask the user and
-                # update the rc file
-                save = True
-                # Ask the user if they have an api token
-                if confirm(
-                    prompt="\nDid you know that you can create an api"
-                    "token under your transifex user's settings?\n"
-                    "(Read more at https://docs.transifex.com/api/"
-                    "introduction#authentication)\n"
-                    "So, do you have an api token?",
-                    default=False
 
-                ):
-                    token_msg = "Please enter your api token: "
-                    while not token:
-                        token = input(token_msg)
-                    # Since we got a token, we use api as the username
-                    # and the token as the password
-                    username = 'api'
-                    password = token
-                else:
-                    username_msg = "Please enter your transifex username: "
-                    while not username:
-                        username = input(username_msg)
-                    while (not password):
-                        password = getpass.getpass()
+        if not (username and password) and not \
+               (config_username and config_password):
+            token = self._token_prompt(host)
+            username = 'api'
+            password = token
+            save = True
+        elif config_username and config_password:
+            if username == config_username and password == config_password:
+                pass
+            elif username and password:
+                if not no_interactive and utils.confirm(messages.update_txrc):
+                    save = True
             else:
-                from_config = True
+                username = config_username
+                password = config_password
 
-        # lets see if there is a default username or a password
-        # unless we got the files from the config
-        if not from_config:
-            try:
-                username = self.txrc.get(host, 'username')
-                password = self.txrc.get(host, 'password')
-            except (configparser.NoOptionError, configparser.NoSectionError):
-                # if we do not have defaults, save the give credentials
-                save = True
+        # In the cases where we need to use the credentials with the new
+        # api we can only use a token and not a password so we do an extra
+        # validation and prompt the use for a token if the validation fails
+        if only_token and not self.validate_credentials(username, password):
+            logger.info("You need an api token to proceed")
+            username = 'api'
+            password = self._token_prompt(host)
+            save = True
 
         if save:
             logger.info("Updating %s file..." % self.txrc_file)
@@ -255,8 +166,21 @@ class Project(object):
             self.txrc.set(host, 'username', username)
             self.txrc.set(host, 'password', password)
             self.txrc.set(host, 'hostname', host)
+            self.txrc.set(host, 'api_hostname',
+                          utils.DEFAULT_HOSTNAMES['api_hostname'])
             self.save()
         return username, password
+
+    def _token_prompt(self, host):
+        token = None
+        COLOR = "CYAN"
+        while not token:
+            token = input(utils.color_text(messages.token_msg, COLOR))
+            print(utils.color_text("Verifying token...", "YELLOW"))
+            if not self.validate_credentials('api', token, host):
+                logger.info(messages.token_validation_failed)
+                token = None
+        return token
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
                             file_filter=None):
@@ -433,26 +357,8 @@ class Project(object):
         """Store the config dictionary
         in the .tx/config file of the project.
         """
-        self._save_tx_config()
-        self._save_txrc_file()
-
-    def _save_tx_config(self, config=None):
-        """Save the local config file."""
-        if config is None:
-            config = self.config
-        fh = open(self.config_file, "w")
-        config.write(fh)
-        fh.close()
-
-    def _save_txrc_file(self, txrc=None):
-        """Save the .transifexrc file."""
-        if txrc is None:
-            txrc = self.txrc
-        mask = os.umask(0o077)
-        fh = open(self.txrc_file, 'w')
-        txrc.write(fh)
-        fh.close()
-        os.umask(mask)
+        utils.save_tx_config(self.config_file, self.config)
+        utils.save_txrc_file(self.txrc_file, self.txrc)
 
     def get_full_path(self, relpath):
         if relpath[0] == os.path.sep:

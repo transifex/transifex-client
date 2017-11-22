@@ -1,2 +1,4 @@
 urllib3
 six
+requests
+python-slugify
