@@ -96,6 +96,7 @@ class TestInitCommand(unittest.TestCase):
     @patch('txclib.commands.utils.confirm')
     def test_init_save_N(self, confirm_mock):
         os.mkdir('./.tx')
+        open('./.tx/config', 'a').close()
         argv = []
         confirm_mock.return_value = False
         with patch('txclib.commands.project.Project') as project_mock:
@@ -107,6 +108,7 @@ class TestInitCommand(unittest.TestCase):
     @patch('txclib.commands.utils.confirm')
     def test_init_save_y(self, confirm_mock):
         os.mkdir('./.tx')
+        open('./.tx/config', 'a').close()
         argv = []
         confirm_mock.return_value = True
         with patch('txclib.commands.project.Project') as project_mock:

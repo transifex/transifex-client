@@ -85,7 +85,7 @@ class Wizard(object):
             organizations = self.api.get('organizations')
         except Exception as e:
             logger.error(e)
-            exit(1)
+            raise
 
         # return org list sorted by name
         return sorted(
@@ -98,7 +98,7 @@ class Wizard(object):
             projects = self.api.get('projects', organization=organization)
         except Exception as e:
             logger.error(e)
-            exit(1)
+            raise
 
         # return project list sorted by name
         return sorted(
@@ -112,7 +112,7 @@ class Wizard(object):
             formats = self.api.get('formats')
         except Exception as e:
             logger.error(e)
-            exit(1)
+            raise
 
         def display_format(v):
             return '{} - {}'.format(v['description'], v['file-extensions'])

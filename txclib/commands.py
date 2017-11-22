@@ -16,7 +16,6 @@ adding code to this file you must take care of the following:
 """
 import os
 import re
-import shutil
 import sys
 try:
     import configparser
@@ -49,16 +48,17 @@ def cmd_init(argv, path_to_tx):
     save = options.save
     # if we already have a config file and we are not told to override it
     # in the args we have to ask
-    if os.path.isdir(os.path.join(path_to_tx, ".tx")):
+    config_file = os.path.join(path_to_tx, ".tx", "config")
+    if os.path.isfile(config_file):
         if not save:
             logger.info(messages.init_initialized)
             if not utils.confirm(messages.init_reinit):
                 return
-        rm_dir = os.path.join(path_to_tx, ".tx")
-        shutil.rmtree(rm_dir)
+        os.remove(config_file)
 
-    logger.info("Creating .tx folder...")
-    os.mkdir(os.path.join(path_to_tx, ".tx"))
+    if not os.path.isdir(os.path.join(path_to_tx, ".tx")):
+        logger.info("Creating .tx folder...")
+        os.mkdir(os.path.join(path_to_tx, ".tx"))
 
     default_transifex = "https://www.transifex.com"
     transifex_host = options.host or default_transifex
@@ -66,7 +66,6 @@ def cmd_init(argv, path_to_tx):
     if not transifex_host.startswith(('http://', 'https://')):
         transifex_host = 'https://' + transifex_host
 
-    config_file = os.path.join(path_to_tx, ".tx", "config")
     if not os.path.exists(config_file):
         # Handle the credentials through transifexrc
         config = OrderedRawConfigParser()
@@ -103,7 +102,7 @@ def cmd_set(argv, path_to_tx):
             wizard_run = True
         except SystemExit:
             print("\n")
-            exit(1)
+            sys.exit(1)
 
         options, args = set_parser().parse_args([])
         args.append(wizard_options.get('expression'))

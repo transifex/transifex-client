@@ -111,5 +111,5 @@ Upload source files to Transifex:
     tx push  --source
 
 Download translation files from Transifex once translations are done:
-    tx pull --translations
+    tx pull --all
 """
