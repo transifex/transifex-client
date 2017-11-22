@@ -140,6 +140,16 @@ def pull_parser():
             "'reviewed'). See http://bit.ly/pullmode for available values."
         )
     )
+    parser.add_option(
+        "-b", "--branch", action="store_true", dest="branch",
+        default=False,
+        help=("Push to a specific branch. Default is current"
+              "branch if exists.")
+    )
+    parser.add_option(
+        "--branchname", action="store", dest="branchname",
+        help=("Specify the branch name to which we are going to push.")
+    )
     parser.add_option("-x", "--xliff", action="store_true", dest="xliff",
                       default=False, help="Apply this option to download "
                       "file as xliff.")
@@ -184,6 +194,17 @@ def push_parser():
     parser.add_option("-x", "--xliff", action="store_true", dest="xliff",
                       default=False, help="Apply this option to upload "
                       "file as xliff.")
+    parser.add_option(
+        "-b", "--branch", action="store_true", dest="branch",
+        default=False,
+        help=("Pull for a specific branch. Default is current"
+              "branch if exists.")
+    )
+    parser.add_option(
+        "--branchname", action="store", dest="branchname",
+        help=("Specify the branch name for which the resources "
+              "we are going to pull.")
+    )
     return parser
 
 

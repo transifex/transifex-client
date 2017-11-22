@@ -532,3 +532,24 @@ def get_api_domains(path_to_tx, host):
     except (ProjectNotInit, configparser.NoOptionError,
             configparser.NoSectionError):
         return DEFAULT_HOSTNAMES
+
+
+def get_current_branch(root_dir):
+    """Searches for a .git directory starting from the
+    current working directory and up until the project
+    root.
+    Return current branch if .git exists else None
+    """
+    git_dir = None
+    cwd = os.getcwd()
+    while root_dir in cwd:
+        git_dir = os.path.join(cwd, '.git')
+        if os.path.isdir(git_dir):
+            found = True
+            break
+        cwd = os.path.dirname(cwd)
+
+    if found:
+        with open(os.path.join(git_dir, 'HEAD')) as f:
+            ref = f.read().replace('\n', '')
+            return ref.split('/')[-1]

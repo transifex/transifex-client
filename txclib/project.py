@@ -35,6 +35,7 @@ from txclib.urls import API_URLS
 from txclib.config import Flipdict, CERT_REQUIRED
 from txclib.log import logger
 from txclib.paths import posix_path, native_path, posix_sep
+from txclib.utils import ProjectNotInit
 
 
 DEFAULT_PULL_URL = 'pull_file'
@@ -54,9 +55,6 @@ PULL_MODE_URL_MAPPING = {
 }
 
 DEFAULT_API_HOSTNAME = "https://api.transifex.com"
-
-
-from txclib.utils import ProjectNotInit
 
 
 class Project(object):
@@ -227,8 +225,8 @@ class Project(object):
             raise MalformedConfigFile(
                 "Your lang map configuration is not correct.")
 
+        res_lang_map = Flipdict()
         if self.config.has_section(resource):
-            res_lang_map = Flipdict()
             try:
                 args = self.config.get(resource, "lang_map")
                 for arg in args.replace(' ', '').split(','):
@@ -370,9 +368,15 @@ class Project(object):
         pseudo_file = file_filter.replace('<lang>', '%s_pseudo' % slang)
         return native_path(pseudo_file)
 
+    def slug_with_branch(resource_slug, branch):
+        """ Return the resource slug prefixed by the branch name.
+        """
+        return '{branch}--{resource}'.format(branch=branch,
+                                             resource=resource_slug)
+
     def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
              fetchsource=False, force=False, skip=False, minimum_perc=0,
-             mode=None, pseudo=False, xliff=False):
+             mode=None, pseudo=False, xliff=False, branch=None):
         """Pull all translations file from transifex server."""
         self.minimum_perc = minimum_perc
         resource_list = self.get_chosen_resources(resources)
@@ -385,6 +389,8 @@ class Project(object):
             logger.debug("Handling resource %s" % resource)
             self.resource = resource
             project_slug, resource_slug = resource.split('.', 1)
+            if branch:
+                resource_slug = self.slug_with_branch(resource_slug, branch)
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_source_file(resource)
@@ -578,7 +584,7 @@ class Project(object):
 
     def push(self, source=False, translations=False, force=False,
              resources=[], languages=[], skip=False, no_interactive=False,
-             xliff=False):
+             xliff=False, branch=None):
         """Push all the resources"""
         resource_list = self.get_chosen_resources(resources)
         self.skip = skip
@@ -591,6 +597,10 @@ class Project(object):
         for resource in resource_list:
             push_languages = []
             project_slug, resource_slug = resource.split('.', 1)
+            if branch:
+                resource_slug = '{branch}--{resource}'.format(
+                    branch=branch, resource=resource_slug
+                )
             files = self.get_resource_files(resource, xliff=xliff)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_source_file(resource)
@@ -629,7 +639,8 @@ class Project(object):
                         fileinfo = "%s;%s" % (resource_slug, slang)
                         filename = self.get_full_path(sfile)
                         self._create_resource(
-                            resource, project_slug, fileinfo, filename
+                            resource, project_slug, fileinfo, filename,
+                            branch=branch
                         )
                     self.do_url_request(
                         'push_source', multipart=True, method="PUT",
@@ -1299,6 +1310,8 @@ class Project(object):
             "uploaded_file": (name, open(filename, 'rb').read()),
             "i18n_type": i18n_type
         }
+        if kwargs.get('branch'):
+            data.update({'category': kwargs['branch']})
 
         r, charset = utils.make_request(
             method, hostname, url, username, passwd, data
