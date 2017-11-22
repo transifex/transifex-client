@@ -718,9 +718,18 @@ class Project(object):
                         )
                         logger.debug("Translation %s pushed." % remote_lang)
                     except utils.HttpNotFound:
-                        if not source:
-                            logger.error("Resource hasn't been created. "
+                        # If the resource exists, we suppose the language code
+                        # was invalid
+                        if self._resource_exists(stats):
+                            error_msg = ("Error: '%s' is not a valid"
+                                         " language code. Please refer to"
+                                         " https://www.transifex.com/"
+                                         "languages/ for a list of supported"
+                                         " languages in Transifex." % lang)
+                        else:
+                            error_msg = ("Resource hasn't been created. "
                                          "Try pushing source file.")
+                        logger.error(error_msg)
                     except Exception as e:
                         if isinstance(e, SSLError):
                             raise
