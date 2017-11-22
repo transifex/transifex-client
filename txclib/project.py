@@ -605,13 +605,13 @@ class Project(object):
             stats = self._get_stats_for_resource()
 
             if force and not no_interactive:
-                answer = input("Warning: By using --force, the uploaded "
-                               "files will overwrite remote translations, "
-                               "even if they are newer than your uploaded "
-                               "files.\nAre you sure you want to continue? "
-                               "[y/N]")
+                msg = ("Warning: By using --force, the uploaded files will "
+                       "overwrite remote translations, even if they are newer "
+                       "than your uploaded files.\nAre you sure you want to "
+                       "continue?")
 
-                if answer not in ["", 'Y', 'y', "yes", 'YES']:
+                if not confirm(prompt=msg, default=False):
+                    logger.info("Aborting...")
                     return
 
             if source:
