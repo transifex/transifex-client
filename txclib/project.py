@@ -397,8 +397,8 @@ class Project(object):
                                resource=resource_slug)
             logger.debug("URL data are: %s" % self.url_info)
 
-            stats = self._get_stats_for_resource()
             try:
+                stats = self._get_stats_for_resource()
                 details_response, _ = self.do_url_request('resource_details')
             except Exception as e:
                 if isinstance(e, HttpNotAuthorized):
@@ -410,6 +410,10 @@ class Project(object):
                     continue
                 if isinstance(e, SSLError) or not skip:
                     raise
+                else:
+                    msg = "Skipping resource %s"
+                    logger.warn(msg % resource)
+                    continue
 
             details = utils.parse_json(details_response)
             if details['i18n_type'] in self.SKIP_DECODE_I18N_TYPES:
@@ -601,13 +605,13 @@ class Project(object):
             stats = self._get_stats_for_resource()
 
             if force and not no_interactive:
-                answer = input("Warning: By using --force, the uploaded "
-                               "files will overwrite remote translations, "
-                               "even if they are newer than your uploaded "
-                               "files.\nAre you sure you want to continue? "
-                               "[y/N]")
+                msg = ("Warning: By using --force, the uploaded files will "
+                       "overwrite remote translations, even if they are newer "
+                       "than your uploaded files.\nAre you sure you want to "
+                       "continue?")
 
-                if answer not in ["", 'Y', 'y', "yes", 'YES']:
+                if not confirm(prompt=msg, default=False):
+                    logger.info("Aborting...")
                     return
 
             if source:

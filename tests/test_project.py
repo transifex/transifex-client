@@ -17,7 +17,7 @@ from collections import namedtuple
 from os.path import dirname
 from sys import modules
 
-from txclib.exceptions import AuthenticationError
+from txclib.exceptions import AuthenticationError, TXConnectionError
 from txclib.project import (Project, DEFAULT_PULL_URL,
                             PULL_MODE_SOURCEASTRANSLATION)
 
@@ -730,6 +730,32 @@ class TestProjectPull(unittest.TestCase):
         project = kwargs['mock_project']
         with self.assertRaises(AuthenticationError):
             project.delete()
+
+    @fixture_mocked_project
+    @patch("txclib.project.logger.error")
+    @patch("txclib.utils.make_request")
+    def test_pull_raises_connection_exception(self, mock_request, mock_logger,
+                                              **kwargs):
+        """Test that all connection errors are properly handled."""
+        project = kwargs["mock_project"]
+        response = 502
+        msg = "Failed with code %d" % response
+        mock_request.side_effect = TXConnectionError(msg, code=response)
+        with self.assertRaises(TXConnectionError):
+            project.pull()
+
+    @fixture_mocked_project
+    @patch("txclib.project.logger.error")
+    @patch("txclib.utils.make_request")
+    def test_push_raises_connection_exception(self, mock_request, mock_logger,
+                                              **kwargs):
+        """Test that all connection errors are properly handled."""
+        project = kwargs["mock_project"]
+        response = 500
+        msg = "Failed with code %d" % response
+        mock_request.side_effect = TXConnectionError(msg, code=response)
+        with self.assertRaises(TXConnectionError):
+            project.push()
 
 
 class TestFormats(unittest.TestCase):
