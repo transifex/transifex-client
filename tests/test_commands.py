@@ -3,7 +3,7 @@ import shutil
 import unittest
 import sys
 from StringIO import StringIO
-from mock import patch, MagicMock
+from mock import patch, MagicMock, call
 from txclib.commands import _set_source_file, _set_translation, cmd_pull, \
     cmd_init, cmd_status, cmd_help, UnInitializedError
 
@@ -129,3 +129,51 @@ class TestInitCommand(unittest.TestCase):
                 set_mock.assert_called()
         self.assertTrue(os.path.exists('./.tx'))
         self.assertTrue(os.path.exists('./.tx/config'))
+
+
+class TestPullCommand(unittest.TestCase):
+    @patch('txclib.utils.get_current_branch')
+    @patch('txclib.commands.logger')
+    @patch('txclib.commands.project.Project')
+    def test_pull_with_branch_no_git_repo(self, project_mock, log_mock, bmock):
+        bmock.return_value = None
+        pr_instance = MagicMock()
+        project_mock.return_value = pr_instance
+        with self.assertRaises(SystemExit):
+            cmd_pull(['--branch'], '.')
+        log_mock.error.assert_called_once_with(
+            "You specified the --branch option but current "
+            "directory does not seem to belong in any git repo.")
+        assert pr_instance.pull.call_count == 0
+
+    @patch('txclib.utils.get_current_branch')
+    @patch('txclib.commands.logger')
+    @patch('txclib.commands.project.Project')
+    def test_pull_only_branchname_option(self, project_mock, log_mock, bmock):
+        bmock.return_value = None
+        pr_instance = MagicMock()
+        project_mock.return_value = pr_instance
+        with self.assertRaises(SystemExit):
+            cmd_pull(['--branchname', 'somebranch'], '.')
+        log_mock.error.assert_called_once_with(
+            "--branchname options should be used along with "
+            "the --branch option."
+        )
+        assert pr_instance.pull.call_count == 0
+
+    @patch('txclib.utils.get_current_branch')
+    @patch('txclib.commands.logger')
+    @patch('txclib.commands.project.Project')
+    def test_pull_with_branch_and_branchname_option(
+        self, project_mock, log_mock, bmock
+    ):
+        pr_instance = MagicMock()
+        project_mock.return_value = pr_instance
+        bmock.return_value = None
+        cmd_pull(['--branch', '--branchname', 'somebranch'], '.')
+        assert pr_instance.pull.call_count == 1
+        pull_call = call(branch='somebranch', fetchall=False, fetchsource=False,
+                         force=False, languages=[], minimum_perc=None, mode=None,
+                         overwrite=True, pseudo=False, resources=[], skip=False,
+                         xliff=False)
+        pr_instance.pull.assert_has_calls([pull_call])

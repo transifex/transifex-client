@@ -540,7 +540,7 @@ def get_current_branch(root_dir):
     root.
     Return current branch if .git exists else None
     """
-    git_dir = None
+    found, git_dir = None, None
     cwd = os.getcwd()
     while root_dir in cwd:
         git_dir = os.path.join(cwd, '.git')
@@ -551,5 +551,7 @@ def get_current_branch(root_dir):
 
     if found:
         with open(os.path.join(git_dir, 'HEAD')) as f:
-            ref = f.read().replace('\n', '')
-            return ref.split('/')[-1]
+            ref = f.read()
+            m = re.match('ref: refs/heads/(.+?)\s+$', ref)
+            if m:
+                return m.group(1)

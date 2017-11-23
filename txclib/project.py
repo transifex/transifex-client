@@ -20,6 +20,7 @@ except ImportError:
     import ConfigParser as configparser
 
 from requests.exceptions import HTTPError
+from slugify import slugify
 
 from txclib import web
 from txclib import api
@@ -368,10 +369,11 @@ class Project(object):
         pseudo_file = file_filter.replace('<lang>', '%s_pseudo' % slang)
         return native_path(pseudo_file)
 
-    def slug_with_branch(resource_slug, branch):
+    def _slug_with_branch(self, resource_slug, branch):
         """ Return the resource slug prefixed by the branch name.
         """
-        return '{branch}--{resource}'.format(branch=branch,
+
+        return '{branch}--{resource}'.format(branch=slugify(branch),
                                              resource=resource_slug)
 
     def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
@@ -390,7 +392,7 @@ class Project(object):
             self.resource = resource
             project_slug, resource_slug = resource.split('.', 1)
             if branch:
-                resource_slug = self.slug_with_branch(resource_slug, branch)
+                resource_slug = self._slug_with_branch(resource_slug, branch)
             files = self.get_resource_files(resource)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_source_file(resource)
@@ -473,6 +475,8 @@ class Project(object):
             if pull_languages:
                 logger.debug("Pulling languages for: %s" % pull_languages)
                 msg = "Pulling translations for resource %s (source: %s)"
+                if branch:
+                    msg += " for branch {}".format(branch)
                 if xliff:
                     msg += " [xliff format]"
                 logger.info(msg % (resource, sfile))
@@ -598,9 +602,7 @@ class Project(object):
             push_languages = []
             project_slug, resource_slug = resource.split('.', 1)
             if branch:
-                resource_slug = '{branch}--{resource}'.format(
-                    branch=branch, resource=resource_slug
-                )
+                resource_slug = self._slug_with_branch(resource_slug, branch)
             files = self.get_resource_files(resource, xliff=xliff)
             slang = self.get_resource_option(resource, 'source_lang')
             sfile = self.get_source_file(resource)
@@ -610,7 +612,11 @@ class Project(object):
             logger.debug("Using host %s" % host)
             self._set_url_info(host=host, project=project_slug,
                                resource=resource_slug)
-            logger.info("Pushing resource %s:" % resource)
+
+            message = "Pushing resource {}".format(resource)
+            if branch:
+                message += " for branch {}".format(branch)
+            logger.info(message)
 
             stats = self._get_stats_for_resource()
 

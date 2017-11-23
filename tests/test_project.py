@@ -717,6 +717,42 @@ class TestProjectPull(unittest.TestCase):
                 Project.AUTHENTICATION_FAILED_MESSAGE)
 
     @fixture_mocked_project
+    @patch('txclib.project.Project.do_url_request')
+    def test_pull_with_branch_pulls_from_right_resource(self, m, **kwargs):
+        m.return_value = ('{"i18n_type": "PO"}', '')
+        project = kwargs['mock_project']
+        project.pull(branch='somebranch')
+        self.assertDictEqual(project.url_info, {
+            'host': 'https://fake.com',
+            'project': 'example',
+            'resource': 'somebranch--enpo'
+        })
+
+    @fixture_mocked_project
+    @patch('txclib.project.Project.do_url_request')
+    def test_push_with_branch_pushes_to_right_resource(self, m, **kwargs):
+        m.return_value = ('{"i18n_type": "PO"}', '')
+        project = kwargs['mock_project']
+        project.push(source=True, branch='somebranch')
+        self.assertDictEqual(project.url_info, {
+            'host': 'https://fake.com',
+            'project': 'example',
+            'resource': 'somebranch--enpo'
+        })
+
+    @fixture_mocked_project
+    @patch('txclib.project.Project.do_url_request')
+    def test_push_with_branch_weird_characters_are_handled(self, m, **kwargs):
+        m.return_value = ('{"i18n_type": "PO"}', '')
+        project = kwargs['mock_project']
+        project.push(source=True, branch='some/b**r:a&n!ch')
+        self.assertDictEqual(project.url_info, {
+            'host': 'https://fake.com',
+            'project': 'example',
+            'resource': 'some-b-r-a-n-ch--enpo'
+        })
+
+    @fixture_mocked_project
     @patch("txclib.project.logger.error")
     def test_push_raises_authentication_exception(self, mock_logger, **kwargs):
         project = kwargs['mock_project']
