@@ -360,12 +360,13 @@ def cmd_push(argv, path_to_tx):
         parser.error("You need to specify at least one of the -s|--source, "
                      "-t|--translations flags with the push command.")
 
+    branch = get_branch_from_options(options, prj.root)
     prj.push(
         force=force_creation, resources=resources, languages=languages,
         skip=skip, source=options.push_source,
         translations=options.push_translations,
         no_interactive=options.no_interactive,
-        xliff=xliff
+        xliff=xliff, branch=branch
     )
     logger.info("Done.")
 
@@ -389,11 +390,12 @@ def cmd_pull(argv, path_to_tx):
 
     # instantiate the project.Project
     prj = project.Project(path_to_tx)
+    branch = get_branch_from_options(options, prj.root)
     prj.pull(
         languages=languages, resources=resources, overwrite=options.overwrite,
         fetchall=options.fetchall, fetchsource=options.fetchsource,
         force=options.force, skip=skip, minimum_perc=minimum_perc,
-        mode=options.mode, pseudo=pseudo, xliff=xliff
+        mode=options.mode, pseudo=pseudo, xliff=xliff, branch=branch
     )
     logger.info("Done.")
 
@@ -605,3 +607,28 @@ def _set_project_option(resource, name, value, path_to_tx, func_name):
     prj = project.Project(path_to_tx)
     getattr(prj, func_name)(resources, value)
     prj.save()
+
+
+def get_branch_from_options(options, project_root):
+    """ Returns the branch name that needs to be used in command
+    based on parser options.
+
+    options: optparse parser options as returned from `parse()`
+    project_root: project root directory
+    """
+    if not options.branch and not options.branchname:
+        return
+
+    if options.branchname:
+        if not options.branch:
+            logger.error("--branchname options should be used along with "
+                         "the --branch option.")
+            sys.exit(1)
+        return options.branchname
+
+    branch = utils.get_current_branch(project_root)
+    if not branch:
+        logger.error("You specified the --branch option but current "
+                     "directory does not seem to belong in any git repo.")
+        sys.exit(1)
+    return branch

@@ -1,5 +1,5 @@
 import unittest
-from mock import patch, MagicMock
+from mock import patch, MagicMock, mock_open
 from urllib3.exceptions import SSLError
 
 from txclib import utils, exceptions
@@ -211,3 +211,45 @@ class MakeRequestTestCase(unittest.TestCase):
                                                         expected_url,
                                                         fields=Any(),
                                                         headers=Any())
+
+    def test_get_current_branch_root_dir_no_git(self):
+        with patch('txclib.utils.os.getcwd') as cwd_mock, \
+             patch('txclib.utils.os.path.isdir') as isdir_mock:
+
+            cwd_mock.return_value = '/usr/local/test_cli'
+            isdir_mock.return_value = False
+            b = utils.get_current_branch('/usr/local/test_cli')
+            self.assertEqual(b, None)
+
+    def test_get_current_branch_root_dir_with_git(self):
+        data = "ref: refs/heads/test_branch\n"
+        with patch('txclib.utils.os.getcwd') as cwd_mock, \
+             patch('txclib.utils.os.path.isdir') as isdir_mock, \
+             patch("txclib.utils.open", mock_open(read_data=data)):
+
+            cwd_mock.return_value = '/usr/local/test_cli'
+            isdir_mock.return_value = True
+            b = utils.get_current_branch('/usr/local/test_cli')
+            self.assertEqual(b, 'test_branch')
+
+    def test_get_current_branch_subdir_with_git(self):
+        data = "ref: refs/heads/test_branch\n"
+        with patch('txclib.utils.os.getcwd') as cwd_mock, \
+             patch('txclib.utils.os.path.isdir') as isdir_mock, \
+             patch("txclib.utils.open", mock_open(read_data=data)):
+
+            cwd_mock.return_value = '/usr/local/test_cli/files'
+            isdir_mock.side_effects = [False, True]
+            b = utils.get_current_branch('/usr/local/test_cli')
+            self.assertEqual(b, 'test_branch')
+
+    def test_get_current_branch_contains_slash(self):
+        data = "ref: refs/heads/test_branch/abc\n"
+        with patch('txclib.utils.os.getcwd') as cwd_mock, \
+             patch('txclib.utils.os.path.isdir') as isdir_mock, \
+             patch("txclib.utils.open", mock_open(read_data=data)):
+
+            cwd_mock.return_value = '/usr/local/test_cli'
+            isdir_mock.side_effects = [False, True]
+            b = utils.get_current_branch('/usr/local/test_cli')
+            self.assertEqual(b, 'test_branch/abc')
