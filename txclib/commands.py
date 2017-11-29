@@ -27,8 +27,7 @@ from txclib import utils, project
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
-    status_parser, pull_parser, set_parser, set_multi_parser, push_parser, \
-    init_parser
+    status_parser, pull_parser, set_parser, push_parser, init_parser
 from txclib.paths import posix_path
 from txclib.log import logger
 from txclib.wizard import Wizard
@@ -96,34 +95,20 @@ def cmd_set(argv, path_to_tx):
         try:
             wizard_options = Wizard(path_to_tx).run()
             wizard_options['subcommand'] = 'auto-local'
-            subcommand = True
+            is_subcommand = True
             options = Namespace(**wizard_options)
             from_wizard = True
         except SystemExit:
             print("\n")
             sys.exit(1)
     else:
-        subcommand = False
-        if len(argv) >= 1 and argv[0] in ['auto-local', 'auto-remote', 'bulk']:
-            subcommand = True
-        parser = set_parser(subparser=subcommand)
+        is_subcommand = False
+        if len(argv) >= 1 and argv[0] in ['auto-local', 'auto-remote', 'auto-bulk']:
+            is_subcommand = True
+        parser = set_parser(subparser=is_subcommand)
         options = parser.parse_args()
 
-    if options.is_source:
-        if not options.resource:
-            parser.error("You must specify a resource name with the "
-                         "-r|--resource flag.")
-
-        if not options.language:
-            parser.error("Please specify a source language.")
-
-        if options.expression and '<lang>' not in options.expression:
-            parser.error("The expression you have provided is not valid.")
-
-    if not utils.valid_resource_slug(options.resource):
-        parser.error("Invalid resource slug. The format is <project_slug>"
-                     ".<resource_slug> and the valid characters include "
-                     "[_-\w].")
+    _validate_set_arguments(parser, options)
 
     if not options.subcommand:
         bare_set(path_to_tx, options)
@@ -131,11 +116,29 @@ def cmd_set(argv, path_to_tx):
         subcommand_autolocal(path_to_tx, options, from_wizard=from_wizard)
     elif options.subcommand == 'auto-remote':
         subcommand_autolocal(path_to_tx, options)
+    elif options.subcommand == 'auto-bulk':
+        subcommand_autobulk(path_to_tx, options)
     else:
         parser.print_help()
 
 
-def bare_set(path_to_tx, options, from_wizard=False):
+def _validate_set_arguments(parser, options):
+    """
+    Do any extra required validation for set command arguments
+    """
+    if options.is_source and not options.language:
+        parser.error("Please specify a source language.")
+
+    if options.expression and '<lang>' not in options.expression:
+        parser.error("The expression you have provided is not valid.")
+
+    if not utils.valid_resource_slug(options.resource):
+        parser.error("Invalid resource slug. The format is <project_slug>"
+                     ".<resource_slug> and the valid characters include "
+                     "[_-\w].")
+
+
+def bare_set(path_to_tx, options):
     filename = options.filename
     # Calculate relative path
     path_to_file = os.path.relpath(filename, path_to_tx)
@@ -188,28 +191,8 @@ def _print_instructions(resource, path_to_tx):
     print(messages.final_instr.format(**fmt_kwargs))
 
 
-def cmd_set_multi(argv, path_to_tx):
+def subcommand_autobulk(path_to_tx, options):
     """Add local files for multiple resources under transifex"""
-    parser = set_multi_parser()
-    (options, args) = parser.parse_args(argv)
-
-    try:
-        expression = args[0]
-    except IndexError:
-        parser.error("Please specify an expression.")
-    if not options.project:
-        parser.error("Please specify a project.")
-    if not options.source_language:
-        parser.error("Please specify a source language.")
-    if not options.file_extension:
-        parser.error("Please specify a file extension.")
-    if not options.source_file_dir:
-        parser.error("Please specify a source file directory.")
-    if '<lang>' not in expression:
-        parser.error("The expression you have provided is not valid.")
-    if not utils.valid_slug(options.project):
-        parser.error("Invalid project slug. The valid characters include"
-                     " [_-\w].")
 
     if not options.file_extension.startswith('.'):
         file_extension = '.{}'.format(options.file_extension)
@@ -238,7 +221,7 @@ def cmd_set_multi(argv, path_to_tx):
             if not should_continue:
                 break
 
-            expr = expression.format(
+            expr = options.expression.format(
                 filepath=relpath, filename=file_name.split('.')[0],
                 extension=options.file_extension
             ).replace('//', '/')

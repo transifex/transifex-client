@@ -322,91 +322,72 @@ def set_parser(subparser=False):
     if not subparser:
         parser.add_argument("filename", action="store", help="Source file path")
 
-    # else
-    subparsers = parser.add_subparsers(
-        title='subcommands', dest='subcommand')
-    auto_local_parser = subparsers.add_parser(
-        "auto-local", parents=[main_parser, extra_parser],
-        help="Use to auto configuring local project.")
-    auto_remote_parser = subparsers.add_parser(
-        "auto-remote", parents=[extra_parser],
-        help="Use to configure remote files from Transifex server.")
-
-    auto_local_parser.add_argument(
-        "--source-language", action="store", dest="source_language",
-        default=False, help="Source language of the resource.", required=True)
-    auto_local_parser.add_argument(
-        "-f", "--source-file", action="store", dest="source_file", default=None,
-        help="Specify the source file of a resource [requires --auto-local].")
-    auto_local_parser.add_argument(
-        "--execute", action="store_true", dest="execute",
-        default=False, help="Execute commands.")
-
+    # SUBPARSERS
+    # auto-local subparser
+    subparsers = set_parser.add_subparsers(title='subcommands', dest='subcommand')
+    auto_local_parser = subparsers.add_parser("auto-local", parents=[main_parser, extra_parser],
+                      help="Use to auto configuring local project.")
+    auto_local_parser.add_argument("--source-language", action="store", dest="source_language",
+                     default=False, help="Source language of the resource.", required=True)
+    auto_local_parser.add_argument("-f", "--source-file", action="store", dest="source_file",
+                     default=None, help="Specify the source file of a "
+                     "resource [requires --auto-local].")
+    auto_local_parser.add_argument("--execute", action="store_true", dest="execute",
+                     default=False, help="Execute commands.")
     auto_local_parser.add_argument("expression", action="store",
                                    help=("File filter expression."))
 
+    # auto-remote subparser
+    auto_remote_parser = subparsers.add_parser("auto-remote", parents=[extra_parser],
+                      help="Use to configure remote files from Transifex server.")
     auto_remote_parser.add_argument("project_url", action="store",
                                     help="Url of Transifex project.")
-
-    return parser
-
-
-def set_multi_parser():
-    """Return the command-line parser for the set_multi command."""
-    usage = "usage: %prog [tx_options] set_multi [options] [args]"
+    # auto-bulk subparser
     description = "This command can be used to create a mapping between files "\
         "and projects for multiple resources at once, using local files. " \
                   "Always assumes --auto-local."
     epilog = "\nExamples:\n"\
         "To set a series of HTML source files that reside inside locale/:\n"\
-        " $ tx set_multi -p project 'expr' --source-lang en --type HTML " \
+        " $ tx set_multi -p project 'expression' --source-lang en --type HTML " \
         "-f '.html' -d locale\n\n"\
         "To set a series of KEYVAlUEJSON source files that reside " \
         "inside locale/ but exclude files in locale/es/ and locale/jp/:\n"\
         " $ tx set_multi -p project 'expr' --source-lang en " \
         "--type KEYVAlUEJSON -f '.json' -d locale -i es -i jp\n\n"
-    parser = EpilogParser(usage=usage, description=description, epilog=epilog)
-    parser.add_option("-p", "--project", action="store", dest="project",
-                      default=None,
-                      help="Specify the slug of the project that you're "
-                      "setting up.")
-    parser.add_option(
+    auto_bulk_parser = subparsers.add_parser("auto-bulk", parents=[extra_parser],
+                      help="Use to configure remote files from Transifex server.",
+                      description=description, epilog=epilog)
+    auto_bulk_parser.add_argument("-p", "--project", action="store", dest="project",
+                      default=None, required=True,
+                      help="Specify the slug of the project that you're setting up.")
+    auto_bulk_parser.add_argument(
         "-d", "--source-file-dir", action="store", dest="source_file_dir",
-        default=None, help=(
+        default=None, required=True, help=(
             "Directory to find source files to be mapped. "
             "Example: locale/en/"
         )
     )
-    parser.add_option("-t", "--type", action="store", dest="i18n_type",
+    auto_bulk_parser.add_argument("-t", "--type", action="store", dest="i18n_type",
                       help=("Specify the i18n type of the resources. "
                             "This is only needed, if the resource(s) does not "
                             "exist yet in Transifex. For a list of "
                             "available i18n types, see "
                             "http://docs.transifex.com/formats/"
                             ))
-    parser.add_option("-s", "--source-language", action="store",
-                      dest="source_language", default=None,
+    auto_bulk_parser.add_argument("-s", "--source-language", action="store",
+                      dest="source_language", default=None, required=True,
                       help="Specify the source language of the resources ")
-    parser.add_option("-f", "--file-extension", action="store",
-                      dest="file_extension", default=None,
+    auto_bulk_parser.add_argument("-f", "--file-extension", action="store",
+                      dest="file_extension", default=None, required=True,
                       help="File extension of files to be mapped.")
-    parser.add_option("-i", "--ignore-dir", action="append",
+    auto_bulk_parser.add_argument("-i", "--ignore-dir", action="append",
                       dest="ignore_dirs", default=[],
                       help="Directory to ignore while looking for source "
                            "files. Can be called multiple times. "
                            "Example: `-i es -i fr`.'.")
-    parser.add_option("--minimum-perc", action="store", dest="minimum_perc",
-                      help=("Specify the minimum acceptable percentage "
-                            "of a translation in order to download it."
-                            ))
-    parser.add_option(
-        "--mode", action="store", dest="mode", help=(
-            "Specify the mode of the translation file to pull (e.g. "
-            "'reviewed'). See http://bit.ly/pullmode for the "
-            "available values."
-        )
-    )
-    parser.add_option("--execute", action="store_true", dest="execute",
+    auto_bulk_parser.add_argument("expression", action="store",
+                                   help=("File filter expression."))
+    auto_bulk_parser.add_argument("--execute", action="store_true", dest="execute",
                      default=False, help="Execute commands ")
     return parser
 
