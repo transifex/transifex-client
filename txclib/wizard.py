@@ -186,5 +186,6 @@ class Wizard(object):
             'i18n_type': i18n_type,
             'source_language': source_language,
             'resource': resource,
+            'execute': True,
         }
         return options

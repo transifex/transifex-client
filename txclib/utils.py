@@ -7,6 +7,8 @@ import errno
 import urllib3
 import collections
 import six
+import platform
+import txclib
 
 try:
     from json import loads as parse_json
@@ -555,3 +557,12 @@ def get_current_branch(root_dir):
             m = re.match('ref: refs/heads/(.+?)\s+$', ref)
             if m:
                 return m.group(1)
+
+
+def get_version():
+    return '%s, py %s.%s, %s' % (
+        txclib.__version__,
+        sys.version_info.major,
+        sys.version_info.minor,
+        platform.machine()
+    )

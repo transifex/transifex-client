@@ -137,6 +137,7 @@ class WizardCase(unittest.TestCase):
             options = self.wizard.run()
 
             expected_options = {
+                'execute': True,
                 'source_file': 'test_file',
                 'expression': 'translations/<lang>.txt',
                 'i18n_type': 'INI',

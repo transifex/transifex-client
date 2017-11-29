@@ -21,6 +21,7 @@ try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
+from argparse import Namespace
 
 from txclib import utils, project
 from txclib.config import OrderedRawConfigParser
@@ -36,13 +37,8 @@ from txclib import messages
 def cmd_init(argv, path_to_tx):
     """Initialize a new transifex project."""
     parser = init_parser()
-    (options, args) = parser.parse_args(argv)
-    if len(args) > 1:
-        parser.error("Too many arguments were provided. Aborting...")
-    if args:
-        path_to_tx = args[0]
-    else:
-        path_to_tx = os.getcwd()
+    options = parser.parse_args(argv)
+    path_to_tx = options.path_to_tx or os.getcwd()
 
     print(messages.init_intro)
     save = options.save
@@ -93,104 +89,64 @@ def cmd_init(argv, path_to_tx):
 
 def cmd_set(argv, path_to_tx):
     """Add local or remote files under transifex"""
-    parser = set_parser()
-    wizard_run = False
+    from_wizard = False
     if len(argv) == 0:
         # Run the wizard and configure parse with the wizard inputs
         try:
             wizard_options = Wizard(path_to_tx).run()
-            wizard_run = True
+            wizard_options['subcommand'] = 'auto-local'
+            subcommand = True
+            options = Namespace(**wizard_options)
+            from_wizard = True
         except SystemExit:
             print("\n")
             sys.exit(1)
-
-        options, args = set_parser().parse_args([])
-        args.append(wizard_options.get('expression'))
-        options.source_file = wizard_options.get('source_file')
-        options.source_language = wizard_options.get('source_language')
-        options.i18n_type = wizard_options.get('i18n_type')
-        options.resource = wizard_options.get('resource')
-        options.local = True
-        options.execute = True
     else:
-        options, args = parser.parse_args(argv)
-
-    if options.local:
-        try:
-            expression = args[0]
-        except IndexError:
-            parser.error("Please specify an expression.")
-        if not options.resource:
-            parser.error("Please specify a resource")
-        if not options.source_language:
-            parser.error("Please specify a source language.")
-        if '<lang>' not in expression:
-            parser.error("The expression you have provided is not valid.")
-        if not utils.valid_slug(options.resource):
-            parser.error("Invalid resource slug. The format is <project_slug>"
-                         ".<resource_slug> and the valid characters include"
-                         " [_-\w].")
-        _auto_local(path_to_tx, options.resource,
-                    source_language=options.source_language,
-                    expression=expression, source_file=options.source_file,
-                    execute=options.execute, regex=False)
-        if options.execute:
-            _set_minimum_perc(options.resource, options.minimum_perc,
-                              path_to_tx)
-            _set_mode(options.resource, options.mode, path_to_tx)
-            _set_type(options.resource, options.i18n_type, path_to_tx)
-            if wizard_run:
-                _print_instructions(options.resource, path_to_tx)
-        return
-
-    if options.remote:
-        try:
-            url = args[0]
-        except IndexError:
-            parser.error("Please specify a remote url")
-        _auto_remote(path_to_tx, url)
-        _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
-        _set_mode(options.resource, options.mode, path_to_tx)
-        return
+        subcommand = False
+        if len(argv) >= 1 and argv[0] in ['auto-local', 'auto-remote', 'bulk']:
+            subcommand = True
+        parser = set_parser(subparser=subcommand)
+        options = parser.parse_args()
 
     if options.is_source:
-        resource = options.resource
-        if not resource:
+        if not options.resource:
             parser.error("You must specify a resource name with the "
                          "-r|--resource flag.")
 
-        lang = options.language
-        if not lang:
+        if not options.language:
             parser.error("Please specify a source language.")
 
-        if len(args) != 1:
-            parser.error("Please specify a file.")
+        if options.expression and '<lang>' not in options.expression:
+            parser.error("The expression you have provided is not valid.")
 
-        if not utils.valid_slug(resource):
-            parser.error("Invalid resource slug. The format is <project_slug>"
-                         ".<resource_slug> and the valid characters include "
-                         "[_-\w].")
+    if not utils.valid_slug(options.resource):
+        parser.error("Invalid resource slug. The format is <project_slug>"
+                     ".<resource_slug> and the valid characters include "
+                     "[_-\w].")
 
-        file = args[0]
-        # Calculate relative path
-        path_to_file = os.path.relpath(file, path_to_tx)
+    if not options.subcommand:
+        bare_set(path_to_tx, options)
+    elif options.subcommand == 'auto-local':
+        subcommand_autolocal(path_to_tx, options, from_wizard=from_wizard)
+    elif options.subcommand == 'auto-remote':
+        subcommand_autolocal(path_to_tx, options)
+    else:
+        parser.print_help()
+
+
+def bare_set(path_to_tx, options, from_wizard=False):
+    filename = options.filename
+    # Calculate relative path
+    path_to_file = os.path.relpath(filename, path_to_tx)
+
+    if options.is_source:
+        resource = options.resource
         _set_source_file(path_to_tx, resource, options.language, path_to_file)
     elif options.resource or options.language:
         resource = options.resource
         lang = options.language
 
-        if len(args) != 1:
-            parser.error("Please specify a file")
-
-        # Calculate relative path
-        path_to_file = os.path.relpath(args[0], path_to_tx)
-
         _go_to_dir(path_to_tx)
-
-        if not utils.valid_slug(resource):
-            parser.error("Invalid resource slug. The format is <project_slug>"
-                         ".<resource_slug> and the valid characters include "
-                         "[_-\w].")
         _set_translation(path_to_tx, resource, lang, path_to_file)
 
     _set_mode(options.resource, options.mode, path_to_tx)
@@ -198,7 +154,29 @@ def cmd_set(argv, path_to_tx):
     _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
 
     logger.info("Done.")
-    return
+
+
+def subcommand_autolocal(path_to_tx, options, from_wizard=False):
+    expression = options.expression
+    _auto_local(path_to_tx, options.resource,
+                source_language=options.source_language,
+                expression=expression, source_file=options.source_file,
+                execute=options.execute, regex=False)
+    if options.execute:
+        _set_minimum_perc(options.resource, options.minimum_perc,
+                          path_to_tx)
+        _set_mode(options.resource, options.mode, path_to_tx)
+        _set_type(options.resource, options.i18n_type, path_to_tx)
+
+    if from_wizard:
+        _print_instructions(options.resource, path_to_tx)
+
+
+def subcommand_autoremote(path_to_tx, options):
+    url = options.project_url
+    _auto_remote(path_to_tx, url)
+    _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
+    _set_mode(options.resource, options.mode, path_to_tx)
 
 
 def _print_instructions(resource, path_to_tx):
@@ -349,7 +327,7 @@ def _auto_remote(path_to_tx, url):
 def cmd_push(argv, path_to_tx):
     """Push local files to remote server"""
     parser = push_parser()
-    (options, args) = parser.parse_args(argv)
+    options = parser.parse_args(argv)
     force_creation = options.force_creation
     languages = parse_csv_option(options.languages)
     resources = parse_csv_option(options.resources)
@@ -374,7 +352,7 @@ def cmd_push(argv, path_to_tx):
 def cmd_pull(argv, path_to_tx):
     """Pull files from remote server to local repository"""
     parser = pull_parser()
-    (options, args) = parser.parse_args(argv)
+    options = parser.parse_args(argv)
     if options.fetchall and options.languages:
         parser.error("You can't user a language filter along with the "
                      "-a|--all option")
@@ -489,7 +467,7 @@ def _set_translation(path_to_tx, resource, lang, path_to_file):
 def cmd_status(argv, path_to_tx):
     """Print status of current project"""
     parser = status_parser()
-    (options, args) = parser.parse_args(argv)
+    options = parser.parse_args(argv)
     resources = parse_csv_option(options.resources)
     prj = project.Project(path_to_tx)
     resources = prj.get_chosen_resources(resources)
@@ -518,17 +496,15 @@ def cmd_status(argv, path_to_tx):
 def cmd_help(argv, path_to_tx):
     """List all available commands"""
     parser = help_parser()
-    (options, args) = parser.parse_args(argv)
-    if len(args) > 1:
-        parser.error("Multiple arguments received. Exiting...")
+    options = parser.parse_args(argv)
 
     # Get all commands
     fns = utils.discover_commands()
 
     # Print help for specific command
-    if len(args) == 1:
+    if options.command:
         try:
-            fns[argv[0]](['--help'], path_to_tx)
+            fns[options.command](['--help'], path_to_tx)
         except KeyError:
             utils.logger.error("Command %s not found" % argv[0])
     # or print summary of all commands
@@ -549,7 +525,7 @@ def cmd_help(argv, path_to_tx):
 def cmd_delete(argv, path_to_tx):
     """Delete an accessible resource or translation in a remote server."""
     parser = delete_parser()
-    (options, args) = parser.parse_args(argv)
+    options = parser.parse_args(argv)
     languages = parse_csv_option(options.languages)
     resources = parse_csv_option(options.resources)
     skip = options.skip_errors

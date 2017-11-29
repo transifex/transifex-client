@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
 import sys
-import platform
-from optparse import OptionParser
 from urllib3.exceptions import SSLError
 
-import txclib
 from txclib import utils
 from txclib.log import set_log_level, logger
+from txclib.parsers import tx_main_parser
 from txclib.exceptions import AuthenticationError
 
 
@@ -51,50 +48,11 @@ def main(argv=None):
     """
     Here we parse the flags (short, long) and we instantiate the classes.
     """
-    if argv is None:
-        argv = sys.argv[1:]
-    usage = "usage: %prog [options] command [cmd_options]"
-    description = "This is the Transifex command line client which"\
-                  " allows you to manage your translations locally and sync"\
-                  " them with the master Transifex server.\nIf you'd like to"\
-                  " check the available commands issue `%prog help` or if you"\
-                  " just want help with a specific command issue `%prog help"\
-                  " command`"
-    version = '%s, py %s.%s, %s' % (
-        txclib.__version__,
-        sys.version_info.major,
-        sys.version_info.minor,
-        platform.machine()
-    )
-    parser = OptionParser(
-        usage=usage, version=version, description=description
-    )
-    parser.disable_interspersed_args()
-    parser.add_option(
-        "-d", "--debug", action="store_true", dest="debug",
-        default=False, help=("enable debug messages")
-    )
-    parser.add_option(
-        "-q", "--quiet", action="store_true", dest="quiet",
-        default=False, help="don't print status messages to stdout"
-    )
-    parser.add_option(
-        "-r", "--root", action="store", dest="root_dir", type="string",
-        default=None, help="change root directory (default is cwd)"
-    )
-    parser.add_option(
-        "--traceback", action="store_true", dest="trace", default=False,
-        help="print full traceback on exceptions"
-    )
-    parser.add_option(
-        "--disable-colors", action="store_true", dest="color_disable",
-        default=(os.name == 'nt' or not sys.stdout.isatty()),
-        help="disable colors in the output of commands"
-    )
-    (options, args) = parser.parse_args()
-
-    if len(args) < 1:
-        parser.error("No command was given")
+    parser = tx_main_parser()
+    options, rest = parser.parse_known_args()
+    if not options.command:
+        parser.print_help()
+        sys.exit(1)
 
     utils.DISABLE_COLORS = options.color_disable
 
@@ -107,9 +65,9 @@ def main(argv=None):
     # find .tx
     path_to_tx = options.root_dir or utils.find_dot_tx()
 
-    cmd = args[0]
+    cmd = options.command
     try:
-        utils.exec_command(cmd, args[1:], path_to_tx)
+        utils.exec_command(cmd, rest, path_to_tx)
     except SSLError as e:
         logger.error("SSl error %s" % e)
     except utils.UnknownCommandError:
