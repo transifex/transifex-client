@@ -5,7 +5,8 @@ import sys
 from StringIO import StringIO
 from mock import patch, MagicMock, call
 from txclib.commands import _set_source_file, _set_translation, cmd_pull, \
-    cmd_init, cmd_status, cmd_help, UnInitializedError
+    cmd_init, cmd_set, cmd_status, cmd_help, UnInitializedError
+from txclib.cmdline import main
 
 
 class TestCommands(unittest.TestCase):
@@ -64,6 +65,7 @@ class TestInitCommand(unittest.TestCase):
 
     def setUp(self):
         self.curr_dir = os.getcwd()
+        self.config_file = '.tx/config'
         os.chdir('./tests/project_dir/')
 
     def tearDown(self, *args, **kwargs):
@@ -81,7 +83,7 @@ class TestInitCommand(unittest.TestCase):
                 set_mock.assert_called_once_with([], os.getcwd())
         self.assertTrue(os.path.exists('./.tx'))
         self.assertTrue(os.path.exists('./.tx/config'))
-        self.assertEqual(open('.tx/config').read(), config_text)
+        self.assertEqual(open(self.config_file).read(), config_text)
 
     def test_init_skipsetup(self):
         argv = ['--skipsetup']
@@ -172,8 +174,169 @@ class TestPullCommand(unittest.TestCase):
         bmock.return_value = None
         cmd_pull(['--branch', '--branchname', 'somebranch'], '.')
         assert pr_instance.pull.call_count == 1
-        pull_call = call(branch='somebranch', fetchall=False, fetchsource=False,
-                         force=False, languages=[], minimum_perc=None, mode=None,
-                         overwrite=True, pseudo=False, resources=[], skip=False,
-                         xliff=False)
+        pull_call = call(
+            branch='somebranch', fetchall=False, fetchsource=False,
+            force=False, languages=[], minimum_perc=None, mode=None,
+            overwrite=True, pseudo=False, resources=[], skip=False, xliff=False
+        )
         pr_instance.pull.assert_has_calls([pull_call])
+
+
+class TestSetCommand(unittest.TestCase):
+
+    def setUp(self):
+        self.curr_dir = os.getcwd()
+        os.chdir('./tests/project_dir/')
+        os.mkdir('.tx')
+        self.path_to_tx = os.getcwd()
+        self.config_file = '.tx/config'
+        open(self.config_file, "w").write('[main]\nhost = https://foo.var\n')
+
+    def tearDown(self, *args, **kwargs):
+        shutil.rmtree('.tx', ignore_errors=False, onerror=None)
+        os.chdir(self.curr_dir)
+        super(TestSetCommand, self).tearDown(*args, **kwargs)
+
+    def test_bare_set_too_few_arguments(self):
+        with self.assertRaises(SystemExit):
+            args = ["-r", "project1.resource1"]
+            cmd_set(args, None)
+
+    def test_bare_set_source_no_file(self):
+        with self.assertRaises(SystemExit):
+            args = ["-r", "project1.resource1", '--is-source', '-l', 'en']
+            cmd_set(args, None)
+
+        with self.assertRaises(Exception):
+            args = ['-r', 'project1.resource1', '--source', '-l', 'en',
+                    'noexistent-file.txt']
+            cmd_set(args, self.path_to_tx)
+
+    def test_bare_set_source_file(self):
+        expected = ("[main]\nhost = https://foo.var\n\n[project1.resource1]\n"
+                    "source_file = test.txt\nsource_lang = en\n\n")
+        args = ["-r", "project1.resource1", '--source', '-l', 'en', 'test.txt']
+        cmd_set(args, self.path_to_tx)
+        with open(self.config_file) as config:
+            self.assertEqual(config.read(), expected)
+
+        # set translation file for de
+        expected = ("[main]\nhost = https://foo.var\n\n[project1.resource1]\n"
+                    "source_file = test.txt\nsource_lang = en\n"
+                    "trans.de = translations/de.txt\n\n")
+        args = ["-r", "project1.resource1", '-l', 'de', 'translations/de.txt']
+        cmd_set(args, self.path_to_tx)
+        with open(self.config_file) as config:
+            self.assertEqual(config.read(), expected)
+
+    def test_auto_locale_no_expression(self):
+        with self.assertRaises(SystemExit):
+            args = ["auto-local", "-r", "project1.resource1",
+                    '--source-language', 'en']
+            cmd_set(args, self.path_to_tx)
+
+    def test_auto_locale(self):
+        expected = "[main]\nhost = https://foo.var\n"
+        args = ["auto-local", "-r", "project1.resource1", '--source-language',
+                'en', 'translations/<lang>/test.txt']
+        cmd_set(args, self.path_to_tx)
+        with open(self.config_file) as config:
+            self.assertEqual(config.read(), expected)
+
+    def test_auto_locale_execute(self):
+        expected = ("[main]\nhost = https://foo.var\n\n[project1.resource1]\n"
+                    "file_filter = translations/<lang>/test.txt\n"
+                    "source_file = translations/en/test.txt\n"
+                    "source_lang = en\n\n")
+
+        args = ["auto-local", "-r", "project1.resource1", '--source-language',
+                'en', '--execute', 'translations/<lang>/test.txt']
+        cmd_set(args, self.path_to_tx)
+        with open(self.config_file) as config:
+            self.assertEqual(config.read(), expected)
+
+    def test_auto_remote_invalid_url(self):
+        # no project_url
+        args = ["auto-remote"]
+        with self.assertRaises(SystemExit):
+            cmd_set(args, self.path_to_tx)
+
+        # invalid project_url
+        args = ["auto-remote", "http://some.random.url/"]
+        with self.assertRaises(Exception):
+            cmd_set(args, self.path_to_tx)
+
+    @patch('txclib.utils.get_details')
+    def test_auto_remote_project(self, get_details_mock):
+        # change the host to tx
+        open(self.config_file, "w").write(
+            '[main]\nhost = https://www.transifex.com\n'
+        )
+        expected = ("[main]\nhost = https://www.transifex.com\n\n"
+                    "[proj.resource_1]\n"
+                    "file_filter = translations/proj.resource_1/<lang>.txt\n"
+                    "source_lang = fr\ntype = TXT\n\n[proj.resource_2]\n"
+                    "file_filter = translations/proj.resource_2/<lang>.txt\n"
+                    "source_lang = fr\ntype = TXT\n\n")
+        get_details_mock.side_effect = [
+            # project details
+            {
+                'resources': [
+                    {'slug': 'resource_1', 'name': 'resource 1'},
+                    {'slug': 'resource_2', 'name': 'resource 2'}
+                ]
+            },
+            # resources details
+            {
+                'source_language_code': 'fr',
+                'i18n_type': 'TXT',
+                'slug': 'resource_1',
+            }, {
+                'source_language_code': 'fr',
+                'i18n_type': 'TXT',
+                'slug': 'resource_2',
+            }
+        ]
+        args = ["auto-remote", "https://www.transifex.com/test-org/proj/"]
+        cmd_set(args, self.path_to_tx)
+        with open(self.config_file) as config:
+            self.assertEqual(config.read(), expected)
+
+    def test_bulk_missing_options(self):
+        with self.assertRaises(SystemExit):
+            args = ["bulk"]
+            cmd_set(args, self.path_to_tx)
+
+        with self.assertRaises(SystemExit):
+            args = ["bulk", "-p", "test-project"]
+            cmd_set(args, self.path_to_tx)
+
+        with self.assertRaises(SystemExit):
+            args = ["bulk", "-p", "test-project", "--source-file-dir",
+                    "translations", "--source-language", "en", "--t", "TXT",
+                    "--file-extension", ".txt"]
+            cmd_set(args, self.path_to_tx)
+
+    def test_bulk(self):
+        expected = ("[main]\nhost = https://foo.var\n\n"
+                    "[test-project.translations_en_test]\n"
+                    "file_filter = translations/<lang>/en/test.txt\n"
+                    "source_file = translations/en/test.txt\n"
+                    "source_lang = en\ntype = TXT\n\n")
+        args = ["bulk", "-p", "test-project", "--source-file-dir",
+                "translations", "--source-language", "en", "-t", "TXT",
+                "--file-extension", ".txt", "--execute",
+                "translations/<lang>/{filepath}/{filename}{extension}"]
+        cmd_set(args, self.path_to_tx)
+        with open(self.config_file) as config:
+            self.assertEqual(config.read(), expected)
+
+
+class TestMainCommand(unittest.TestCase):
+    def test_call_tx_with_no_command(self):
+        with self.assertRaises(SystemExit):
+            main(['tx'])
+
+    def test_call_tx_with_invalid_command(self):
+        with self.assertRaises(SystemExit):
+            main(['tx', 'random'])
