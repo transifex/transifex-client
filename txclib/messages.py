@@ -7,10 +7,10 @@ init_intro = """
   |_||_|  \__,_|_| |_|___/_|_|  \___/_/\_\\
 
 
-Welcome to Transifex Client! Please follow the instructions to
+Welcome to the Transifex Client! Please follow the instructions to
 initialize your project.
 """
-init_initialized = "It seems that this project is already intitialized."
+init_initialized = "It seems that this project is already initialized."
 
 init_reinit = "Do you want to delete it and reinit the project?"
 init_host = "Transifex instance"

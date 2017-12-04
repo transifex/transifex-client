@@ -95,44 +95,48 @@ def cmd_set(argv, path_to_tx):
         try:
             wizard_options = Wizard(path_to_tx).run()
             wizard_options['subcommand'] = 'auto-local'
+            wizard_options['minimum_perc'] = 0
             is_subcommand = True
             options = Namespace(**wizard_options)
+            parser = set_parser()
             from_wizard = True
         except SystemExit:
             print("\n")
             sys.exit(1)
     else:
         is_subcommand = False
-        if len(argv) >= 1 and argv[0] in ['auto-local', 'auto-remote', 'auto-bulk']:
+        if len(argv) >= 1 and argv[0] in SET_SUBCOMMANDS.keys():
             is_subcommand = True
         parser = set_parser(subparser=is_subcommand)
-        options = parser.parse_args()
+        options = parser.parse_args(argv)
 
     _validate_set_arguments(parser, options)
 
-    if not options.subcommand:
+    if not hasattr(options, 'subcommand'):
         bare_set(path_to_tx, options)
-    elif options.subcommand == 'auto-local':
-        subcommand_autolocal(path_to_tx, options, from_wizard=from_wizard)
-    elif options.subcommand == 'auto-remote':
-        subcommand_autolocal(path_to_tx, options)
-    elif options.subcommand == 'auto-bulk':
-        subcommand_autobulk(path_to_tx, options)
     else:
-        parser.print_help()
+        try:
+            SET_SUBCOMMANDS[options.subcommand](
+                path_to_tx, options, from_wizard=from_wizard
+            )
+        except KeyError:
+            parser.print_help()
 
 
 def _validate_set_arguments(parser, options):
     """
     Do any extra required validation for set command arguments
     """
-    if options.is_source and not options.language:
-        parser.error("Please specify a source language.")
+    if hasattr(options, 'is_source') and hasattr(options, 'language'):
+        if options.is_source and not options.language:
+            parser.error("Please specify a source language.")
 
-    if options.expression and '<lang>' not in options.expression:
-        parser.error("The expression you have provided is not valid.")
+    if hasattr(options, 'expression'):
+        if options.expression and '<lang>' not in options.expression:
+            parser.error("The expression you have provided is not valid.")
 
-    if not utils.valid_resource_slug(options.resource):
+    if hasattr(options, 'resource') and not\
+            utils.valid_resource_slug(options.resource):
         parser.error("Invalid resource slug. The format is <project_slug>"
                      ".<resource_slug> and the valid characters include "
                      "[_-\w].")
@@ -176,11 +180,11 @@ def subcommand_autolocal(path_to_tx, options, from_wizard=False):
         _print_instructions(options.resource, path_to_tx)
 
 
-def subcommand_autoremote(path_to_tx, options):
+def subcommand_autoremote(path_to_tx, options, **kwargs):
     url = options.project_url
     _auto_remote(path_to_tx, url)
-    _set_minimum_perc(options.resource, options.minimum_perc, path_to_tx)
-    _set_mode(options.resource, options.mode, path_to_tx)
+    _set_minimum_perc(None, options.minimum_perc, path_to_tx)
+    _set_mode(None, options.mode, path_to_tx)
 
 
 def _print_instructions(resource, path_to_tx):
@@ -191,7 +195,7 @@ def _print_instructions(resource, path_to_tx):
     print(messages.final_instr.format(**fmt_kwargs))
 
 
-def subcommand_autobulk(path_to_tx, options):
+def subcommand_bulk(path_to_tx, options, **kwargs):
     """Add local files for multiple resources under transifex"""
 
     if not options.file_extension.startswith('.'):
@@ -660,3 +664,10 @@ def get_branch_from_options(options, project_root):
                      "directory does not seem to belong in any git repo.")
         sys.exit(1)
     return branch
+
+
+SET_SUBCOMMANDS = {
+    'auto-local': subcommand_autolocal,
+    'auto-remote': subcommand_autoremote,
+    'bulk': subcommand_bulk
+}

@@ -300,14 +300,27 @@ def set_parser(subparser=False):
         "remote Transifex server."
     epilog = "\nExamples:\n"\
         "To set the source file:\n  $ tx set -r project.resource --source -l en <file>\n\n"\
-        "To set a single translation file:\n  $ tx set -r project.resource -l de <file>\n\n"\
+        "To set a single translation file:\n  $ tx set -r project.resource -l de <file>\n"
+    auto_local_epilog = "\nExamples:\n"\
         "To automatically detect and assign the source files and translations:\n"\
-        " $ tx set --auto-local -r project.resource 'expr' --source-language en\n\n"\
+        " $ %(prog)s -r project.resource 'expr' --source-language en\n\n"\
         "To set a specific file as a source and auto detect translations:\n"\
-        " $ tx set --auto-local -r project.resource 'expr' --source-language en "\
-        "--source-file <file>\n\n"\
+        " $ %(prog)s -r project.resource 'expr' --source-language en "\
+        "--source-file <file>\n\n"
+    auto_remote_epilog = "\nExamples:\n"\
         "To set a remote resource/project:\n"\
-        "  $ tx set --auto-remote <transifex-url>\n"
+        "  $ %(prog)s <transifex-url>\n"
+    bulk_description = "This command can be used to create a mapping between files "\
+        "and projects for multiple resources at once, using local files."
+    bulk_epilog = "\nExamples:\n"\
+        "To set a series of HTML source files that reside inside locale/:\n"\
+        " $ %(prog)s -p project 'expression' --source-lang en --type HTML " \
+        "-f '.html' -d locale\n\n"\
+        "To set a series of KEYVAlUEJSON source files that reside " \
+        "inside locale/ but exclude files in locale/es/ and locale/jp/:\n"\
+        " $ %(prog)s -p project 'expr' --source-lang en " \
+        "--type KEYVAlUEJSON -f '.json' -d locale -i es -i jp\n\n"
+
     main_parser = set_main_parser()
     extra_parser = set_extra_parser()
     if subparser:
@@ -321,12 +334,16 @@ def set_parser(subparser=False):
     )
     if not subparser:
         parser.add_argument("filename", action="store", help="Source file path")
+        return parser
 
     # SUBPARSERS
     # auto-local subparser
-    subparsers = set_parser.add_subparsers(title='subcommands', dest='subcommand')
-    auto_local_parser = subparsers.add_parser("auto-local", parents=[main_parser, extra_parser],
-                      help="Use to auto configuring local project.")
+    subparsers = parser.add_subparsers(title='subcommands', dest='subcommand')
+    auto_local_parser = subparsers.add_parser(
+        "auto-local", prog="tx set auto-local", parents=[main_parser, extra_parser],
+        epilog=auto_local_epilog, formatter_class=RawDescriptionHelpFormatter,
+        help="Use to auto configuring local project."
+    )
     auto_local_parser.add_argument("--source-language", action="store", dest="source_language",
                      default=False, help="Source language of the resource.", required=True)
     auto_local_parser.add_argument("-f", "--source-file", action="store", dest="source_file",
@@ -338,30 +355,24 @@ def set_parser(subparser=False):
                                    help=("File filter expression."))
 
     # auto-remote subparser
-    auto_remote_parser = subparsers.add_parser("auto-remote", parents=[extra_parser],
-                      help="Use to configure remote files from Transifex server.")
+    auto_remote_parser = subparsers.add_parser(
+        "auto-remote", parents=[extra_parser], prog="tx set auto-remote",
+        epilog=auto_remote_epilog, formatter_class=RawDescriptionHelpFormatter,
+        help="Use to configure remote files from Transifex server."
+    )
     auto_remote_parser.add_argument("project_url", action="store",
                                     help="Url of Transifex project.")
     # auto-bulk subparser
-    description = "This command can be used to create a mapping between files "\
-        "and projects for multiple resources at once, using local files. " \
-                  "Always assumes --auto-local."
-    epilog = "\nExamples:\n"\
-        "To set a series of HTML source files that reside inside locale/:\n"\
-        " $ tx set_multi -p project 'expression' --source-lang en --type HTML " \
-        "-f '.html' -d locale\n\n"\
-        "To set a series of KEYVAlUEJSON source files that reside " \
-        "inside locale/ but exclude files in locale/es/ and locale/jp/:\n"\
-        " $ tx set_multi -p project 'expr' --source-lang en " \
-        "--type KEYVAlUEJSON -f '.json' -d locale -i es -i jp\n\n"
-    auto_bulk_parser = subparsers.add_parser("auto-bulk", parents=[extra_parser],
-                      help="Use to configure remote files from Transifex server.",
-                      description=description, epilog=epilog)
+    auto_bulk_parser = subparsers.add_parser(
+        "bulk", parents=[extra_parser], prog="tx set bulk", description=description,
+        epilog=bulk_epilog, help="Use to configure remote files from Transifex server.",
+        formatter_class=RawDescriptionHelpFormatter
+    )
     auto_bulk_parser.add_argument("-p", "--project", action="store", dest="project",
                       default=None, required=True,
                       help="Specify the slug of the project that you're setting up.")
     auto_bulk_parser.add_argument(
-        "-d", "--source-file-dir", action="store", dest="source_file_dir",
+        "--source-file-dir", action="store", dest="source_file_dir",
         default=None, required=True, help=(
             "Directory to find source files to be mapped. "
             "Example: locale/en/"
