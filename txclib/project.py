@@ -868,7 +868,7 @@ class Project(object):
             self.do_url_request(
                 'delete_translation', language=language, method="DELETE"
             )
-            msg = "Deleted language %s from resource %s of project %s."
+            msg = "Deleted %s translations of resource %s of project %s."
             logger.info(msg % (language, resource_slug, project_slug))
         except Exception as e:
             msg = "Unable to delete translation %s"
