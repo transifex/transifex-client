@@ -626,7 +626,7 @@ class Project(object):
                        "than your uploaded files.\nAre you sure you want to "
                        "continue?")
 
-                if not confirm(prompt=msg, default=False):
+                if not utils.confirm(prompt=msg, default=False):
                     logger.info("Aborting...")
                     return
 
