@@ -295,7 +295,11 @@ def set_parser(subparser=False):
     description = "This command can be used to create a mapping between "\
         "files and projects either\nusing local files or using files from a "\
         "remote Transifex server."
-    epilog = "\nExamples:\n"\
+    epilog = "\nSubcommands:\n"\
+        "    auto-local\n"\
+        "    auto-remote\n"\
+        "    bulk\n\n"\
+        "Examples:\n"\
         "To set the source file:\n\
         $ tx set -r project.resource --source -l en <file>\n\n"\
         "To set a single translation file:\n\
@@ -313,8 +317,8 @@ def set_parser(subparser=False):
         "files and projects for multiple resources at once, using local files."
     bulk_epilog = "\nExamples:\n"\
         "To set a series of HTML source files that reside inside locale/:\n"\
-        " $ %(prog)s -p project 'expression' --source-language en --type HTML " \
-        "-f '.html' -d locale\n\n"\
+        " $ %(prog)s -p project 'expression' --source-language en --type HTML"\
+        " -f '.html' -d locale\n\n"\
         "To set a series of KEYVAlUEJSON source files that reside " \
         "inside locale/ but exclude files in locale/es/ and locale/jp/:\n"\
         " $ %(prog)s -p project 'expr' --source-language en " \
