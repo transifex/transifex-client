@@ -313,11 +313,11 @@ def set_parser(subparser=False):
         "files and projects for multiple resources at once, using local files."
     bulk_epilog = "\nExamples:\n"\
         "To set a series of HTML source files that reside inside locale/:\n"\
-        " $ %(prog)s -p project 'expression' --source-lang en --type HTML " \
+        " $ %(prog)s -p project 'expression' --source-language en --type HTML " \
         "-f '.html' -d locale\n\n"\
         "To set a series of KEYVAlUEJSON source files that reside " \
         "inside locale/ but exclude files in locale/es/ and locale/jp/:\n"\
-        " $ %(prog)s -p project 'expr' --source-lang en " \
+        " $ %(prog)s -p project 'expr' --source-language en " \
         "--type KEYVAlUEJSON -f '.json' -d locale -i es -i jp\n\n"
 
     main_parser = set_main_parser()
@@ -349,7 +349,7 @@ def set_parser(subparser=False):
         help="Use to auto configuring local project."
     )
     auto_local_parser.add_argument(
-        "--source-language", action="store", dest="source_language",
+        "-s", "--source-language", action="store", dest="source_language",
         default=False, required=True, help="Source language of the resource.")
     auto_local_parser.add_argument(
         "-f", "--source-file", action="store", dest="source_file",

@@ -267,7 +267,8 @@ class TestSetCommand(unittest.TestCase):
             cmd_set(args, self.path_to_tx)
 
     @patch('txclib.utils.get_details')
-    def test_auto_remote_project(self, get_details_mock):
+    @patch('txclib.project.Project._extension_for')
+    def test_auto_remote_project(self, extension_mock, get_details_mock):
         # change the host to tx
         open(self.config_file, "w").write(
             '[main]\nhost = https://www.transifex.com\n'
@@ -278,6 +279,7 @@ class TestSetCommand(unittest.TestCase):
                     "source_lang = fr\ntype = TXT\n\n[proj.resource_2]\n"
                     "file_filter = translations/proj.resource_2/<lang>.txt\n"
                     "source_lang = fr\ntype = TXT\n\n")
+        extension_mock.return_value = ".txt"
         get_details_mock.side_effect = [
             # project details
             {
