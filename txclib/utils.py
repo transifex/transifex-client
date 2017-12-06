@@ -251,7 +251,7 @@ def valid_slug(slug):
     Check if a slug contains only valid characters.
     Valid chars include [-_\w]
     """
-    return re.match("^[A-Za-z0-9_-]*$", slug)
+    return re.match("^[A-Za-z0-9_-]+$", slug)
 
 
 def discover_commands():

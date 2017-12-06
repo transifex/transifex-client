@@ -121,6 +121,7 @@ def cmd_set(argv, path_to_tx):
             )
         except KeyError:
             parser.print_help()
+            sys.exit(2)
 
 
 def _validate_set_arguments(parser, options):
