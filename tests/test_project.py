@@ -18,8 +18,7 @@ from os.path import dirname
 from sys import modules
 
 from txclib.exceptions import AuthenticationError, TXConnectionError
-from txclib.project import (Project, DEFAULT_PULL_URL,
-                            PULL_MODE_SOURCEASTRANSLATION)
+from txclib.project import (Project, DEFAULT_PULL_URL)
 
 from txclib.config import Flipdict
 from txclib import utils
@@ -652,7 +651,7 @@ class TestProjectPull(unittest.TestCase):
     def test_get_url_by_pull_mode(self):
         self.assertEqual(
             'pull_sourceastranslation_file',
-            self.p._get_url_by_pull_mode(mode=PULL_MODE_SOURCEASTRANSLATION)
+            self.p._get_url_by_pull_mode(mode='sourceastranslation')
         )
         self.assertEqual(
             DEFAULT_PULL_URL,

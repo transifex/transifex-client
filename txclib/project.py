@@ -40,20 +40,7 @@ from txclib.utils import ProjectNotInit
 
 
 DEFAULT_PULL_URL = 'pull_file'
-PULL_MODE_REVIEWED = 'reviewed'
-PULL_MODE_TRANSLATOR = 'translator'
-PULL_MODE_DEVELOPER = 'developer'
-PULL_MODE_ONLY_TRANSLATED = 'onlytranslated'
-PULL_MODE_ONLY_REVIEWED = 'onlyreviewed'
-PULL_MODE_SOURCEASTRANSLATION = 'sourceastranslation'
-PULL_MODE_URL_MAPPING = {
-    PULL_MODE_REVIEWED: 'pull_reviewed_file',
-    PULL_MODE_TRANSLATOR: 'pull_translator_file',
-    PULL_MODE_DEVELOPER: 'pull_developer_file',
-    PULL_MODE_ONLY_TRANSLATED: 'pull_onlytranslated_file',
-    PULL_MODE_ONLY_REVIEWED: 'pull_onlyreviewed_file',
-    PULL_MODE_SOURCEASTRANSLATION: 'pull_sourceastranslation_file',
-}
+PULL_MODE_URL_NAME = "pull_{mode}_file"
 
 DEFAULT_API_HOSTNAME = "https://api.transifex.com"
 
@@ -1329,15 +1316,16 @@ class Project(object):
 
         If the pull mode is not valid, the default pull mode will be used.
         """
-        url = None
         if mode is not None:
             try:
-                url = PULL_MODE_URL_MAPPING[mode]
+                # check if specific url name exists in the url list
+                API_URLS[PULL_MODE_URL_NAME.format(mode=mode)]
+                return PULL_MODE_URL_NAME.format(mode=mode)
             except KeyError:
                 logger.warning('Invalid mode provided. ' +
                                'Default pull mode will be used')
 
-        return DEFAULT_PULL_URL if url is None else url
+        return DEFAULT_PULL_URL
 
     def _get_option(self, resource, option):
         """Get the value for the option in the config file.
