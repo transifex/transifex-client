@@ -101,7 +101,7 @@ Here’s the content of the .tx/config file that was created:
 
 You could also have generated the same configuration by running a single command like:
 
-    tx set --auto-local -r {resource} -f {source_file} -s {source_lang} -t {type} '{file_filter}'
+    tx set auto-local -r {resource} -f {source_file} -s {source_lang} -t {type} '{file_filter}'
 
 To learn more about the Set command, visit https://docs.transifex.com/client/set.
 

@@ -91,15 +91,22 @@ def cmd_set(argv, path_to_tx):
     """Add local or remote files under transifex"""
     from_wizard = False
     if len(argv) == 0:
-        # Run the wizard and configure parse with the wizard inputs
+        # since interactive wizard should be equivalant to auto-local
+        # subcommand there are some default options that need to be set
+        default_options = {
+            'execute': True,
+            'subcommand': 'auto-local',
+            'minimum_perc': 0,
+            'mode': None,
+        }
         try:
+            # Run the wizard and configure parse with the wizard inputs
             wizard_options = Wizard(path_to_tx).run()
-            wizard_options['subcommand'] = 'auto-local'
-            wizard_options['minimum_perc'] = 0
-            is_subcommand = True
+            wizard_options.update(default_options)
             options = Namespace(**wizard_options)
             parser = set_parser()
             from_wizard = True
+            is_subcommand = True
         except SystemExit:
             print("\n")
             sys.exit(1)

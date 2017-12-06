@@ -127,7 +127,7 @@ class Wizard(object):
         parser's options with the user input. Options `local` and `execute`
         are by default True when interactive wizard is run.
 
-        Returns: the populated (options, args) tuple.
+        Returns: the options dictionary.
         """
 
         TEXTS = messages.TEXTS
@@ -186,6 +186,5 @@ class Wizard(object):
             'i18n_type': i18n_type,
             'source_language': source_language,
             'resource': resource,
-            'execute': True,
         }
         return options
