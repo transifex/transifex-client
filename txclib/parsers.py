@@ -304,6 +304,12 @@ def set_parser(subparser=False):
         $ tx set -r project.resource --source -l en <file>\n\n"\
         "To set a single translation file:\n\
         $ tx set -r project.resource -l de <file>\n"
+    auto_local_description = "This command can be used to create a mapping for "\
+                             "a local file using the expression argument "\
+                             "to automatically detect source and translation "\
+                             "files."
+    auto_remote_description = "This command can be used to create mappings for "\
+                              "resources existing on the remote server."
     auto_local_epilog = "\nExamples:\n"\
         "To automatically detect and assign the source file and translations:"\
         "\n $ %(prog)s -r project.resource 'expr' --source-language en\n\n"\
@@ -318,7 +324,7 @@ def set_parser(subparser=False):
     bulk_epilog = "\nExamples:\n"\
         "To set a series of HTML source files that reside inside locale/:\n"\
         " $ %(prog)s -p project 'expression' --source-language en --type HTML"\
-        " -f '.html' -d locale\n\n"\
+        " -f '.html' --source-file-dir locale\n\n"\
         "To set a series of KEYVAlUEJSON source files that reside " \
         "inside locale/ but exclude files in locale/es/ and locale/jp/:\n"\
         " $ %(prog)s -p project 'expr' --source-language en " \
@@ -349,6 +355,7 @@ def set_parser(subparser=False):
     auto_local_parser = subparsers.add_parser(
         "auto-local", prog="tx set auto-local",
         parents=[main_parser, extra_parser], epilog=auto_local_epilog,
+        description=auto_local_description,
         formatter_class=RawDescriptionHelpFormatter,
         help="Use to auto configuring local project."
     )
@@ -367,6 +374,7 @@ def set_parser(subparser=False):
     # auto-remote subparser
     auto_remote_parser = subparsers.add_parser(
         "auto-remote", parents=[extra_parser], prog="tx set auto-remote",
+        description=auto_remote_description,
         epilog=auto_remote_epilog, formatter_class=RawDescriptionHelpFormatter,
         help="Use to configure remote files from Transifex server."
     )

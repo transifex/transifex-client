@@ -106,14 +106,11 @@ def cmd_set(argv, path_to_tx):
             options = Namespace(**wizard_options)
             parser = set_parser()
             from_wizard = True
-            is_subcommand = True
         except SystemExit:
             print("\n")
             sys.exit(1)
     else:
-        is_subcommand = False
-        if len(argv) >= 1 and argv[0] in SET_SUBCOMMANDS.keys():
-            is_subcommand = True
+        is_subcommand = argv[0] in SET_SUBCOMMANDS.keys()
         parser = set_parser(subparser=is_subcommand)
         options = parser.parse_args(argv)
 
