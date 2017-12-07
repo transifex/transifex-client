@@ -27,7 +27,7 @@ https://www.transifex.com/user/settings/api/.
 """
 update_txrc = "Overwrite credentials in .transifexrc?"
 
-token_msg = "[?] Please enter your api token: "
+token_msg = "[?] Enter your api token: "
 
 running_tx_set = "Running tx set command for you..."
 

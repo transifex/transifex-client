@@ -502,7 +502,7 @@ def get_transifex_file(directory=None):
     txrc_file = os.path.join(directory, ".transifexrc")
     logger.debug(".transifexrc file is at %s" % directory)
     if not os.path.exists(txrc_file):
-        msg = "%s not found." % (txrc_file)
+        msg = "No credentials file was found at %s." % (txrc_file)
         logger.info(msg)
         mask = os.umask(0o077)
         open(txrc_file, 'w').close()

@@ -147,7 +147,6 @@ class Project(object):
         if save:
             logger.info("Updating %s file..." % self.txrc_file)
             if not self.txrc.has_section(host):
-                logger.info("No entry found for host %s. Creating..." % host)
                 self.txrc.add_section(host)
             self.txrc.set(host, 'username', username)
             self.txrc.set(host, 'password', password)
