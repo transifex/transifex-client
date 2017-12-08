@@ -7,10 +7,10 @@ init_intro = """
   |_||_|  \__,_|_| |_|___/_|_|  \___/_/\_\\
 
 
-Welcome to Transifex Client! Please follow the instructions to
+Welcome to the Transifex Client! Please follow the instructions to
 initialize your project.
 """
-init_initialized = "It seems that this project is already intitialized."
+init_initialized = "It seems that this project is already initialized."
 
 init_reinit = "Do you want to delete it and reinit the project?"
 init_host = "Transifex instance"
@@ -27,7 +27,7 @@ https://www.transifex.com/user/settings/api/.
 """
 update_txrc = "Overwrite credentials in .transifexrc?"
 
-token_msg = "[?] Please enter your api token: "
+token_msg = "[?] Enter your api token: "
 
 running_tx_set = "Running tx set command for you..."
 
@@ -101,7 +101,7 @@ Here’s the content of the .tx/config file that was created:
 
 You could also have generated the same configuration by running a single command like:
 
-    tx set --auto-local -r {resource} -f {source_file} -s {source_lang} -t {type} '{file_filter}'
+    tx set auto-local -r {resource} -f {source_file} -s {source_lang} -t {type} '{file_filter}'
 
 To learn more about the Set command, visit https://docs.transifex.com/client/set.
 
