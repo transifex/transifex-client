@@ -304,12 +304,12 @@ def set_parser(subparser=False):
         $ tx set -r project.resource --source -l en <file>\n\n"\
         "To set a single translation file:\n\
         $ tx set -r project.resource -l de <file>\n"
-    auto_local_description = "This command can be used to create a mapping for "\
-                             "a local file using the expression argument "\
-                             "to automatically detect source and translation "\
-                             "files."
-    auto_remote_description = "This command can be used to create mappings for "\
-                              "resources existing on the remote server."
+    auto_local_description = "This command can be used to create a mapping "\
+                             "for a local file using the path expression "\
+                             "argument to automatically detect source and "\
+                             "translation files."
+    auto_remote_description = "This command can be used to create mappings "\
+                              "for resources existing on the remote server."
     auto_local_epilog = "\nExamples:\n"\
         "To automatically detect and assign the source file and translations:"\
         "\n $ %(prog)s -r project.resource 'expr' --source-language en\n\n"\
@@ -369,7 +369,12 @@ def set_parser(subparser=False):
         "--execute", action="store_true", dest="execute", default=False,
         help="Execute commands.")
     auto_local_parser.add_argument(
-        "expression", action="store", help="File filter expression.")
+        "expression", action="store",
+        help="A path expression pointing to the location where translation "
+             "files for the associated source file are/will be saved. Use "
+             "<lang> as a wildcard for the language code, "
+             "e.g. translations/<lang>/test.txt."
+    )
 
     # auto-remote subparser
     auto_remote_parser = subparsers.add_parser(
@@ -418,7 +423,12 @@ def set_parser(subparser=False):
         help="Directory to ignore while looking for source "
              "files. Can be called multiple times. Example: `-i es -i fr`.'.")
     auto_bulk_parser.add_argument(
-        "expression", action="store", help="File filter expression.")
+        "expression", action="store",
+        help="A path expression pointing to the location where translation "
+             "files for the associated source file are/will be saved. Use "
+             "<lang> as a wildcard for the language code, "
+             "e.g. translations/<lang>/test.txt."
+    )
     auto_bulk_parser.add_argument(
         "--execute", action="store_true", dest="execute", default=False,
         help="Execute commands.")
