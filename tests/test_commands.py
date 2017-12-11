@@ -146,7 +146,7 @@ class TestPullCommand(unittest.TestCase):
         log_mock.error.assert_called_once_with(
             "You specified the --branch option but current "
             "directory does not seem to belong in any git repo.")
-        assert pr_instance.pull.call_count == 0
+        self.assertEqual(pr_instance.pull.call_count, 0)
 
     @patch('txclib.utils.get_current_branch')
     @patch('txclib.commands.logger')
@@ -156,7 +156,7 @@ class TestPullCommand(unittest.TestCase):
         pr_instance = MagicMock()
         project_mock.return_value = pr_instance
         cmd_pull(['--branch'], '.')
-        assert pr_instance.pull.call_count == 1
+        self.assertEqual(pr_instance.pull.call_count, 1)
         pull_call = call(
             branch='a-branch', fetchall=False, fetchsource=False,
             force=False, languages=[], minimum_perc=None, mode=None,
@@ -174,7 +174,7 @@ class TestPullCommand(unittest.TestCase):
         project_mock.return_value = pr_instance
         bmock.return_value = None
         cmd_pull(['--branch', 'somebranch'], '.')
-        assert pr_instance.pull.call_count == 1
+        self.assertEqual(pr_instance.pull.call_count, 1)
         pull_call = call(
             branch='somebranch', fetchall=False, fetchsource=False,
             force=False, languages=[], minimum_perc=None, mode=None,
