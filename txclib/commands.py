@@ -47,6 +47,8 @@ def cmd_init(argv, path_to_tx):
     config_file = os.path.join(path_to_tx, ".tx", "config")
     if os.path.isfile(config_file):
         if not save:
+            if options.no_interactive:
+                parser.error("Project already initialized.")
             logger.info(messages.init_initialized)
             if not utils.confirm(messages.init_reinit):
                 return
@@ -76,7 +78,7 @@ def cmd_init(argv, path_to_tx):
     prj = project.Project(path_to_tx)
     prj.getset_host_credentials(transifex_host, username=options.user,
                                 password=options.password,
-                                token=options.token,
+                                token=options.token, force=options.save,
                                 no_interactive=options.no_interactive)
     prj.save()
 

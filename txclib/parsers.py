@@ -126,7 +126,7 @@ def init_parser():
                         " user's settings")
     parser.add_argument("--no-interactive", action="store_true",
                         dest="no_interactive", default=False,
-                        help="Don't require user input when forcing a push.")
+                        help="Don't require user input.")
     parser.add_argument("path_to_tx", action="store", nargs='?', default=None,
                         help="Path to tx root folder.")
     return parser
