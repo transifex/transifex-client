@@ -67,8 +67,8 @@ class Project(object):
 
             self.txrc_file = utils.get_transifex_file()
             self.txrc = utils.get_transifex_config(self.txrc_file)
-        except ProjectNotInit as e:
-            logger.error('\n'.join([six.u(str(e)), instructions]))
+        except ProjectNotInit:
+            logger.error(instructions)
             raise
         host = self.config.get('main', 'host')
         if host.lower().startswith('https://'):
