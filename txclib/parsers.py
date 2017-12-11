@@ -126,7 +126,7 @@ def init_parser():
                         " user's settings")
     parser.add_argument("--no-interactive", action="store_true",
                         dest="no_interactive", default=False,
-                        help="Don't require user input when forcing a push.")
+                        help="Don't require user input.")
     parser.add_argument("path_to_tx", action="store", nargs='?', default=None,
                         help="Path to tx root folder.")
     return parser
@@ -181,14 +181,10 @@ def pull_parser():
         )
     )
     parser.add_argument(
-        "-b", "--branch", action="store_true", dest="branch",
-        default=False,
-        help=("Push to a specific branch. Default is current"
-              "branch if exists.")
-    )
-    parser.add_argument(
-        "--branchname", action="store", dest="branchname",
-        help=("Specify the branch name to which we are going to push.")
+        "-b", "--branch", action="store", dest="branch",
+        default=None, nargs="?", const='-1',
+        help=("Pull for a specific branch. If no branch is specified current "
+              "branch will be used if exists.")
     )
     parser.add_argument("-x", "--xliff", action="store_true", dest="xliff",
                         default=False, help="Apply this option to download "
@@ -235,15 +231,10 @@ def push_parser():
                         default=False, help="Apply this option to upload "
                         "file as xliff.")
     parser.add_argument(
-        "-b", "--branch", action="store_true", dest="branch",
-        default=False,
+        "-b", "--branch", action="store", dest="branch",
+        default=None, nargs="?", const='-1',
         help=("Pull for a specific branch. Default is current"
               "branch if exists.")
-    )
-    parser.add_argument(
-        "--branchname", action="store", dest="branchname",
-        help=("Specify the branch name for which the resources "
-              "we are going to pull.")
     )
     return parser
 

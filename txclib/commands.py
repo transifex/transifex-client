@@ -47,6 +47,8 @@ def cmd_init(argv, path_to_tx):
     config_file = os.path.join(path_to_tx, ".tx", "config")
     if os.path.isfile(config_file):
         if not save:
+            if options.no_interactive:
+                parser.error("Project already initialized.")
             logger.info(messages.init_initialized)
             if not utils.confirm(messages.init_reinit):
                 return
@@ -76,7 +78,7 @@ def cmd_init(argv, path_to_tx):
     prj = project.Project(path_to_tx)
     prj.getset_host_credentials(transifex_host, username=options.user,
                                 password=options.password,
-                                token=options.token,
+                                token=options.token, force=options.save,
                                 no_interactive=options.no_interactive)
     prj.save()
 
@@ -653,15 +655,11 @@ def get_branch_from_options(options, project_root):
     options: optparse parser options as returned from `parse()`
     project_root: project root directory
     """
-    if not options.branch and not options.branchname:
+    if not options.branch:
         return
 
-    if options.branchname:
-        if not options.branch:
-            logger.error("--branchname options should be used along with "
-                         "the --branch option.")
-            sys.exit(1)
-        return options.branchname
+    if options.branch != '-1':
+        return options.branch
 
     branch = utils.get_current_branch(project_root)
     if not branch:

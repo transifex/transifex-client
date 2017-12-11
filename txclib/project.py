@@ -67,8 +67,8 @@ class Project(object):
 
             self.txrc_file = utils.get_transifex_file()
             self.txrc = utils.get_transifex_config(self.txrc_file)
-        except ProjectNotInit as e:
-            logger.error('\n'.join([six.u(str(e)), instructions]))
+        except ProjectNotInit:
+            logger.error(instructions)
             raise
         host = self.config.get('main', 'host')
         if host.lower().startswith('https://'):
@@ -100,7 +100,7 @@ class Project(object):
 
     def getset_host_credentials(self, host, username=None, password=None,
                                 token=None, no_interactive=False,
-                                only_token=False):
+                                only_token=False, force=False):
         """Read .transifexrc and report user,
         pass or a token for a specific host else ask the user for input.
         If the credentials provided are different from the .transifexrc file
@@ -129,7 +129,9 @@ class Project(object):
             if username == config_username and password == config_password:
                 pass
             elif username and password:
-                if not no_interactive and utils.confirm(messages.update_txrc):
+                if force:
+                    save = True
+                elif not no_interactive and utils.confirm(messages.update_txrc):  # noqa
                     save = True
             else:
                 username = config_username
@@ -139,7 +141,7 @@ class Project(object):
         # api we can only use a token and not a password so we do an extra
         # validation and prompt the use for a token if the validation fails
         if only_token and not self.validate_credentials(username, password):
-            logger.info("You need an api token to proceed")
+            logger.info("You need a valid api token to proceed")
             username = 'api'
             password = self._token_prompt(host)
             save = True

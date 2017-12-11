@@ -146,22 +146,23 @@ class TestPullCommand(unittest.TestCase):
         log_mock.error.assert_called_once_with(
             "You specified the --branch option but current "
             "directory does not seem to belong in any git repo.")
-        assert pr_instance.pull.call_count == 0
+        self.assertEqual(pr_instance.pull.call_count, 0)
 
     @patch('txclib.utils.get_current_branch')
     @patch('txclib.commands.logger')
     @patch('txclib.commands.project.Project')
-    def test_pull_only_branchname_option(self, project_mock, log_mock, bmock):
-        bmock.return_value = None
+    def test_pull_branch_git_repo(self, project_mock, log_mock, bmock):
+        bmock.return_value = 'a-branch'
         pr_instance = MagicMock()
         project_mock.return_value = pr_instance
-        with self.assertRaises(SystemExit):
-            cmd_pull(['--branchname', 'somebranch'], '.')
-        log_mock.error.assert_called_once_with(
-            "--branchname options should be used along with "
-            "the --branch option."
+        cmd_pull(['--branch'], '.')
+        self.assertEqual(pr_instance.pull.call_count, 1)
+        pull_call = call(
+            branch='a-branch', fetchall=False, fetchsource=False,
+            force=False, languages=[], minimum_perc=None, mode=None,
+            overwrite=True, pseudo=False, resources=[], skip=False, xliff=False
         )
-        assert pr_instance.pull.call_count == 0
+        pr_instance.pull.assert_has_calls([pull_call])
 
     @patch('txclib.utils.get_current_branch')
     @patch('txclib.commands.logger')
@@ -172,8 +173,8 @@ class TestPullCommand(unittest.TestCase):
         pr_instance = MagicMock()
         project_mock.return_value = pr_instance
         bmock.return_value = None
-        cmd_pull(['--branch', '--branchname', 'somebranch'], '.')
-        assert pr_instance.pull.call_count == 1
+        cmd_pull(['--branch', 'somebranch'], '.')
+        self.assertEqual(pr_instance.pull.call_count, 1)
         pull_call = call(
             branch='somebranch', fetchall=False, fetchsource=False,
             force=False, languages=[], minimum_perc=None, mode=None,
