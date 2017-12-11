@@ -655,15 +655,11 @@ def get_branch_from_options(options, project_root):
     options: optparse parser options as returned from `parse()`
     project_root: project root directory
     """
-    if not options.branch and not options.branchname:
+    if not options.branch:
         return
 
-    if options.branchname:
-        if not options.branch:
-            logger.error("--branchname options should be used along with "
-                         "the --branch option.")
-            sys.exit(1)
-        return options.branchname
+    if options.branch != '-1':
+        return options.branch
 
     branch = utils.get_current_branch(project_root)
     if not branch:
