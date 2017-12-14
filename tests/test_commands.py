@@ -244,6 +244,19 @@ class TestSetCommand(unittest.TestCase):
         with open(self.config_file) as config:
             self.assertEqual(config.read(), expected)
 
+    def test_auto_locale_is_backwards_compatible(self):
+        expected = ("[main]\nhost = https://foo.var\n\n[project1.resource1]\n"
+                    "file_filter = translations/<lang>/test.txt\n"
+                    "source_file = translations/en/test.txt\n"
+                    "source_lang = en\n\n")
+
+        args = ["--auto-local", "-r", "project1.resource1",
+                '--source-language', 'en', '--execute',
+                'translations/<lang>/test.txt']
+        cmd_set(args, self.path_to_tx)
+        with open(self.config_file) as config:
+            self.assertEqual(config.read(), expected)
+
     def test_auto_locale_execute(self):
         expected = ("[main]\nhost = https://foo.var\n\n[project1.resource1]\n"
                     "file_filter = translations/<lang>/test.txt\n"
@@ -301,6 +314,45 @@ class TestSetCommand(unittest.TestCase):
             }
         ]
         args = ["auto-remote", "https://www.transifex.com/test-org/proj/"]
+        cmd_set(args, self.path_to_tx)
+        with open(self.config_file) as config:
+            self.assertEqual(config.read(), expected)
+
+    @patch('txclib.utils.get_details')
+    @patch('txclib.project.Project._extension_for')
+    def test_auto_remote_is_backwards_compatible(self, extension_mock,
+                                                 get_details_mock):
+        # change the host to tx
+        open(self.config_file, "w").write(
+            '[main]\nhost = https://www.transifex.com\n'
+        )
+        expected = ("[main]\nhost = https://www.transifex.com\n\n"
+                    "[proj.resource_1]\n"
+                    "file_filter = translations/proj.resource_1/<lang>.txt\n"
+                    "source_lang = fr\ntype = TXT\n\n[proj.resource_2]\n"
+                    "file_filter = translations/proj.resource_2/<lang>.txt\n"
+                    "source_lang = fr\ntype = TXT\n\n")
+        extension_mock.return_value = ".txt"
+        get_details_mock.side_effect = [
+            # project details
+            {
+                'resources': [
+                    {'slug': 'resource_1', 'name': 'resource 1'},
+                    {'slug': 'resource_2', 'name': 'resource 2'}
+                ]
+            },
+            # resources details
+            {
+                'source_language_code': 'fr',
+                'i18n_type': 'TXT',
+                'slug': 'resource_1',
+            }, {
+                'source_language_code': 'fr',
+                'i18n_type': 'TXT',
+                'slug': 'resource_2',
+            }
+        ]
+        args = ["--auto-remote", "https://www.transifex.com/test-org/proj/"]
         cmd_set(args, self.path_to_tx)
         with open(self.config_file) as config:
             self.assertEqual(config.read(), expected)

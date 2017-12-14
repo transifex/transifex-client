@@ -7,6 +7,9 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from txclib.utils import get_version
 
 
+AUTOLOCAL, AUTOREMOTE, BULK = 'auto-local', 'auto-remote', 'bulk'
+
+
 def tx_main_parser():
     description = "This is the Transifex command line client which"\
                   " allows you to manage your translations locally and sync"\
@@ -261,6 +264,12 @@ def set_main_parser():
                                    "list of available i18n types, see "
                                    "http://docs.transifex.com/formats/"
                                    ))
+    main_parser.add_argument("--auto-local", action="store_true",
+                             dest="local", default=False,
+                             help="Alias of auto-local subcommands")
+    main_parser.add_argument("--auto-remote", action="store_true",
+                             dest="local", default=False,
+                             help="Alias of auto-remote subcommands")
     return main_parser
 
 
@@ -287,14 +296,16 @@ def set_parser(subparser=False):
         "files and projects either\nusing local files or using files from a "\
         "remote Transifex server."
     epilog = "\nSubcommands:\n"\
-        "    auto-local\n"\
-        "    auto-remote\n"\
-        "    bulk\n\n"\
+        "    {autolocal}\n"\
+        "    {autoremote}\n"\
+        "    {bulk}\n\n"\
         "Examples:\n"\
         "To set the source file:\n\
         $ tx set -r project.resource --source -l en <file>\n\n"\
         "To set a single translation file:\n\
-        $ tx set -r project.resource -l de <file>\n"
+        $ tx set -r project.resource -l de <file>\n".format(
+        autolocal=AUTOLOCAL, autoremote=AUTOREMOTE, bulk=BULK
+    )
     auto_local_description = "This command can be used to create a mapping "\
                              "for a local file using the path expression "\
                              "argument to automatically detect source and "\
@@ -344,7 +355,7 @@ def set_parser(subparser=False):
     # auto-local subparser
     subparsers = parser.add_subparsers(title='subcommands', dest='subcommand')
     auto_local_parser = subparsers.add_parser(
-        "auto-local", prog="tx set auto-local",
+        AUTOLOCAL, prog="tx set {}".format(AUTOLOCAL),
         parents=[main_parser, extra_parser], epilog=auto_local_epilog,
         description=auto_local_description,
         formatter_class=RawDescriptionHelpFormatter,
@@ -369,8 +380,8 @@ def set_parser(subparser=False):
 
     # auto-remote subparser
     auto_remote_parser = subparsers.add_parser(
-        "auto-remote", parents=[extra_parser], prog="tx set auto-remote",
-        description=auto_remote_description,
+        AUTOREMOTE, prog="tx set {}".format(AUTOREMOTE),
+        parents=[extra_parser], description=auto_remote_description,
         epilog=auto_remote_epilog, formatter_class=RawDescriptionHelpFormatter,
         help="Use to configure remote files from Transifex server."
     )
@@ -378,7 +389,7 @@ def set_parser(subparser=False):
                                     help="Url of Transifex project.")
     # auto-bulk subparser
     auto_bulk_parser = subparsers.add_parser(
-        "bulk", parents=[extra_parser], prog="tx set bulk",
+        BULK, parents=[extra_parser], prog="tx set {}".format(BULK),
         description=bulk_description, epilog=bulk_epilog,
         help="Use to auto configure multiple local files.",
         formatter_class=RawDescriptionHelpFormatter

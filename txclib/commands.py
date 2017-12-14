@@ -27,7 +27,8 @@ from txclib import utils, project
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
-    status_parser, pull_parser, set_parser, push_parser, init_parser
+    status_parser, pull_parser, set_parser, push_parser, init_parser, \
+    AUTOLOCAL, AUTOREMOTE, BULK
 from txclib.paths import posix_path
 from txclib.log import logger
 from txclib.wizard import Wizard
@@ -97,7 +98,7 @@ def cmd_set(argv, path_to_tx):
         # subcommand there are some default options that need to be set
         default_options = {
             'execute': True,
-            'subcommand': 'auto-local',
+            'subcommand': AUTOLOCAL,
             'minimum_perc': 0,
             'mode': None,
         }
@@ -112,6 +113,15 @@ def cmd_set(argv, path_to_tx):
             print("\n")
             sys.exit(1)
     else:
+        # hack to support backwards compatibility
+        # for --auto-local and --auto-remote options
+        if '--auto-local' in argv:
+            argv.pop(argv.index('--auto-local'))
+            argv.insert(0, AUTOLOCAL)
+        if '--auto-remote' in argv:
+            argv.pop(argv.index('--auto-remote'))
+            argv.insert(0, AUTOREMOTE)
+
         is_subcommand = argv[0] in SET_SUBCOMMANDS.keys()
         parser = set_parser(subparser=is_subcommand)
         options = parser.parse_args(argv)
@@ -300,7 +310,7 @@ def _auto_local(path_to_tx, resource, source_language, expression,
             prj.config.get("%s" % resource, "source_file")
         except configparser.NoSectionError:
             raise Exception("No resource with slug \"%s\" was found.\nRun "
-                            "'tx set --auto-local -r %s \"expression\"' to "
+                            "'tx set auto-local -r %s \"expression\"' to "
                             "do the initial configuration." % resource)
 
     # Now let's handle the translation files.
@@ -670,7 +680,7 @@ def get_branch_from_options(options, project_root):
 
 
 SET_SUBCOMMANDS = {
-    'auto-local': subcommand_autolocal,
-    'auto-remote': subcommand_autoremote,
-    'bulk': subcommand_bulk
+    AUTOLOCAL: subcommand_autolocal,
+    AUTOREMOTE: subcommand_autoremote,
+    BULK: subcommand_bulk
 }
