@@ -325,12 +325,12 @@ def set_parser(subparser=False):
         "files and projects for multiple resources at once, using local files."
     bulk_epilog = "\nExamples:\n"\
         "To set a series of HTML source files that reside inside locale/:\n"\
-        " $ %(prog)s -p project 'expression' --source-language en --type HTML"\
+        " $ %(prog)s -p project --source-language en --type HTML"\
         " -f '.html' --source-file-dir locale\n\n"\
         "To set a series of KEYVAlUEJSON source files that reside " \
         "inside locale/ but exclude files in locale/es/ and locale/jp/:\n"\
-        " $ %(prog)s -p project 'expr' --source-language en " \
-        "--type KEYVAlUEJSON -f '.json' -d locale -i es -i jp\n\n"
+        " $ %(prog)s -p project --source-language en --type KEYVAlUEJSON " \
+        "-f '.json' --source-file-dir locale -i es -i jp\n\n"
 
     main_parser = set_main_parser()
     extra_parser = set_extra_parser()
@@ -425,11 +425,11 @@ def set_parser(subparser=False):
         help="Directory to ignore while looking for source "
              "files. Can be called multiple times. Example: `-i es -i fr`.'.")
     auto_bulk_parser.add_argument(
-        "expression", action="store",
-        help="A path expression pointing to the location where translation "
-             "files for the associated source file are/will be saved. Use "
-             "<lang> as a wildcard for the language code, "
-             "e.g. translations/<lang>/test.txt."
+        "--expression", action="store",
+        default='locale/<lang>/{filepath}/{filename}{extension}',
+        help="Expression defining where translation files should be save. "
+             "Default value is: "
+             "'locale/<lang>/{filepath}/{filename}{extension}'"
     )
     auto_bulk_parser.add_argument(
         "--execute", action="store_true", dest="execute", default=False,

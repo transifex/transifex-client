@@ -367,9 +367,8 @@ class TestSetCommand(unittest.TestCase):
             cmd_set(args, self.path_to_tx)
 
         with self.assertRaises(SystemExit):
-            args = ["bulk", "-p", "test-project", "--source-file-dir",
-                    "translations", "--source-language", "en", "--t", "TXT",
-                    "--file-extension", ".txt"]
+            args = ["bulk", "-p", "test-project", "--source-language",
+                    "en", "--t", "TXT", "--file-extension", ".txt"]
             cmd_set(args, self.path_to_tx)
 
     def test_bulk(self):
@@ -380,7 +379,7 @@ class TestSetCommand(unittest.TestCase):
                     "source_lang = en\ntype = TXT\n\n")
         args = ["bulk", "-p", "test-project", "--source-file-dir",
                 "translations", "--source-language", "en", "-t", "TXT",
-                "--file-extension", ".txt", "--execute",
+                "--file-extension", ".txt", "--execute", "--expression",
                 "translations/<lang>/{filepath}/{filename}{extension}"]
         cmd_set(args, self.path_to_tx)
         with open(self.config_file) as config:
