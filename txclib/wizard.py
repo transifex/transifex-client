@@ -175,7 +175,7 @@ class Wizard(object):
             else:
                 project = [p for p in projects
                            if p['slug'] == project_slug][0]
-                source_language = project['source_language_code']
+                source_language = project['source_language']['code']
 
         resource_slug = slugify(os.path.basename(source_file))
         resource = '{}.{}'.format(project_slug, resource_slug)
