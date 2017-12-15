@@ -180,7 +180,8 @@ def pull_parser():
     parser.add_argument(
         "--mode", action="store", dest="mode", help=(
             "Specify the mode of the translation file to pull (e.g. "
-            "'reviewed'). See http://bit.ly/pullmode for available values."
+            "'reviewed'). See https://docs.transifex.com/client/pull/ "
+            "for available values."
         )
     )
     parser.add_argument(
@@ -283,8 +284,8 @@ def set_extra_parser():
     extra_parser.add_argument(
         "--mode", action="store", dest="mode", help=(
             "Specify the mode of the translation file to pull (e.g. "
-            "'reviewed'). See http://bit.ly/pullmode for the "
-            "available values."
+            "'reviewed'). See https://docs.transifex.com/client/pull/ "
+            "for the available values."
         )
     )
     return extra_parser
