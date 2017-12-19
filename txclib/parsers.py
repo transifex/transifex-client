@@ -7,7 +7,9 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from txclib.utils import get_version
 
 
-AUTOLOCAL, AUTOREMOTE, BULK = 'auto-local', 'auto-remote', 'bulk'
+MAPPING, MAPPINGREMOTE, MAPPINGBULK = (
+    'mapping', 'mapping-remote', 'mapping-bulk'
+)
 
 
 def tx_main_parser():
@@ -121,7 +123,7 @@ def init_parser():
         action="store_true",
         dest="skipsetup",
         default=False,
-        help="Don't start tx set interactive wizard after setting up "
+        help="Don't start tx config interactive wizard after setting up "
              "credentials."
     )
     parser.add_argument("--token", action="store", dest="token", default=None,
@@ -265,12 +267,6 @@ def set_main_parser():
                                    "list of available i18n types, see "
                                    "http://docs.transifex.com/formats/"
                                    ))
-    main_parser.add_argument("--auto-local", action="store_true",
-                             dest="local", default=False,
-                             help="Alias of auto-local subcommands")
-    main_parser.add_argument("--auto-remote", action="store_true",
-                             dest="local", default=False,
-                             help="Alias of auto-remote subcommands")
     return main_parser
 
 
@@ -291,21 +287,28 @@ def set_extra_parser():
     return extra_parser
 
 
-def set_parser(subparser=False):
-    """Return the command-line parser for the set command."""
-    description = "This command can be used to create a mapping between "\
-        "files and projects either\nusing local files or using files from a "\
-        "remote Transifex server."
+def set_parser(subparser=False, is_legacy=False):
+    """Return the command-line parser for the config command."""
+    set_warning = ""
+    if is_legacy:
+        set_warning = "Warning: This command will be deprecated in a future "\
+            "release of the client. \nYou should use the `tx config` command."\
+            " For more information, visit \n"\
+            "https://docs.transifex.com/client/config/.\n\n"
+
+    description = set_warning + "This command can be used to create a mapping"\
+        " between files and projects either\nusing local files or using files"\
+        " from a remote Transifex server."
     epilog = "\nSubcommands:\n"\
         "    {autolocal}\n"\
         "    {autoremote}\n"\
         "    {bulk}\n\n"\
         "Examples:\n"\
         "To set the source file:\n\
-        $ tx set -r project.resource --source -l en <file>\n\n"\
+        $ %(prog)s -r project.resource --source -l en <file>\n\n"\
         "To set a single translation file:\n\
-        $ tx set -r project.resource -l de <file>\n".format(
-        autolocal=AUTOLOCAL, autoremote=AUTOREMOTE, bulk=BULK
+        $ %(prog)s -r project.resource -l de <file>\n".format(
+        autolocal=MAPPING, autoremote=MAPPINGREMOTE, bulk=MAPPINGBULK
     )
     auto_local_description = "This command can be used to create a mapping "\
                              "for a local file using the path expression "\
@@ -340,15 +343,27 @@ def set_parser(subparser=False):
     else:
         parents = [main_parser, extra_parser]
 
+    prog = 'tx config'
+    if is_legacy:
+        prog = 'tx set'
     parser = ArgumentParser(
-        description=description, epilog=epilog, parents=parents,
-        formatter_class=RawDescriptionHelpFormatter
+        prog=prog, description=description, epilog=epilog,
+        parents=parents, formatter_class=RawDescriptionHelpFormatter
     )
     # return parser that should be used when set is run without a subcommand
     if not subparser:
+        # These arguments are valid only for the bare command and not for the
+        # subcommands
         parser.add_argument(
             "filename", action="store",
             help="The source or translation file of the resource."
+        )
+        parser.add_argument("--auto-local", action="store_true",
+                            dest="local", default=False,
+                            help="Alias of {} subcommand".format(MAPPING))
+        parser.add_argument(
+            "--auto-remote", action="store_true", dest="local",
+            default=False, help="Alias of {} subcommand".format(MAPPINGREMOTE)
         )
         return parser
 
@@ -356,7 +371,7 @@ def set_parser(subparser=False):
     # auto-local subparser
     subparsers = parser.add_subparsers(title='subcommands', dest='subcommand')
     auto_local_parser = subparsers.add_parser(
-        AUTOLOCAL, prog="tx set {}".format(AUTOLOCAL),
+        MAPPING, prog="{} {}".format(prog, MAPPING),
         parents=[main_parser, extra_parser], epilog=auto_local_epilog,
         description=auto_local_description,
         formatter_class=RawDescriptionHelpFormatter,
@@ -381,7 +396,7 @@ def set_parser(subparser=False):
 
     # auto-remote subparser
     auto_remote_parser = subparsers.add_parser(
-        AUTOREMOTE, prog="tx set {}".format(AUTOREMOTE),
+        MAPPINGREMOTE, prog="{} {}".format(prog, MAPPINGREMOTE),
         parents=[extra_parser], description=auto_remote_description,
         epilog=auto_remote_epilog, formatter_class=RawDescriptionHelpFormatter,
         help="Use to configure remote files from Transifex server."
@@ -390,7 +405,8 @@ def set_parser(subparser=False):
                                     help="Url of Transifex project.")
     # auto-bulk subparser
     auto_bulk_parser = subparsers.add_parser(
-        BULK, parents=[extra_parser], prog="tx set {}".format(BULK),
+        MAPPINGBULK, parents=[extra_parser],
+        prog="{} {}".format(prog, MAPPINGBULK),
         description=bulk_description, epilog=bulk_epilog,
         help="Use to auto configure multiple local files.",
         formatter_class=RawDescriptionHelpFormatter
@@ -428,7 +444,7 @@ def set_parser(subparser=False):
     auto_bulk_parser.add_argument(
         "--expression", action="store",
         default='locale/<lang>/{filepath}/{filename}{extension}',
-        help="Expression defining where translation files should be save. "
+        help="Expression defining where translation files should be saved. "
              "Default value is: "
              "'locale/<lang>/{filepath}/{filename}{extension}'"
     )
