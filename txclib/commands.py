@@ -27,7 +27,8 @@ from txclib import utils, project
 from txclib.config import OrderedRawConfigParser
 from txclib.exceptions import UnInitializedError
 from txclib.parsers import delete_parser, help_parser, parse_csv_option, \
-    status_parser, pull_parser, set_parser, push_parser, init_parser
+    status_parser, pull_parser, set_parser, push_parser, init_parser, \
+    MAPPING, MAPPINGREMOTE, MAPPINGBULK
 from txclib.paths import posix_path
 from txclib.log import logger
 from txclib.wizard import Wizard
@@ -84,12 +85,19 @@ def cmd_init(argv, path_to_tx):
 
     if not options.skipsetup and not options.no_interactive:
         logger.info(messages.running_tx_set)
-        cmd_set([], path_to_tx)
+        cmd_config([], path_to_tx)
     else:
         logger.info("Done.")
 
 
 def cmd_set(argv, path_to_tx):
+    """Add local or remote files under transifex. Warning: \
+This command will be deprecated in a future release of the \
+client. You should use the `tx config` command."""
+    cmd_config(argv, path_to_tx, is_legacy=True)
+
+
+def cmd_config(argv, path_to_tx, is_legacy=False):
     """Add local or remote files under transifex"""
     from_wizard = False
     if len(argv) == 0:
@@ -97,7 +105,7 @@ def cmd_set(argv, path_to_tx):
         # subcommand there are some default options that need to be set
         default_options = {
             'execute': True,
-            'subcommand': 'auto-local',
+            'subcommand': MAPPING,
             'minimum_perc': 0,
             'mode': None,
         }
@@ -106,14 +114,23 @@ def cmd_set(argv, path_to_tx):
             wizard_options = Wizard(path_to_tx).run()
             wizard_options.update(default_options)
             options = Namespace(**wizard_options)
-            parser = set_parser()
+            parser = set_parser(is_legacy=is_legacy)
             from_wizard = True
         except SystemExit:
             print("\n")
             sys.exit(1)
     else:
-        is_subcommand = argv[0] in SET_SUBCOMMANDS.keys()
-        parser = set_parser(subparser=is_subcommand)
+        # hack to support backwards compatibility
+        # for --auto-local and --auto-remote options
+        if '--auto-local' in argv:
+            argv.pop(argv.index('--auto-local'))
+            argv.insert(0, MAPPING)
+        if '--auto-remote' in argv:
+            argv.pop(argv.index('--auto-remote'))
+            argv.insert(0, MAPPINGREMOTE)
+
+        is_subcommand = argv[0] in CONFIG_SUBCOMMANDS.keys()
+        parser = set_parser(subparser=is_subcommand, is_legacy=is_legacy)
         options = parser.parse_args(argv)
 
     _validate_set_arguments(parser, options)
@@ -122,7 +139,7 @@ def cmd_set(argv, path_to_tx):
         bare_set(path_to_tx, options)
     else:
         try:
-            SET_SUBCOMMANDS[options.subcommand](
+            CONFIG_SUBCOMMANDS[options.subcommand](
                 path_to_tx, options, from_wizard=from_wizard
             )
         except KeyError:
@@ -171,7 +188,7 @@ def bare_set(path_to_tx, options):
     logger.info("Done.")
 
 
-def subcommand_autolocal(path_to_tx, options, from_wizard=False):
+def subcommand_mapping(path_to_tx, options, from_wizard=False):
     expression = options.expression
     _auto_local(path_to_tx, options.resource,
                 source_language=options.source_language,
@@ -187,7 +204,7 @@ def subcommand_autolocal(path_to_tx, options, from_wizard=False):
         _print_instructions(options.resource, path_to_tx)
 
 
-def subcommand_autoremote(path_to_tx, options, **kwargs):
+def subcommand_mapping_remote(path_to_tx, options, **kwargs):
     url = options.project_url
     _auto_remote(path_to_tx, url)
     _set_minimum_perc(None, options.minimum_perc, path_to_tx)
@@ -202,7 +219,7 @@ def _print_instructions(resource, path_to_tx):
     print(messages.final_instr.format(**fmt_kwargs))
 
 
-def subcommand_bulk(path_to_tx, options, **kwargs):
+def subcommand_mapping_bulk(path_to_tx, options, **kwargs):
     """Add local files for multiple resources under transifex"""
 
     if not options.file_extension.startswith('.'):
@@ -300,7 +317,7 @@ def _auto_local(path_to_tx, resource, source_language, expression,
             prj.config.get("%s" % resource, "source_file")
         except configparser.NoSectionError:
             raise Exception("No resource with slug \"%s\" was found.\nRun "
-                            "'tx set --auto-local -r %s \"expression\"' to "
+                            "'tx set auto-local -r %s \"expression\"' to "
                             "do the initial configuration." % resource)
 
     # Now let's handle the translation files.
@@ -669,8 +686,8 @@ def get_branch_from_options(options, project_root):
     return branch
 
 
-SET_SUBCOMMANDS = {
-    'auto-local': subcommand_autolocal,
-    'auto-remote': subcommand_autoremote,
-    'bulk': subcommand_bulk
+CONFIG_SUBCOMMANDS = {
+    MAPPING: subcommand_mapping,
+    MAPPINGREMOTE: subcommand_mapping_remote,
+    MAPPINGBULK: subcommand_mapping_bulk,
 }

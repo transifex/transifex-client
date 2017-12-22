@@ -123,7 +123,7 @@ class WizardCase(unittest.TestCase):
             [
                 {
                     "name": "project 1",
-                    "source_language_code": "en",
+                    "source_language": {"code": "en", "name": "English"},
                     "slug": "project-1",
                     "archived": False
                 }

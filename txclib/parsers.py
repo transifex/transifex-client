@@ -7,6 +7,11 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from txclib.utils import get_version
 
 
+MAPPING, MAPPINGREMOTE, MAPPINGBULK = (
+    'mapping', 'mapping-remote', 'mapping-bulk'
+)
+
+
 def tx_main_parser():
     description = "This is the Transifex command line client which"\
                   " allows you to manage your translations locally and sync"\
@@ -118,7 +123,7 @@ def init_parser():
         action="store_true",
         dest="skipsetup",
         default=False,
-        help="Don't start tx set interactive wizard after setting up "
+        help="Don't start tx config interactive wizard after setting up "
              "credentials."
     )
     parser.add_argument("--token", action="store", dest="token", default=None,
@@ -177,7 +182,8 @@ def pull_parser():
     parser.add_argument(
         "--mode", action="store", dest="mode", help=(
             "Specify the mode of the translation file to pull (e.g. "
-            "'reviewed'). See http://bit.ly/pullmode for available values."
+            "'reviewed'). See https://docs.transifex.com/client/pull/ "
+            "for available values."
         )
     )
     parser.add_argument(
@@ -274,27 +280,36 @@ def set_extra_parser():
     extra_parser.add_argument(
         "--mode", action="store", dest="mode", help=(
             "Specify the mode of the translation file to pull (e.g. "
-            "'reviewed'). See http://bit.ly/pullmode for the "
-            "available values."
+            "'reviewed'). See https://docs.transifex.com/client/pull/ "
+            "for the available values."
         )
     )
     return extra_parser
 
 
-def set_parser(subparser=False):
-    """Return the command-line parser for the set command."""
-    description = "This command can be used to create a mapping between "\
-        "files and projects either\nusing local files or using files from a "\
-        "remote Transifex server."
+def set_parser(subparser=False, is_legacy=False):
+    """Return the command-line parser for the config command."""
+    set_warning = ""
+    if is_legacy:
+        set_warning = "Warning: This command will be deprecated in a future "\
+            "release of the client. \nYou should use the `tx config` command."\
+            " For more information, visit \n"\
+            "https://docs.transifex.com/client/config/.\n\n"
+
+    description = set_warning + "This command can be used to create a mapping"\
+        " between files and projects either\nusing local files or using files"\
+        " from a remote Transifex server."
     epilog = "\nSubcommands:\n"\
-        "    auto-local\n"\
-        "    auto-remote\n"\
-        "    bulk\n\n"\
+        "    {autolocal}\n"\
+        "    {autoremote}\n"\
+        "    {bulk}\n\n"\
         "Examples:\n"\
         "To set the source file:\n\
-        $ tx set -r project.resource --source -l en <file>\n\n"\
+        $ %(prog)s -r project.resource --source -l en <file>\n\n"\
         "To set a single translation file:\n\
-        $ tx set -r project.resource -l de <file>\n"
+        $ %(prog)s -r project.resource -l de <file>\n".format(
+        autolocal=MAPPING, autoremote=MAPPINGREMOTE, bulk=MAPPINGBULK
+    )
     auto_local_description = "This command can be used to create a mapping "\
                              "for a local file using the path expression "\
                              "argument to automatically detect source and "\
@@ -314,12 +329,12 @@ def set_parser(subparser=False):
         "files and projects for multiple resources at once, using local files."
     bulk_epilog = "\nExamples:\n"\
         "To set a series of HTML source files that reside inside locale/:\n"\
-        " $ %(prog)s -p project 'expression' --source-language en --type HTML"\
+        " $ %(prog)s -p project --source-language en --type HTML"\
         " -f '.html' --source-file-dir locale\n\n"\
         "To set a series of KEYVAlUEJSON source files that reside " \
         "inside locale/ but exclude files in locale/es/ and locale/jp/:\n"\
-        " $ %(prog)s -p project 'expr' --source-language en " \
-        "--type KEYVAlUEJSON -f '.json' -d locale -i es -i jp\n\n"
+        " $ %(prog)s -p project --source-language en --type KEYVAlUEJSON " \
+        "-f '.json' --source-file-dir locale -i es -i jp\n\n"
 
     main_parser = set_main_parser()
     extra_parser = set_extra_parser()
@@ -328,15 +343,27 @@ def set_parser(subparser=False):
     else:
         parents = [main_parser, extra_parser]
 
+    prog = 'tx config'
+    if is_legacy:
+        prog = 'tx set'
     parser = ArgumentParser(
-        description=description, epilog=epilog, parents=parents,
-        formatter_class=RawDescriptionHelpFormatter
+        prog=prog, description=description, epilog=epilog,
+        parents=parents, formatter_class=RawDescriptionHelpFormatter
     )
     # return parser that should be used when set is run without a subcommand
     if not subparser:
+        # These arguments are valid only for the bare command and not for the
+        # subcommands
         parser.add_argument(
             "filename", action="store",
             help="The source or translation file of the resource."
+        )
+        parser.add_argument("--auto-local", action="store_true",
+                            dest="local", default=False,
+                            help="Alias of {} subcommand".format(MAPPING))
+        parser.add_argument(
+            "--auto-remote", action="store_true", dest="local",
+            default=False, help="Alias of {} subcommand".format(MAPPINGREMOTE)
         )
         return parser
 
@@ -344,7 +371,7 @@ def set_parser(subparser=False):
     # auto-local subparser
     subparsers = parser.add_subparsers(title='subcommands', dest='subcommand')
     auto_local_parser = subparsers.add_parser(
-        "auto-local", prog="tx set auto-local",
+        MAPPING, prog="{} {}".format(prog, MAPPING),
         parents=[main_parser, extra_parser], epilog=auto_local_epilog,
         description=auto_local_description,
         formatter_class=RawDescriptionHelpFormatter,
@@ -369,8 +396,8 @@ def set_parser(subparser=False):
 
     # auto-remote subparser
     auto_remote_parser = subparsers.add_parser(
-        "auto-remote", parents=[extra_parser], prog="tx set auto-remote",
-        description=auto_remote_description,
+        MAPPINGREMOTE, prog="{} {}".format(prog, MAPPINGREMOTE),
+        parents=[extra_parser], description=auto_remote_description,
         epilog=auto_remote_epilog, formatter_class=RawDescriptionHelpFormatter,
         help="Use to configure remote files from Transifex server."
     )
@@ -378,7 +405,8 @@ def set_parser(subparser=False):
                                     help="Url of Transifex project.")
     # auto-bulk subparser
     auto_bulk_parser = subparsers.add_parser(
-        "bulk", parents=[extra_parser], prog="tx set bulk",
+        MAPPINGBULK, parents=[extra_parser],
+        prog="{} {}".format(prog, MAPPINGBULK),
         description=bulk_description, epilog=bulk_epilog,
         help="Use to auto configure multiple local files.",
         formatter_class=RawDescriptionHelpFormatter
@@ -414,11 +442,11 @@ def set_parser(subparser=False):
         help="Directory to ignore while looking for source "
              "files. Can be called multiple times. Example: `-i es -i fr`.'.")
     auto_bulk_parser.add_argument(
-        "expression", action="store",
-        help="A path expression pointing to the location where translation "
-             "files for the associated source file are/will be saved. Use "
-             "<lang> as a wildcard for the language code, "
-             "e.g. translations/<lang>/test.txt."
+        "--expression", action="store",
+        default='locale/<lang>/{filepath}/{filename}{extension}',
+        help="Expression defining where translation files should be saved. "
+             "Default value is: "
+             "'locale/<lang>/{filepath}/{filename}{extension}'"
     )
     auto_bulk_parser.add_argument(
         "--execute", action="store_true", dest="execute", default=False,
