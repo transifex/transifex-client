@@ -1,5 +1,4 @@
 import os
-import readline
 
 from slugify import slugify
 from txclib import messages
@@ -12,8 +11,12 @@ from six.moves import input
 
 COLOR = "CYAN"
 
-readline.set_completer_delims(' \t\n;')
-readline.parse_and_bind("tab: complete")
+try:
+    import readline
+    readline.set_completer_delims(' \t\n;')
+    readline.parse_and_bind("tab: complete")
+except ImportError:
+    pass
 
 
 def validate_source_file(path):
