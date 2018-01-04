@@ -29,7 +29,7 @@ update_txrc = "Overwrite credentials in .transifexrc?"
 
 token_msg = "[?] Enter your api token: "
 
-running_tx_set = "Running tx set command for you..."
+running_tx_set = "Running tx config command for you..."
 
 
 create_project_instructions = """To create a new project, head to {host}/{org}/add.
@@ -42,7 +42,7 @@ TEXTS = {
 The Transifex Client syncs files between your local directory and Transifex.
 The mapping configuration between the two is stored in a file called .tx/config
 in your current directory. For more information, visit
-https://docs.transifex.com/client/set/.
+https://docs.transifex.com/client/config/.
 """),
         "error": ("No file was found in that path. Please correct the path "
                   "or make sure a file exists in that location."),
@@ -87,7 +87,7 @@ epilog = """
 The Transifex Client syncs files between your local directory and Transifex.
 The mapping configuration between the two is stored in a file called
 .tx/config in your current directory. For more information, visit
-https://docs.transifex.com/client/set/.
+https://docs.transifex.com/client/config/.
 """
 
 final_instr = """
@@ -101,9 +101,9 @@ Here’s the content of the .tx/config file that was created:
 
 You could also have generated the same configuration by running a single command like:
 
-    tx set auto-local -r {resource} -f {source_file} -s {source_lang} -t {type} '{file_filter}'
+    tx config mapping -r {resource} -f {source_file} -s {source_lang} -t {type} '{file_filter}'
 
-To learn more about the Set command, visit https://docs.transifex.com/client/set.
+To learn more about the Config command, visit https://docs.transifex.com/client/config.
 
 Here are some useful commands for your next steps:
 
