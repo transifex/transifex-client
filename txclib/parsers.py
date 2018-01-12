@@ -21,9 +21,10 @@ def tx_main_parser():
                   " `%(prog)s help command`"
     version = get_version()
     parser = ArgumentParser(
-        version=version, description=description, add_help=False
+        description=description, add_help=False
     )
     # parser.disable_interspersed_args()
+    parser.add_argument('--version', action='version', version=version)
     parser.add_argument(
         "-d", "--debug", action="store_true", dest="debug",
         default=False, help=("enable debug messages")

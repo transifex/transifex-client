@@ -1244,8 +1244,8 @@ class Project(object):
             return res[i18n_type]['file-extensions'].split(',')[0]
         except Exception as e:
             logger.warning(
-                "The file extension for i18n_type %s is not found."
-                % e.message)
+                "The file extension for i18n_type %s is not found." % str(e)
+            )
             return ''
 
     def _resource_exists(self, stats):
