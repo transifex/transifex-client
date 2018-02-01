@@ -1,3 +1,16 @@
+Testing
+=======
+
+To run tests, install `mock` and `pytest`::
+
+	$ virtualenv venv
+	$ source venv/bin/activate
+	$ pip install -e .[test]
+	$ pip install mock  # strange, setup.py has tests_require=["mock"]
+	$ pip install pytest
+	$ py.test tests/
+
+
 Releasing
 =========
 
