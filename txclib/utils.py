@@ -25,8 +25,9 @@ except ImportError:
     from urllib.parse import urljoin  # Python 3
 
 from email.parser import Parser
-from urllib3.exceptions import SSLError
+from urllib3.exceptions import SSLError, HTTPError
 from six.moves import input
+from threading import Thread
 from txclib.urls import API_URLS
 from txclib.exceptions import (
     UnknownCommandError, HttpNotFound, HttpNotAuthorized,
@@ -47,6 +48,8 @@ DEFAULT_HOSTNAMES = {
     'hostname': 'https://www.transifex.com',
     'api_hostname': 'https://api.transifex.com'
 }
+
+THREADS = []
 
 
 def get_base_dir():
@@ -129,9 +132,17 @@ def determine_charset(response):
     return "utf-8"
 
 
-def make_request(method, host, url, username, password, fields=None,
-                 skip_decode=False, get_params={}):
+def _prepare_url_request(host, username, password):
+    """
+    Return a ProxyManager object (as defined in urllib3 [1]) that can be used
+    to perform authorized requests to a specific host.
 
+    Authorization header is constructed and set using "username" and "password"
+    parameters. Also set the common HTTP headers that we want to be sent with
+    each request.
+
+    [1]: http://urllib3.readthedocs.io/en/latest/reference/#urllib3.poolmanager.ProxyManager  # noqa
+    """
     # Initialize http and https pool managers
     num_pools = 1
     managers = {}
@@ -171,7 +182,6 @@ def make_request(method, host, url, username, password, fields=None,
     else:
         raise Exception("Unknown scheme")
 
-    charset = None
     headers = urllib3.util.make_headers(
         basic_auth='{0}:{1}'.format(username, password),
         accept_encoding=True,
@@ -179,42 +189,136 @@ def make_request(method, host, url, username, password, fields=None,
         keep_alive=True
     )
 
+    manager = managers[scheme]
+
+    return headers, manager
+
+
+def queue_request(method, host, url, username, password, fields=None,
+                  skip_decode=False, get_params=None, callback=None,
+                  callback_args=None):
+    """
+    Add a request to the THREADS queue. Request will not be sent until the
+    'perform_parallel_requests' method is called.
+    """
+    get_params = get_params or {}
+    callback_args = callback_args or {}
+
+    headers, manager = _prepare_url_request(host, username, password)
+    # All arguments must be bytes, not unicode
+    global THREADS
+    THREADS.append(Thread(target=perform_single_request,
+                          args=(method,
+                                urljoin(host, url),
+                                dict(headers),
+                                fields,
+                                manager,
+                                skip_decode,
+                                callback,
+                                callback_args)))
+
+
+def make_request(method, host, url, username, password, fields=None,
+                 skip_decode=False, get_params=None, *args, **kwargs):
+    """
+    Perform a request.
+
+    This is the (default) blocking method of making requests.
+    """
+    get_params = get_params or {}
+
+    headers, manager = _prepare_url_request(host, username, password)
+    # All arguments must be bytes, not unicode
+    return perform_single_request(method,
+                                  urljoin(host, url),
+                                  dict(headers),
+                                  fields,
+                                  manager,
+                                  skip_decode,
+                                  *args,
+                                  **kwargs)
+
+
+def perform_parallel_requests():
+    """
+    Perform a set of requests in parallel using threads. The requests are saved
+    in the global THREADS variable. We send requests in batches of 20 in order
+    to achieve optimal performance without hitting API limits.
+    """
+    global THREADS
+
+    if not THREADS:
+        return
+
+    total = len(THREADS)
+    completed = 0
+    update_progress(0, total)
+
+    while THREADS:
+        next_batch = THREADS[:10]
+        THREADS = THREADS[10:]
+
+        for thread in next_batch:
+            thread.start()
+        for thread in next_batch:
+            thread.join()
+
+        completed += len(next_batch)
+        update_progress(completed, total)
+
+
+def perform_single_request(method, url, headers, fields, manager, skip_decode,
+                           callback=None, callback_args=None):
+    callback_args = callback_args or {}
     response = None
+
     try:
-        manager = managers[scheme]
-        # All arguments must be bytes, not unicode
         encoded_request = encode_args(manager.request)
-        response = encoded_request(
-            method,
-            urljoin(host, url),
-            headers=dict(headers),
-            fields=fields
-        )
-        data = response.data
-        if not skip_decode:
-            charset = determine_charset(response)
-            if isinstance(data, bytes):
-                data = data.decode(charset)
-        if response.status < 200 or response.status >= 400:
-            if response.status == 401:
-                raise AuthenticationError(data)
-            elif response.status == 403:
-                raise HttpNotAuthorized(data)
-            elif response.status == 404:
-                raise HttpNotFound(data)
-            elif response.status >= 500:
-                msg = "Failed to connect. Server responded with HTTP code {}"
-                raise TXConnectionError(msg.format(response.status),
-                                        code=response.status)
-            else:
-                raise Exception("Error received from server: {}".format(data))
-        return data, charset
+        response = encoded_request(method, url, headers=headers, fields=fields)
+        r_value = parse_tx_response(response, skip_decode)
     except SSLError:
         logger.error("Invalid SSL certificate")
+        raise
+    except HTTPError:
+        logger.error("HTTP error")
         raise
     finally:
         if response is not None:
             response.close()
+
+    if callback is not None:
+        callback_args.update({"data": r_value[0],
+                              "charset": r_value[1]})
+        callback(**callback_args)
+
+    return r_value
+
+
+def parse_tx_response(response, skip_decode):
+    """
+    Handle a response from the Transifex API.
+    """
+    charset = None
+    data = response.data
+    if not skip_decode:
+        charset = determine_charset(response)
+        if isinstance(data, bytes):
+            data = data.decode(charset)
+    if response.status < 200 or response.status >= 400:
+        if response.status == 401:
+            raise AuthenticationError(data)
+        elif response.status == 403:
+            raise HttpNotAuthorized(data)
+        elif response.status == 404:
+            raise HttpNotFound(data)
+        elif response.status >= 500:
+            msg = "Failed to connect. Server responded with HTTP code {}"
+            raise TXConnectionError(msg.format(response.status),
+                                    code=response.status)
+        else:
+            raise Exception("Error received from server: {}".format(data))
+
+    return data, charset
 
 
 def get_details(api_call, username, password, *args, **kwargs):
@@ -572,3 +676,18 @@ def get_version():
         sys.version_info.minor,
         platform.machine()
     )
+
+
+def update_progress(done, total):
+    """
+    Print a graphical progress bar to indicate a progress status.
+    """
+    percentage = 100.0 * done / float(total)
+    template = '\r[{:25}] {:>3.0f}% ({}/{})'
+    sys.stdout.write(template.format("#" * int(percentage/4),
+                                     percentage, done, total))
+    sys.stdout.flush()
+
+    # Print a new line when done
+    if done == total:
+        sys.stdout.write('\n')

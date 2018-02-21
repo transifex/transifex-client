@@ -164,7 +164,8 @@ class TestPullCommand(unittest.TestCase):
         pull_call = call(
             branch='a-branch', fetchall=False, fetchsource=False,
             force=False, languages=[], minimum_perc=None, mode=None,
-            overwrite=True, pseudo=False, resources=[], skip=False, xliff=False
+            overwrite=True, pseudo=False, resources=[], skip=False,
+            xliff=False, parallel=False
         )
         pr_instance.pull.assert_has_calls([pull_call])
 
@@ -182,7 +183,8 @@ class TestPullCommand(unittest.TestCase):
         pull_call = call(
             branch='somebranch', fetchall=False, fetchsource=False,
             force=False, languages=[], minimum_perc=None, mode=None,
-            overwrite=True, pseudo=False, resources=[], skip=False, xliff=False
+            overwrite=True, pseudo=False, resources=[], skip=False,
+            xliff=False, parallel=False
         )
         pr_instance.pull.assert_has_calls([pull_call])
 
