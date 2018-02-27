@@ -30,6 +30,29 @@ $TX --traceback pull -l pt_BR --xliff
 echo "Checking if translation xlf file has been downloaded..."
 ls locale/pt_BR/LC_MESSAGES/django.po.xlf
 
+# Try to upload/download translations in parallel
+# Choose some languages to work with
+LANGS=bs_BA,en_GB,fr,id,ku_IQ,pa,sr@latin,vi,ach,ca,eo,fr_CA,id_ID,lt,sr_RS,zh_CN,ar,ca@valencia,es,fy,it,lv,pt,sv,zh_TW
+
+echo "Pushing translations for 26 languages in parallel"
+$TX push -t -f -l $LANGS --no-interactive --parallel
+
+echo "Removing the original translation files"
+IFS=','  # This is needed for splitting the languages list
+for lang_code in $LANGS; do
+    rm locale/$lang_code/LC_MESSAGES/django.po
+done
+
+echo "Pulling translations for the 26 languages in parallel"
+IFS=' ' # Revert splitting back to normal (using spaces)
+$TX --traceback pull -f -l $LANGS --parallel
+
+echo "Checking if translation files have been downloaded..."
+IFS=','  # This is needed for splitting the languages list
+for lang_code in $LANGS; do
+    ls locale/$lang_code/LC_MESSAGES/django.po
+done
+
 # upload xliff
 echo "Pushing xliff for pt_BR"
 $TX --traceback push -t -l pt_BR --xliff -f --no-interactive
