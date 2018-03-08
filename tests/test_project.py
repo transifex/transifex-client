@@ -12,10 +12,10 @@ except ImportError:
     import ConfigParser as configparser
 
 from functools import wraps
-from mock import Mock, patch
+from mock import Mock, patch, mock_open
 from collections import namedtuple
 from os.path import dirname
-from sys import modules
+from sys import modules, version_info
 
 from txclib.exceptions import AuthenticationError, TXConnectionError
 from txclib.project import (Project, DEFAULT_PULL_URL)
@@ -509,7 +509,7 @@ class TestProjectPull(unittest.TestCase):
         self.lang_map = Flipdict()
 
     def test_new_translations(self):
-        """Test finding new transaltions to add."""
+        """Test finding new translations to add."""
         with patch.object(self.p, 'do_url_request') as resource_mock:
             resource_mock.return_value = json.dumps(self.details), "utf-8"
             new_trans = self.p._new_translations_to_add
@@ -627,7 +627,7 @@ class TestProjectPull(unittest.TestCase):
             self.assertEqual(new, set([]))
 
     def test_in_combination_with_force_option(self):
-        """Test the minumum-perc option along with -f."""
+        """Test the minimum-perc option along with -f."""
         with patch.object(self.p, 'get_resource_option') as mock:
             mock.return_value = 70
 
@@ -686,7 +686,8 @@ class TestProjectPull(unittest.TestCase):
                 # Create fake https response
                 def encode_args(*args, **kwargs):
                     struct = namedtuple("response", "data status close")
-                    return struct(status=401, data="mock_response", close=Mock())
+                    return struct(status=401, data="mock_response",
+                                  close=Mock())
                 mock_determine_charset.return_value = "utf-8"
                 mock_encode_args.return_value = encode_args
 
@@ -791,6 +792,27 @@ class TestProjectPull(unittest.TestCase):
         mock_request.side_effect = TXConnectionError(msg, code=response)
         with self.assertRaises(TXConnectionError):
             project.push()
+
+    @fixture_mocked_project
+    @patch('txclib.utils.queue_request')
+    @patch('txclib.utils.make_request')
+    @patch('txclib.project.Project._resource_exists')
+    def test_push_async(self, mock_exists, mock_request, mock_queue, **kwargs):
+        mock_queue.return_value = None
+        mock_request.return_value = ('{"i18n_type": "PO"}', '')
+        mock_exists.return_value = True
+        project = kwargs['mock_project']
+        patch_open = ("builtins.open" if version_info.major > 2
+                      else "__builtin__.open")
+        with patch(patch_open, mock_open(read_data="")):
+            project.push(source=True, parallel=True)
+            self.assertEqual(mock_queue.call_count, 1)
+
+            project.push(translations=True, parallel=True)
+            self.assertEqual(mock_queue.call_count, 1)
+
+            project.pull(parallel=True)
+            self.assertEqual(mock_queue.call_count, 1)
 
 
 class TestFormats(unittest.TestCase):

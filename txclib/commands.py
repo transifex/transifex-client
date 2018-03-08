@@ -413,6 +413,7 @@ def cmd_push(argv, path_to_tx):
     resources = parse_csv_option(options.resources)
     skip = options.skip_errors
     xliff = options.xliff
+    parallel = options.parallel
     prj = project.Project(path_to_tx)
     if not (options.push_source or options.push_translations):
         parser.error("You need to specify at least one of the -s|--source, "
@@ -424,7 +425,7 @@ def cmd_push(argv, path_to_tx):
         skip=skip, source=options.push_source,
         translations=options.push_translations,
         no_interactive=options.no_interactive,
-        xliff=xliff, branch=branch
+        xliff=xliff, branch=branch, parallel=parallel
     )
     logger.info("Done.")
 
@@ -441,6 +442,7 @@ def cmd_pull(argv, path_to_tx):
     pseudo = options.pseudo
     # Should we download as xliff?
     xliff = options.xliff
+    parallel = options.parallel
     skip = options.skip_errors
     minimum_perc = options.minimum_perc or None
 
@@ -453,7 +455,8 @@ def cmd_pull(argv, path_to_tx):
         languages=languages, resources=resources, overwrite=options.overwrite,
         fetchall=options.fetchall, fetchsource=options.fetchsource,
         force=options.force, skip=skip, minimum_perc=minimum_perc,
-        mode=options.mode, pseudo=pseudo, xliff=xliff, branch=branch
+        mode=options.mode, pseudo=pseudo, xliff=xliff, branch=branch,
+        parallel=parallel,
     )
     logger.info("Done.")
 

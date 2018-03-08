@@ -196,6 +196,8 @@ def pull_parser():
     parser.add_argument("-x", "--xliff", action="store_true", dest="xliff",
                         default=False, help="Apply this option to download "
                         "file as xliff.")
+    parser.add_argument("--parallel", action="store_true", default=False,
+                        help="perform push/pull requests in parallel")
     return parser
 
 
@@ -243,6 +245,8 @@ def push_parser():
         help=("Pull for a specific branch. Default is current"
               "branch if exists.")
     )
+    parser.add_argument("--parallel", action="store_true", default=False,
+                        help="perform push/pull requests in parallel")
     return parser
 
 

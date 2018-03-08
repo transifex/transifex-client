@@ -11,7 +11,7 @@ import six
 try:
     import urlparse
     from urllib import urlencode
-except:  # For Python 3
+except ImportError:  # For Python 3
     import urllib.parse as urlparse
     from urllib.parse import urlencode
 try:
@@ -36,7 +36,7 @@ from txclib.urls import API_URLS
 from txclib.config import Flipdict, CERT_REQUIRED
 from txclib.log import logger
 from txclib.paths import posix_path, native_path, posix_sep
-from txclib.utils import ProjectNotInit
+from txclib.utils import ProjectNotInit, perform_parallel_requests
 
 
 DEFAULT_PULL_URL = 'pull_file'
@@ -364,10 +364,14 @@ class Project(object):
         return '{branch}--{resource}'.format(branch=slugify(branch),
                                              resource=resource_slug)
 
-    def pull(self, languages=[], resources=[], overwrite=True, fetchall=False,
-             fetchsource=False, force=False, skip=False, minimum_perc=0,
-             mode=None, pseudo=False, xliff=False, branch=None):
-        """Pull all translations file from transifex server."""
+    def pull(self, languages=None, resources=None, overwrite=True,
+             fetchall=False, fetchsource=False, force=False, skip=False,
+             minimum_perc=0, mode=None, pseudo=False, xliff=False, branch=None,
+             parallel=False):
+        """Pull all translations file from Transifex server."""
+        languages = languages or []
+        resources = resources or []
+
         self.minimum_perc = minimum_perc
         resource_list = self.get_chosen_resources(resources)
         skip_decode = False
@@ -461,8 +465,9 @@ class Project(object):
                     new_translations.add(slang)
 
             if pull_languages:
-                logger.debug("Pulling languages for: %s" % pull_languages)
-                msg = "Pulling translations for resource %s (source: %s)"
+                prefix = "Queueing" if parallel else "Pulling"
+                logger.debug("%s languages for: %s" % (prefix, pull_languages))
+                msg = prefix + " translations for resource %s (source: %s)"
                 if branch:
                     msg += " for branch {}".format(branch)
                 if xliff:
@@ -505,29 +510,24 @@ class Project(object):
                     continue
 
                 if xliff:
-                    local_file += '.xlf'
+                    local_file += ".xlf"
 
                 if not overwrite:
-                    local_file = ("%s.new" % local_file)
+                    local_file += ".new"
+
                 logger.warning(
                     " -> %s: %s" % (utils.color_text(remote_lang, "RED"),
                                     local_file)
                 )
-                try:
-                    r, charset = self.do_url_request(
-                        url, language=remote_lang, skip_decode=skip_decode,
-                        params=params
-                    )
-                except Exception as e:
-                    if isinstance(e, SSLError) or not skip:
-                        raise
-                    else:
-                        logger.error(e)
-                        continue
-                self._save_file(local_file, charset, r)
+                self.do_url_request(
+                    url, language=remote_lang, skip_decode=skip_decode,
+                    params=params, parallel=parallel, callback=self._save_file,
+                    callback_args={"local_file": local_file}
+                )
 
             if new_translations:
-                msg = "Pulling new translations for resource %s (source: %s)"
+                prefix = "Queueing" if parallel else "Pulling"
+                msg = prefix + " new translations for resource %s (source: %s)"
                 logger.info(msg % (resource, sfile))
                 for lang in new_translations:
                     if lang in list(lang_map.keys()):
@@ -552,6 +552,9 @@ class Project(object):
                                          '%s_translation' % local_lang,
                                          os.curdir))
 
+                    if xliff:
+                        local_file += ".xlf"
+
                     if lang != slang:
                         satisfies_min = self._satisfies_min_translated(
                             stats[remote_lang], mode
@@ -565,19 +568,25 @@ class Project(object):
                                         local_file)
                     )
 
-                    r, charset = self.do_url_request(
+                    self.do_url_request(
                         url, language=remote_lang, skip_decode=skip_decode,
-                        params=params
+                        params=params, parallel=parallel,
+                        callback=self._save_file,
+                        callback_args={"local_file": local_file}
                     )
-                    if xliff:
-                        local_file += '.xlf'
 
-                    self._save_file(local_file, charset, r)
+        # Pull the queued resources
+        if parallel:
+            logger.info("Pulling resources...")
+            perform_parallel_requests()
 
     def push(self, source=False, translations=False, force=False,
-             resources=[], languages=[], skip=False, no_interactive=False,
-             xliff=False, branch=None):
+             resources=None, languages=None, skip=False, no_interactive=False,
+             xliff=False, branch=None, parallel=False):
         """Push all the resources"""
+        languages = languages or []
+        resources = resources or []
+
         resource_list = self.get_chosen_resources(resources)
         self.skip = skip
         self.force = force
@@ -602,6 +611,8 @@ class Project(object):
                                resource=resource_slug)
 
             message = "Pushing resource {}".format(resource)
+            if parallel:
+                message = "Resource {} queued for push".format(resource)
             if branch:
                 message += " for branch {}".format(branch)
             logger.info(message)
@@ -627,7 +638,10 @@ class Project(object):
                     continue
                 # Push source file
                 try:
-                    logger.info("Pushing source file (%s)" % sfile)
+                    push_msg = "Pushing source file (%s)"
+                    if parallel:
+                        push_msg = "Will queue source file (%s) for push"
+                    logger.info(push_msg % sfile)
                     if not self._resource_exists(stats):
                         logger.info("Resource does not exist.  Creating...")
                         fileinfo = "%s;%s" % (resource_slug, slang)
@@ -642,6 +656,7 @@ class Project(object):
                                 self.get_full_path(sfile)
                                 )],
                         params=params,
+                        parallel=parallel,
                     )
                 except Exception as e:
                     if isinstance(e, SSLError):
@@ -673,10 +688,10 @@ class Project(object):
                     push_languages = list(files.keys())
                 else:
                     push_languages = []
-                    for l in languages:
-                        if l in list(lang_map.keys()):
-                            l = lang_map[l]
-                        push_languages.append(l)
+                    for lang in languages:
+                        push_languages.append(lang_map[lang]
+                                              if lang in list(lang_map.keys())
+                                              else lang)
 
                 logger.debug("Languages to push are %s" % push_languages)
 
@@ -709,6 +724,8 @@ class Project(object):
                         continue
 
                     msg = "Pushing '%s' translations (file: %s)"
+                    if parallel:
+                        msg = "Queueing '%s' translations for push (file: %s)"
                     logger.warning(
                         msg % (utils.color_text(remote_lang, "RED"),
                                local_file)
@@ -720,6 +737,7 @@ class Project(object):
                                     self.get_full_path(local_file)
                                     )], language=remote_lang,
                             params=params,
+                            parallel=parallel,
                         )
                         logger.debug("Translation %s pushed." % remote_lang)
                     except utils.HttpNotFound:
@@ -746,8 +764,16 @@ class Project(object):
                         else:
                             logger.error(e)
 
-    def delete(self, resources=[], languages=[], skip=False, force=False):
+        # Push the queued resources
+        if parallel:
+            logger.info("Pushing resources...")
+            perform_parallel_requests()
+
+    def delete(self, resources=None, languages=None, skip=False, force=False):
         """Delete translations."""
+        languages = languages or []
+        resources = resources or []
+
         resource_list = self.get_chosen_resources(resources)
         self.skip = skip
         self.force = force
@@ -865,9 +891,12 @@ class Project(object):
                 raise
 
     def do_url_request(self, api_call, multipart=False, data=None,
-                       files=[], method="GET", skip_decode=False,
-                       params={}, **kwargs):
+                       files=None, method="GET", skip_decode=False,
+                       params=None, parallel=False, **kwargs):
         """Issues a url request."""
+        files = files or []
+        params = params or {}
+
         # Read the credentials from the config file (.transifexrc)
         host = self.url_info['host']
         username, passwd = self.getset_host_credentials(host)
@@ -910,9 +939,19 @@ class Project(object):
                 # in case of PUT we add xliff option as form data
                 if method == 'PUT':
                     data.update(params)
+
+        # Prepare the callback function and arguments
+        cb = kwargs.get("callback", None)
+        args = kwargs.get("callback_args", {})
+
+        if parallel:
+            return utils.queue_request(method, hostname, url, username, passwd,
+                                       data, skip_decode=skip_decode,
+                                       callback=cb, callback_args=args)
+
         return utils.make_request(
             method, hostname, url, username, passwd, data,
-            skip_decode=skip_decode
+            skip_decode=skip_decode, callback=cb, callback_args=args
         )
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
@@ -1231,9 +1270,9 @@ class Project(object):
                     if self._should_add_translation(l, stats, force):
                         new_translations.append(l)
                 else:
-                    if l in list(lang_map.keys()):
-                        l = lang_map[l]
-                    pull_languages.append(l)
+                    pull_languages.append(lang_map[l]
+                                          if l in list(lang_map.keys())
+                                          else l)
             return (set(pull_languages), set(new_translations))
 
     def _extension_for(self, i18n_type):
@@ -1370,13 +1409,13 @@ class Project(object):
             self.config.set(r, key, value)
 
     @staticmethod
-    def _save_file(local_file, charset, file_content):
+    def _save_file(local_file="", charset=None, data=None):
         base_dir = os.path.split(local_file)[0]
         utils.mkdir_p(base_dir)
         fd = open(local_file, 'wb')
         if charset is not None:
-            file_content = file_content.encode(charset)
-        fd.write(file_content)
+            data = data.encode(charset)
+        fd.write(data)
         fd.close()
 
     def _set_url_info(self, host, project, resource):
