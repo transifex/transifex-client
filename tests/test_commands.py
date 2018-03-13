@@ -197,7 +197,9 @@ class TestConfigCommand(unittest.TestCase):
         os.mkdir('.tx')
         self.path_to_tx = os.getcwd()
         self.config_file = '.tx/config'
-        open(self.config_file, "w").write('[main]\nhost = https://foo.var\n')
+        self.config_fd = open(self.config_file, "w")
+        self.config_fd.write("[main]\nhost = https://foo.var\n")
+        self.config_fd.close()
 
     def tearDown(self, *args, **kwargs):
         shutil.rmtree('.tx', ignore_errors=False, onerror=None)
