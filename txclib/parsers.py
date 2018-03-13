@@ -392,11 +392,14 @@ def set_parser(subparser=False, is_legacy=False):
         "--execute", action="store_true", dest="execute", default=False,
         help="Execute commands.")
     auto_local_parser.add_argument(
-        "expression", action="store",
-        help="A path expression pointing to the location where translation "
-             "files for the associated source file are/will be saved. Use "
-             "<lang> as a wildcard for the language code, "
-             "e.g. translations/<lang>/test.txt."
+        "--expression", action="store",
+        help=("Expression defining where translation files should be saved. "
+              "Default value is: "
+              "'locale/<lang>/{filepath}/{filename}{extension}'")
+    )
+    auto_local_parser.add_argument(
+        "expression_legacy", action="store", nargs="?",
+        help="DEPRECATED: Use --expression instead."
     )
 
     # auto-remote subparser

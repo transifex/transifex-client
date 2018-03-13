@@ -7,6 +7,7 @@ try:
 except ImportError:
     from io import StringIO
 from mock import patch, MagicMock, call
+from six import assertRaisesRegex
 from txclib.commands import _set_source_file, _set_translation, cmd_pull, \
     cmd_init, cmd_config, cmd_status, cmd_help, UnInitializedError
 from txclib.cmdline import main
@@ -239,7 +240,8 @@ class TestConfigCommand(unittest.TestCase):
             self.assertEqual(config.read(), expected)
 
     def test_auto_locale_no_expression(self):
-        with self.assertRaises(SystemExit):
+        error_msg = "You need to specify an expression"
+        with assertRaisesRegex(self, Exception, error_msg):
             args = [MAPPING, "-r", "project1.resource1",
                     '--source-language', 'en']
             cmd_config(args, self.path_to_tx)
