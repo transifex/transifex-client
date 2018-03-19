@@ -27,7 +27,7 @@ except ImportError:
 from email.parser import Parser
 from urllib3.exceptions import SSLError, HTTPError
 from six.moves import input
-from threading import Thread
+from threading import Thread, current_thread, _MainThread
 from txclib.urls import API_URLS
 from txclib.exceptions import (
     UnknownCommandError, HttpNotFound, HttpNotAuthorized,
@@ -282,6 +282,11 @@ def perform_single_request(method, url, headers, fields, manager, skip_decode,
     except HTTPError:
         logger.error("HTTP error")
         raise
+    except Exception as e:
+        logger.error(str(e))
+        if isinstance(current_thread(), _MainThread):
+            raise
+        return
     finally:
         if response is not None:
             response.close()
