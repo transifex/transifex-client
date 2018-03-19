@@ -101,13 +101,14 @@ def cmd_config(argv, path_to_tx, is_legacy=False):
     """Add local or remote files under transifex"""
     from_wizard = False
     if len(argv) == 0:
-        # since interactive wizard should be equivalant to auto-local
+        # since interactive wizard should be equivalent to auto-local
         # subcommand there are some default options that need to be set
         default_options = {
             'execute': True,
             'subcommand': MAPPING,
             'minimum_perc': 0,
             'mode': None,
+            'expression_legacy': None,
         }
         try:
             # Run the wizard and configure parse with the wizard inputs
@@ -189,7 +190,7 @@ def bare_set(path_to_tx, options):
 
 
 def subcommand_mapping(path_to_tx, options, from_wizard=False):
-    expression = options.expression
+    expression = options.expression or options.expression_legacy
     _auto_local(path_to_tx, options.resource,
                 source_language=options.source_language,
                 expression=expression, source_file=options.source_file,
@@ -274,6 +275,9 @@ def _auto_local(path_to_tx, resource, source_language, expression,
     curpath = os.path.abspath(os.curdir)
 
     # Force expr to be a valid regex expr (escaped) but keep <lang> intact
+    if not expression:
+        raise Exception("You need to specify an expression to define where "
+                        "translation files should be saved.")
     expr_re = utils.regex_from_filefilter(expression, curpath)
     expr_rec = re.compile(expr_re)
 

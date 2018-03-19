@@ -7,6 +7,7 @@ try:
 except ImportError:
     from io import StringIO
 from mock import patch, MagicMock, call
+from six import assertRaisesRegex
 from txclib.commands import _set_source_file, _set_translation, cmd_pull, \
     cmd_init, cmd_config, cmd_status, cmd_help, UnInitializedError
 from txclib.cmdline import main
@@ -197,7 +198,9 @@ class TestConfigCommand(unittest.TestCase):
         os.mkdir('.tx')
         self.path_to_tx = os.getcwd()
         self.config_file = '.tx/config'
-        open(self.config_file, "w").write('[main]\nhost = https://foo.var\n')
+        self.config_fd = open(self.config_file, "w")
+        self.config_fd.write("[main]\nhost = https://foo.var\n")
+        self.config_fd.close()
 
     def tearDown(self, *args, **kwargs):
         shutil.rmtree('.tx', ignore_errors=False, onerror=None)
@@ -237,7 +240,8 @@ class TestConfigCommand(unittest.TestCase):
             self.assertEqual(config.read(), expected)
 
     def test_auto_locale_no_expression(self):
-        with self.assertRaises(SystemExit):
+        error_msg = "You need to specify an expression"
+        with assertRaisesRegex(self, Exception, error_msg):
             args = [MAPPING, "-r", "project1.resource1",
                     '--source-language', 'en']
             cmd_config(args, self.path_to_tx)
