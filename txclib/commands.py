@@ -15,7 +15,6 @@ adding code to this file you must take care of the following:
    descripition field.
 """
 import os
-import re
 import sys
 try:
     import configparser
@@ -278,8 +277,6 @@ def _auto_local(path_to_tx, resource, source_language, expression,
     if not expression:
         raise Exception("You need to specify an expression to define where "
                         "translation files should be saved.")
-    expr_re = utils.regex_from_filefilter(expression, curpath)
-    expr_rec = re.compile(expr_re)
 
     if not execute:
         logger.info("Only printing the commands which will be run if the "
@@ -288,14 +285,11 @@ def _auto_local(path_to_tx, resource, source_language, expression,
     # First, let's construct a dictionary of all matching files.
     # Note: Only the last matching file of a language will be stored.
     translation_files = {}
-    for f_path in utils.files_in_project(curpath):
-        match = expr_rec.match(posix_path(f_path))
-        if match:
-            lang = match.group(1)
-            if lang == source_language and not source_file:
-                source_file = f_path
-            else:
-                translation_files[lang] = f_path
+    for f_path, lang in utils.get_project_files(curpath, expression):
+        if lang == source_language and not source_file:
+            source_file = f_path
+        else:
+            translation_files[lang] = f_path
 
     if not source_file:
         raise Exception("Could not find a source language file. Please run "

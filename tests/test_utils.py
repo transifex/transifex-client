@@ -1,4 +1,6 @@
+import os
 import unittest
+import six
 from mock import patch, MagicMock, mock_open
 from urllib3.exceptions import SSLError
 
@@ -253,3 +255,43 @@ class MakeRequestTestCase(unittest.TestCase):
             isdir_mock.side_effects = [False, True]
             b = utils.get_current_branch('/usr/local/test_cli')
             self.assertEqual(b, 'test_branch/abc')
+
+
+class ProjectFilesTestCase(unittest.TestCase):
+
+    def test_project_files_scanning(self):
+        """
+        Test that the project files filter works as expected.
+        """
+        # XXX: This testcase depends on the current file structure
+
+        # Test with a valid expression on directory-level
+        expressions = ["tests/project_dir/test_expressions/<lang>/test.txt",
+                       "./tests/project_dir/test_expressions/<lang>/test.txt"]
+
+        for expr in expressions:
+            langs = []
+            for file, lang in utils.get_project_files(os.getcwd(), expr):
+                langs.append(lang)
+                self.assertTrue(file.endswith("{}/test.txt".format(lang)))
+            self.assertListEqual(sorted(langs), sorted(["en", "es"]))
+
+        # Test with a valid expression on file-level with different prefixes
+        expressions = ["tests/project_dir/test_expressions/bulk/1.<lang>.po",
+                       "tests/project_dir/test_expressions/bulk/2_<lang>.po",
+                       "tests/project_dir/test_expressions/bulk/3 <lang>.po"]
+
+        for expr in expressions:
+            langs = []
+            for file, lang in utils.get_project_files(os.getcwd(), expr):
+                langs.append(lang)
+                self.assertTrue(file.endswith("{}.po".format(lang)))
+            self.assertListEqual(sorted(langs), sorted(["en_SE", "en"]))
+
+        # Test with an invalid expression that doesn't contain <lang>
+        expression = "tests/project_dir/test_expressions/bulk/1.en.po"
+        msg = r"File filter (.*) does not contain"
+
+        with six.assertRaisesRegex(self, exceptions.MalformedConfigFile, msg):
+            for file, lang in utils.get_project_files(os.getcwd(), expression):
+                pass

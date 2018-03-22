@@ -31,7 +31,7 @@ from threading import Thread, current_thread, _MainThread
 from txclib.urls import API_URLS
 from txclib.exceptions import (
     UnknownCommandError, HttpNotFound, HttpNotAuthorized,
-    AuthenticationError, TXConnectionError,
+    AuthenticationError, TXConnectionError, MalformedConfigFile
 )
 from txclib.paths import posix_path, native_path, posix_sep
 from txclib.web import user_agent_identifier, certs_file
@@ -453,11 +453,37 @@ def color_text(text, color_name, bold=False):
         return text
 
 
-def files_in_project(curpath):
+def _can_walk(base, subdirectories):
     """
-    Iterate over the files in the project.
-    Return each file under ``curpath`` with its absolute name.
+    Determine if the first element of the 'subdirectories' list can be appended
+    to the 'base' path and still specify a directory.
     """
+    # Always consider the last part of the subdirectories the filename
+    if len(subdirectories) < 2:
+        return False
+    # Allow any directory name that doesn't contain the <lang> placeholder
+    return "<lang>" not in subdirectories[0]
+
+
+def get_project_files(curpath, expression):
+    """
+    Iterate over the files in the project that match the given expression.
+    Return a tuple with the absolute file path and the language code of the
+    language that is associated with it.
+    """
+    # Strip the reference to the current directory, if it exists
+    if expression.startswith(".{}".format(os.sep)):
+        expression = expression[2:]
+    # Split the expression into parts
+    expression_parts = expression.split(os.sep)
+    # Merge the expression's path into 'curpath' until the <lang> placeholder
+    # is specified in order to reduce the search tree
+    while _can_walk(curpath, expression_parts):
+        curpath = os.path.realpath(os.path.join(curpath, expression_parts[0]))
+        expression_parts = expression_parts[1:]
+    expr_re = regex_from_filefilter(os.path.join(*expression_parts), curpath)
+    expression_regex = re.compile(expr_re)
+
     visited = set()
     for root, dirs, files in os.walk(curpath, followlinks=True):
         root_realpath = os.path.realpath(root)
@@ -467,8 +493,17 @@ def files_in_project(curpath):
             del dirs[:]
             continue
 
-        for f in files:
-            yield os.path.realpath(os.path.join(root, f))
+        for file_path in files:
+            full_path = os.path.realpath(os.path.join(root, file_path))
+            match = expression_regex.match(posix_path(full_path))
+            if match:
+                try:
+                    lang = match.group(1)
+                except IndexError:
+                    msg = ("File filter '{}' does not contain the '<lang>' "
+                           "placeholder".format(expression))
+                    raise MalformedConfigFile(msg)
+                yield full_path, lang
 
         visited.add(root_realpath)
 
