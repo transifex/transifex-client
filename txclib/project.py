@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import re
 import fnmatch
 import datetime
 import time
@@ -35,7 +34,7 @@ from txclib.exceptions import (
 from txclib.urls import API_URLS
 from txclib.config import Flipdict, CERT_REQUIRED
 from txclib.log import logger
-from txclib.paths import posix_path, native_path, posix_sep
+from txclib.paths import native_path, posix_sep
 from txclib.utils import ProjectNotInit, perform_parallel_requests
 
 
@@ -273,21 +272,12 @@ class Project(object):
                 file_filter += '.xlf'
             source_lang = self.config.get(resource, "source_lang")
             source_file = self.get_source_file(resource)
-            expr_re = utils.regex_from_filefilter(file_filter, self.root)
-            expr_rec = re.compile(expr_re)
-            for f_path in utils.files_in_project(self.root):
-                match = expr_rec.match(posix_path(f_path))
-                if match:
-                    try:
-                        lang = match.group(1)
-                    except IndexError:
-                        msg = ("file_filter {} does not contain '<lang>' "
-                               "expresion".format(file_filter))
-                        raise MalformedConfigFile(msg)
-                    if lang != source_lang:
-                        f_path = os.path.relpath(f_path, self.root)
-                        if f_path != source_file:
-                            tr_files.update({lang: f_path})
+            matched_files = utils.get_project_files(self.root, file_filter)
+            for f_path, lang in matched_files:
+                if lang != source_lang:
+                    f_path = os.path.relpath(f_path, self.root)
+                    if f_path != source_file:
+                        tr_files.update({lang: f_path})
 
             for (name, value) in self.config.items(resource):
                 if name.startswith("trans."):

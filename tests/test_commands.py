@@ -1,3 +1,4 @@
+import fileinput
 import os
 import shutil
 import unittest
@@ -394,6 +395,53 @@ class TestConfigCommand(unittest.TestCase):
         cmd_config(args, self.path_to_tx)
         with open(self.config_file) as config:
             self.assertEqual(config.read(), expected)
+
+    def test_invalid_expression(self):
+        args = [MAPPINGBULK, "-p", "test-project", "--source-file-dir",
+                "translations", "--source-language", "en", "-t", "TXT",
+                "--file-extension", ".txt", "--execute", "--expression",
+                "expression/{filename}{extension}"]
+        with self.assertRaises(SystemExit):
+            cmd_config(args, self.path_to_tx)
+
+    def test_invalid_expression_status(self):
+        """
+        Test how the client handles invalid expressions in file_filter
+        """
+        valid_expression = "test_expressions/<lang>/test.txt"
+        invalid_expression = "test_expressions/{filename}{ext}"
+        args = [MAPPINGBULK, "-p", "test-project", "--source-file-dir",
+                "test_expressions/en", "--source-language", "en", "-t", "TXT",
+                "--file-extension", ".txt", "--execute", "--expression",
+                valid_expression]
+        # Configure the client using a valid expression
+        cmd_config(args, self.path_to_tx)
+
+        # A trick to capture the standard output
+        sys_stdout = sys.stdout
+        out = StringIO()
+        sys.stdout = out
+        # Check for the expected status using the valid expression
+        cmd_status([], None)
+        output = out.getvalue().strip()
+        sys.stdout = sys_stdout
+        self.assertTrue("test_expressions/en/test.txt" in output)
+        self.assertTrue("test_expressions/es/test.txt" in output)
+
+        # Change the configuration file "by hand" and replace the file_filter
+        # with an invalid expression
+        for line in fileinput.input(self.config_file, inplace=True):
+            print(line.replace(valid_expression, invalid_expression))
+
+        sys_stdout = sys.stdout
+        out = StringIO()
+        sys.stdout = out
+        cmd_status([], None)
+        output = out.getvalue().strip()
+        sys.stdout = sys_stdout
+        # Check that the Spanish translation file in not tracked
+        self.assertTrue("test_expressions/en/test.txt" in output)
+        self.assertFalse("test_expressions/es/test.txt" in output)
 
 
 class TestMainCommand(unittest.TestCase):
