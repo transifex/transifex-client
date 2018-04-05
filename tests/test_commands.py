@@ -85,7 +85,6 @@ class TestInitCommand(unittest.TestCase):
         with patch('txclib.commands.project.Project') as project_mock:
             with patch('txclib.commands.cmd_config') as set_mock:
                 cmd_init(argv, '')
-                project_mock.assert_called()
                 set_mock.assert_called_once_with([], os.getcwd())
         self.assertTrue(os.path.exists('./.tx'))
         self.assertTrue(os.path.exists('./.tx/config'))
@@ -96,7 +95,6 @@ class TestInitCommand(unittest.TestCase):
         with patch('txclib.commands.project.Project') as project_mock:
             with patch('txclib.commands.cmd_config') as set_mock:
                 cmd_init(argv, '')
-                project_mock.assert_called()
                 self.assertEqual(set_mock.call_count, 0)
         self.assertTrue(os.path.exists('./.tx'))
         self.assertTrue(os.path.exists('./.tx/config'))
@@ -122,7 +120,6 @@ class TestInitCommand(unittest.TestCase):
         with patch('txclib.commands.project.Project') as project_mock:
             with patch('txclib.commands.cmd_config') as set_mock:
                 cmd_init(argv, '')
-                project_mock.assert_called()
                 set_mock.assert_called()
         self.assertTrue(os.path.exists('./.tx'))
         self.assertEqual(confirm_mock.call_count, 1)
@@ -133,7 +130,6 @@ class TestInitCommand(unittest.TestCase):
         with patch('txclib.commands.project.Project') as project_mock:
             with patch('txclib.commands.cmd_config') as set_mock:
                 cmd_init(argv, '')
-                project_mock.assert_called()
                 set_mock.assert_called()
         self.assertTrue(os.path.exists('./.tx'))
         self.assertTrue(os.path.exists('./.tx/config'))
