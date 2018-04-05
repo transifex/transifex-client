@@ -108,21 +108,32 @@ class Project(object):
 
         save = False
         config_username, config_password = None, None
+
         try:
             config_username = self.txrc.get(host, 'username')
             config_password = self.txrc.get(host, 'password')
+            logger.warn(
+                "Found clear-text credentials in ~/.transifexrc. Storing"
+                " your password in ~/.transifexrc is insecure. Consider"
+                " using the TX_TOKEN environment variable with an API"
+                " token instead.")
         except (configparser.NoOptionError, configparser.NoSectionError):
             save = True
 
         if token:
             password = token
             username = 'api'
+        elif 'TX_TOKEN' in os.environ:
+            password = os.environ['TX_TOKEN']
+            username = 'api'
 
         if not (username and password) and not \
                (config_username and config_password):
-            token = self._token_prompt(host)
             username = 'api'
-            password = token
+            if no_interactive:
+                logger.warn("No credentials configured.")
+            else:
+                password = self._token_prompt(host)
             save = True
         elif config_username and config_password:
             if username == config_username and password == config_password:
@@ -149,8 +160,6 @@ class Project(object):
             logger.info("Updating %s file..." % self.txrc_file)
             if not self.txrc.has_section(host):
                 self.txrc.add_section(host)
-            self.txrc.set(host, 'username', username)
-            self.txrc.set(host, 'password', password)
             self.txrc.set(host, 'hostname', host)
             self.txrc.set(host, 'api_hostname',
                           utils.DEFAULT_HOSTNAMES['api_hostname'])
@@ -889,7 +898,8 @@ class Project(object):
 
         # Read the credentials from the config file (.transifexrc)
         host = self.url_info['host']
-        username, passwd = self.getset_host_credentials(host)
+        username, passwd = self.getset_host_credentials(
+            host, no_interactive=True)
         try:
             hostname = self.txrc.get(host, 'hostname')
         except configparser.NoSectionError:
@@ -1303,14 +1313,15 @@ class Project(object):
 
         host = self.url_info['host']
         try:
-            username = self.txrc.get(host, 'username')
-            passwd = self.txrc.get(host, 'password')
             hostname = self.txrc.get(host, 'hostname')
         except configparser.NoSectionError:
             raise TransifexrcConfigFileError(
                 "No user credentials found for host %s. Edit "
                 "~/.transifexrc and add the appropriate "
                 "info in there." % host)
+
+        username, passwd = self.getset_host_credentials(
+            host, no_interactive=True)
 
         # Create the Url
         kwargs['hostname'] = hostname

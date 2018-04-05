@@ -69,14 +69,14 @@ def main(argv=None):
     try:
         utils.exec_command(cmd, rest, path_to_tx)
     except SSLError as e:
-        logger.error("SSl error %s" % e)
+        logger.error("SSL error %s" % e)
     except utils.UnknownCommandError:
         logger.error("Command %s not found" % cmd)
     except AuthenticationError:
         authentication_failed_message = """
-Error: Authentication failed. Please make sure your credentials are valid. You
-can update your credentials in the ~/.transifexrc file. For more information,
-visit https://docs.transifex.com/client/client-configuration#-transifexrc.
+Error: Authentication failed. Please make sure your credentials are valid.
+For more information, visit:
+https://docs.transifex.com/client/client-configuration#-transifexrc.
 """
         logger.error(authentication_failed_message)
     except Exception as e:

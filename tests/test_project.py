@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import unittest
 import itertools
 try:
@@ -93,8 +94,27 @@ class TestProject(unittest.TestCase):
         username, password = p.getset_host_credentials('test')
         self.assertEqual(username, 'api')
         self.assertEqual(password, dummy_token)
-        self.assertEqual(p.txrc.set.call_count, 4)
+        self.assertEqual(p.txrc.set.call_count, 2)
         self.assertEqual(m_input.call_count, 1)
+        p.save.assert_called()
+
+    @patch('txclib.project.input')
+    @patch('txclib.config.configparser')
+    @patch.dict(os.environ, {'TX_TOKEN': 'environment_value'})
+    def test_getset_host_credentials_env_variable(
+            self, m_parser, m_input):
+        p = Project(init=False)
+        p.txrc = m_parser
+        p.save = Mock()
+        p.validate_credentials = Mock(return_value=True)
+        p.txrc_file = '/tmp'
+        p.txrc.get.side_effect = configparser.NoSectionError('test')
+        username, password = p.getset_host_credentials('test')
+        self.assertEqual(username, 'api')
+        self.assertEqual(password, 'environment_value')
+        self.assertEqual(p.txrc.set.call_count, 2)
+        # no input will be asked, password will be used by environment variable
+        self.assertEqual(m_input.call_count, 0)
         p.save.assert_called()
 
     @patch('txclib.project.utils.confirm')
@@ -143,7 +163,7 @@ class TestProject(unittest.TestCase):
                                                        token=dummy_token)
         self.assertEqual(username, 'api')
         self.assertEqual(password, dummy_token)
-        self.assertEqual(p.txrc.set.call_count, 4)
+        self.assertEqual(p.txrc.set.call_count, 2)
         self.assertEqual(m_input.call_count, 1)
         p.save.assert_called()
 
