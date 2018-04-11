@@ -6,12 +6,14 @@ fi
 # Exit on fail
 set -e
 
+export TX_TOKEN=$TRANSIFEX_TOKEN
+
 # Set up repo, tx config
 rm -rf txci
 git clone https://github.com/transifex/txci.git
 cd txci
 rm -rf .tx
-$TX init --host="https://www.transifex.com" --token=$TRANSIFEX_TOKEN --skipsetup --no-interactive
+$TX init --host="https://www.transifex.com" --skipsetup --no-interactive
 $TX config mapping -r txci.$BRANCH\_$TRANSIFEX_USER\_$RANDOM -s en 'locale/<lang>/LC_MESSAGES/django.po' -t PO --execute
 
 # push/pull without XLIFF

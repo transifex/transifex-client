@@ -75,17 +75,15 @@ def cmd_init(argv, path_to_tx):
         config.write(fh)
         fh.close()
 
-    prj = project.Project(path_to_tx)
-    prj.getset_host_credentials(transifex_host, username=options.user,
-                                password=options.password,
-                                token=options.token, force=options.save,
-                                no_interactive=options.no_interactive)
-    prj.save()
-
     if not options.skipsetup and not options.no_interactive:
         logger.info(messages.running_tx_set)
         cmd_config([], path_to_tx)
     else:
+        prj = project.Project(path_to_tx)
+        prj.getset_host_credentials(transifex_host, username=options.user,
+                                    password=options.password,
+                                    token=options.token, force=options.save,
+                                    no_interactive=options.no_interactive)
         logger.info("Done.")
 
 
