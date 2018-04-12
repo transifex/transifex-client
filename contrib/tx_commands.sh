@@ -1,6 +1,7 @@
-if [[ -z "$TRANSIFEX_USER" || -z "$TRANSIFEX_TOKEN" ]] ; then
-	echo "NB: Skipping tests of $TX since TRANSIFEX_USER or TRANSIFEX_TOKEN is undefined or empty"
-	exit 0
+if [[ -z "$TRANSIFEX_USER" || -z "$TRANSIFEX_TOKEN" || -z "$TRANSIFEX_PROJECT" ]] ; then
+    echo "NB: Skipping tests of $TX since TRANSIFEX_USER or TRANSIFEX_TOKEN or TRANSIFEX_PROJECT is undefined or empty"
+    test "${CIRCLE_BRANCH}" = master
+    exit $?
 fi
 
 # Exit on fail
@@ -14,7 +15,7 @@ git clone https://github.com/transifex/txci.git
 cd txci
 rm -rf .tx
 $TX init --host="https://www.transifex.com" --skipsetup --no-interactive
-$TX config mapping -r txci.$BRANCH\_$TRANSIFEX_USER\_$RANDOM -s en 'locale/<lang>/LC_MESSAGES/django.po' -t PO --execute
+$TX config mapping -r $TRANSIFEX_PROJECT.$BRANCH\_$TRANSIFEX_USER\_$RANDOM -s en 'locale/<lang>/LC_MESSAGES/django.po' -t PO --execute
 
 # push/pull without XLIFF
 echo "Pushing Source..."
@@ -54,6 +55,7 @@ IFS=','  # This is needed for splitting the languages list
 for lang_code in $LANGS; do
     ls locale/$lang_code/LC_MESSAGES/django.po
 done
+IFS=' ' # Revert splitting back to normal (using spaces)
 
 # upload xliff
 echo "Pushing xliff for pt_BR"
