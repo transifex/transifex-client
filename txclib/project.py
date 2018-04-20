@@ -45,7 +45,7 @@ DEFAULT_API_HOSTNAME = "https://api.transifex.com"
 
 
 class Project(object):
-    """Represents an association between the local and
+    """Represent an association between the local and
     remote project instances.
     """
 
@@ -108,32 +108,42 @@ class Project(object):
 
         save = False
         config_username, config_password = None, None
+        if 'TX_TOKEN' in os.environ:
+            # User api info from environment variable
+            password = os.environ['TX_TOKEN']
+            username = 'api'
+            """We need to check if hostname info exists in the .transifexrc file
+            If not, it means that this is the first time this function runs, so
+            we need to create its data.
+            """
+            save = self._add_host_to_config_file(host)
+            if save:
+                logger.info("Using TX_TOKEN environment variable. Credentials "
+                            "in .transifexrc won't be updated")
+                self.save()
+            if token:
+                # Both env and argument given, inform the user
+                logger.warning(
+                    "A token has been found in TX_TOKEN env variable "
+                    "and --token argument. The latter will be ignored and no "
+                    "data will be saved in the .transifexrc file"
+                )
+            return username, password
 
         try:
             config_username = self.txrc.get(host, 'username')
             config_password = self.txrc.get(host, 'password')
-            logger.warn(
-                "Found clear-text credentials in ~/.transifexrc. Storing"
-                " your password in ~/.transifexrc is insecure. Consider"
-                " using the TX_TOKEN environment variable with an API"
-                " token instead.")
         except (configparser.NoOptionError, configparser.NoSectionError):
             save = True
 
         if token:
             password = token
             username = 'api'
-        elif 'TX_TOKEN' in os.environ:
-            password = os.environ['TX_TOKEN']
-            username = 'api'
 
         if not (username and password) and not \
                (config_username and config_password):
             username = 'api'
-            if no_interactive:
-                logger.warn("No credentials configured.")
-            else:
-                password = self._token_prompt(host)
+            password = self._token_prompt(host)
             save = True
         elif config_username and config_password:
             if username == config_username and password == config_password:
@@ -157,14 +167,28 @@ class Project(object):
             save = True
 
         if save:
+            self._add_host_to_config_file(host)
+            self.txrc.set(host, 'username', username)
+            self.txrc.set(host, 'password', password)
+            self.save()
+        return username, password
+
+    def _add_host_to_config_file(self, host):
+        """Check if a given host exists in .transifexrc, and if not it
+        updates the file with the appropriate info.
+
+        :param str host: The hostname to search for and add if needed.
+        :return: True if adding a new host, nothing otherwise.
+        :rtype: bool
+        """
+        if not self.txrc.has_section(host):
             logger.info("Updating %s file..." % self.txrc_file)
-            if not self.txrc.has_section(host):
-                self.txrc.add_section(host)
+            self.txrc.add_section(host)
             self.txrc.set(host, 'hostname', host)
             self.txrc.set(host, 'api_hostname',
                           utils.DEFAULT_HOSTNAMES['api_hostname'])
-            self.save()
-        return username, password
+            return True
+        return False
 
     def _token_prompt(self, host):
         token = None
@@ -203,7 +227,7 @@ class Project(object):
             self.config.set(resource, 'host', host)
 
     def get_resource_host(self, resource):
-        """Returns the host that the resource is configured to use.
+        """Return the host that the resource is configured to use.
         If there is no such option we return the default one.
         """
         return self.config.get('main', 'host')
@@ -898,8 +922,7 @@ class Project(object):
 
         # Read the credentials from the config file (.transifexrc)
         host = self.url_info['host']
-        username, passwd = self.getset_host_credentials(
-            host, no_interactive=True)
+        username, passwd = self.getset_host_credentials(host)
         try:
             hostname = self.txrc.get(host, 'hostname')
         except configparser.NoSectionError:
@@ -1314,14 +1337,12 @@ class Project(object):
         host = self.url_info['host']
         try:
             hostname = self.txrc.get(host, 'hostname')
+            username, passwd = self.getset_host_credentials(host)
         except configparser.NoSectionError:
             raise TransifexrcConfigFileError(
                 "No user credentials found for host %s. Edit "
                 "~/.transifexrc and add the appropriate "
                 "info in there." % host)
-
-        username, passwd = self.getset_host_credentials(
-            host, no_interactive=True)
 
         # Create the Url
         kwargs['hostname'] = hostname

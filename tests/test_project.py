@@ -106,9 +106,8 @@ class TestProject(unittest.TestCase):
         p = Project(init=False)
         p.txrc = m_parser
         p.save = Mock()
-        p.validate_credentials = Mock(return_value=True)
         p.txrc_file = '/tmp'
-        p.txrc.get.side_effect = configparser.NoSectionError('test')
+        p.txrc.has_section.side_effect = [False]
         username, password = p.getset_host_credentials('test')
         self.assertEqual(username, 'api')
         self.assertEqual(password, 'environment_value')
@@ -116,6 +115,43 @@ class TestProject(unittest.TestCase):
         # no input will be asked, password will be used by environment variable
         self.assertEqual(m_input.call_count, 0)
         p.save.assert_called()
+
+    @patch('txclib.project.input')
+    @patch('txclib.config.configparser')
+    @patch.dict(os.environ, {'TX_TOKEN': 'environment_value'})
+    def test_getset_host_credentials_env_variable_first_time(
+            self, m_parser, m_input):
+        p = Project(init=False)
+        p.txrc = m_parser
+        p.save = Mock()
+        p.txrc_file = '/tmp'
+        p.txrc.has_section.side_effect = [False]
+        username, password = p.getset_host_credentials('test')
+        self.assertEqual(username, 'api')
+        self.assertEqual(password, 'environment_value')
+        # ensure that we have set host in the txrc_file, even though TX_TOKEN
+        # exists
+        self.assertEqual(p.txrc.set.call_count, 2)
+        p.save.assert_called()
+
+    @patch('txclib.config.configparser')
+    @patch("txclib.project.logger")
+    @patch.dict(os.environ, {'TX_TOKEN': 'environment_value'})
+    def test_getset_host_credentials_both_token_and_env(
+            self, m_logger, m_parser):
+        p = Project(init=False)
+        p.txrc = m_parser
+        p.save = Mock()
+        p.txrc_file = '/tmp'
+        p.txrc.has_section.side_effect = [False]
+        username, password = p.getset_host_credentials('test', token='demo')
+        self.assertEqual(username, 'api')
+        self.assertEqual(password, 'environment_value')
+        # ensure that we did not make additional calls to set the token in the
+        # txrc file
+        self.assertEqual(p.txrc.set.call_count, 2)
+        p.save.assert_called()
+        self.assertEqual(m_logger.warning.call_count, 1)
 
     @patch('txclib.project.utils.confirm')
     @patch('txclib.config.configparser')
