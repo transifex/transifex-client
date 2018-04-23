@@ -453,7 +453,7 @@ def cmd_pull(argv, path_to_tx):
         fetchall=options.fetchall, fetchsource=options.fetchsource,
         force=options.force, skip=skip, minimum_perc=minimum_perc,
         mode=options.mode, pseudo=pseudo, xliff=xliff, branch=branch,
-        parallel=parallel,
+        parallel=parallel, no_interactive=options.no_interactive,
     )
     logger.info("Done.")
 
