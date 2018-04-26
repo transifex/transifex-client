@@ -42,6 +42,7 @@ DEFAULT_PULL_URL = 'pull_file'
 PULL_MODE_URL_NAME = "pull_{mode}_file"
 
 DEFAULT_API_HOSTNAME = "https://api.transifex.com"
+API_USERNAME = api.Api.USERNAME
 
 
 class Project(object):
@@ -111,7 +112,7 @@ class Project(object):
         if 'TX_TOKEN' in os.environ:
             # User api info from environment variable
             password = os.environ['TX_TOKEN']
-            username = 'api'
+            username = API_USERNAME
             """We need to check if hostname info exists in the .transifexrc file
             If not, it means that this is the first time this function runs, so
             we need to create its data.
@@ -119,14 +120,14 @@ class Project(object):
             save = self._add_host_to_config_file(host)
             if save:
                 logger.info("Using TX_TOKEN environment variable. Credentials "
-                            "in .transifexrc won't be updated")
+                            "won't be saved to .transifexrc.")
                 self.save()
             if token:
                 # Both env and argument given, inform the user
                 logger.warning(
-                    "A token has been found in TX_TOKEN env variable "
-                    "and --token argument. The latter will be ignored and no "
-                    "data will be saved in the .transifexrc file"
+                    "There is a token in the TX_TOKEN env variable and the "
+                    "--token argument. The latter will be ignored and no "
+                    "credentials will be saved to the .transifexrc file."
                 )
             return username, password
 
@@ -138,11 +139,11 @@ class Project(object):
 
         if token:
             password = token
-            username = 'api'
+            username = API_USERNAME
 
         if not (username and password) and not \
                (config_username and config_password):
-            username = 'api'
+            username = API_USERNAME
             password = self._token_prompt(host)
             save = True
         elif config_username and config_password:
@@ -162,7 +163,7 @@ class Project(object):
         # validation and prompt the use for a token if the validation fails
         if only_token and not self.validate_credentials(username, password):
             logger.info("You need a valid api token to proceed")
-            username = 'api'
+            username = API_USERNAME
             password = self._token_prompt(host)
             save = True
 
@@ -196,7 +197,7 @@ class Project(object):
         while not token:
             token = input(utils.color_text(messages.token_msg, COLOR))
             print(utils.color_text("Verifying token...", "YELLOW"))
-            if not self.validate_credentials('api', token, host):
+            if not self.validate_credentials(API_USERNAME, token, host):
                 logger.info(messages.token_validation_failed)
                 token = None
         return token
