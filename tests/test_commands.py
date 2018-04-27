@@ -82,7 +82,7 @@ class TestInitCommand(unittest.TestCase):
     def test_init(self):
         argv = []
         config_text = "[main]\nhost = https://www.transifex.com\n\n"
-        with patch('txclib.commands.project.Project') as project_mock:
+        with patch('txclib.commands.project.Project'):
             with patch('txclib.commands.cmd_config') as set_mock:
                 cmd_init(argv, '')
                 set_mock.assert_called_once_with([], os.getcwd())
@@ -92,7 +92,7 @@ class TestInitCommand(unittest.TestCase):
 
     def test_init_skipsetup(self):
         argv = ['--skipsetup']
-        with patch('txclib.commands.project.Project') as project_mock:
+        with patch('txclib.commands.project.Project'):
             with patch('txclib.commands.cmd_config') as set_mock:
                 cmd_init(argv, '')
                 self.assertEqual(set_mock.call_count, 0)
@@ -117,7 +117,7 @@ class TestInitCommand(unittest.TestCase):
         open('./.tx/config', 'a').close()
         argv = []
         confirm_mock.return_value = True
-        with patch('txclib.commands.project.Project') as project_mock:
+        with patch('txclib.commands.project.Project'):
             with patch('txclib.commands.cmd_config') as set_mock:
                 cmd_init(argv, '')
                 set_mock.assert_called()
@@ -127,7 +127,7 @@ class TestInitCommand(unittest.TestCase):
     def test_init_force_save(self):
         os.mkdir('./.tx')
         argv = ['--force-save']
-        with patch('txclib.commands.project.Project') as project_mock:
+        with patch('txclib.commands.project.Project'):
             with patch('txclib.commands.cmd_config') as set_mock:
                 cmd_init(argv, '')
                 set_mock.assert_called()

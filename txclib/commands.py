@@ -84,6 +84,7 @@ def cmd_init(argv, path_to_tx):
                                     password=options.password,
                                     token=options.token, force=options.save,
                                     no_interactive=options.no_interactive)
+        prj.save()
         logger.info("Done.")
 
 
