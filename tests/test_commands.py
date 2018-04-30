@@ -163,7 +163,7 @@ class TestPullCommand(unittest.TestCase):
             branch='a-branch', fetchall=False, fetchsource=False,
             force=False, languages=[], minimum_perc=None, mode=None,
             overwrite=True, pseudo=False, resources=[], skip=False,
-            xliff=False, parallel=False
+            xliff=False, parallel=False, no_interactive=False
         )
         pr_instance.pull.assert_has_calls([pull_call])
 
@@ -182,8 +182,23 @@ class TestPullCommand(unittest.TestCase):
             branch='somebranch', fetchall=False, fetchsource=False,
             force=False, languages=[], minimum_perc=None, mode=None,
             overwrite=True, pseudo=False, resources=[], skip=False,
-            xliff=False, parallel=False
+            xliff=False, parallel=False, no_interactive=False
         )
+        pr_instance.pull.assert_has_calls([pull_call])
+
+    @patch('txclib.commands.project')
+    def test_pull_with_no_interactive(self, project_mock):
+        pr_instance = MagicMock()
+        pr_instance.pull.return_value = True
+        project_mock.Project.return_value = pr_instance
+        cmd_pull(['--no-interactive'], '.')
+        pull_call = call(
+            fetchall=False, force=False, minimum_perc=None,
+            skip=False, no_interactive=True, resources=[], pseudo=False,
+            languages=[], fetchsource=False, mode=None, branch=None,
+            xliff=False, parallel=False, overwrite=True
+        )
+        self.assertEqual(pr_instance.pull.call_count, 1)
         pr_instance.pull.assert_has_calls([pull_call])
 
 

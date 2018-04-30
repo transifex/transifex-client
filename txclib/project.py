@@ -144,7 +144,8 @@ class Project(object):
         if not (username and password) and not \
                (config_username and config_password):
             username = API_USERNAME
-            password = self._token_prompt(host)
+            if not no_interactive:
+                password = self._token_prompt(host)
             save = True
         elif config_username and config_password:
             if username == config_username and password == config_password:
@@ -391,7 +392,7 @@ class Project(object):
     def pull(self, languages=None, resources=None, overwrite=True,
              fetchall=False, fetchsource=False, force=False, skip=False,
              minimum_perc=0, mode=None, pseudo=False, xliff=False, branch=None,
-             parallel=False):
+             parallel=False, no_interactive=False):
         """Pull all translations file from Transifex server."""
         languages = languages or []
         resources = resources or []
@@ -422,7 +423,9 @@ class Project(object):
             logger.debug("URL data are: %s" % self.url_info)
 
             try:
-                stats = self._get_stats_for_resource()
+                stats = self._get_stats_for_resource(
+                    no_interactive=no_interactive
+                )
                 details_response, _ = self.do_url_request('resource_details')
             except Exception as e:
                 if isinstance(e, HttpNotAuthorized):
@@ -916,14 +919,17 @@ class Project(object):
 
     def do_url_request(self, api_call, multipart=False, data=None,
                        files=None, method="GET", skip_decode=False,
-                       params=None, parallel=False, **kwargs):
+                       params=None, parallel=False, no_interactive=False,
+                       **kwargs):
         """Issues a url request."""
         files = files or []
         params = params or {}
 
         # Read the credentials from the config file (.transifexrc)
         host = self.url_info['host']
-        username, passwd = self.getset_host_credentials(host)
+        username, passwd = self.getset_host_credentials(
+            host, no_interactive=no_interactive
+        )
         try:
             hostname = self.txrc.get(host, 'hostname')
         except configparser.NoSectionError:
@@ -1223,10 +1229,12 @@ class Project(object):
                 new_translations.append(lang)
         return set(new_translations)
 
-    def _get_stats_for_resource(self):
+    def _get_stats_for_resource(self, no_interactive=False):
         """Get the statistics information for a resource."""
         try:
-            r, charset = self.do_url_request('resource_stats')
+            r, charset = self.do_url_request(
+                'resource_stats', no_interactive=no_interactive
+            )
             logger.debug("Statistics response is %s" % r)
             stats = utils.parse_json(r)
         except utils.HttpNotFound:

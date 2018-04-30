@@ -198,6 +198,9 @@ def pull_parser():
                         "file as xliff.")
     parser.add_argument("--parallel", action="store_true", default=False,
                         help="perform push/pull requests in parallel")
+    parser.add_argument("--no-interactive", action="store_true",
+                        dest="no_interactive", default=False,
+                        help="Don't require user input.")
     return parser
 
 
