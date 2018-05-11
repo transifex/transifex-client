@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
-"""In this file we have all the top level commands for the transifex client.
-Since we're using a way to automatically list them and execute them, when
-adding code to this file you must take care of the following:
+"""
+In this file we have all the top level commands for the Transifex client. Since
+we're using a way to automatically list them and execute them, when adding code
+to this file you must take care of the following:
  * Added functions must begin with 'cmd_' followed by the actual name of the
-   command being used in the command line (eg cmd_init)
+   command being used in the command line (e.g. cmd_init)
  * The description for each function that we display to the user is read from
    the func_doc attribute which reads the doc string. So, when adding
-   docstring to a new function make sure you add an oneliner which is
+   docstring to a new function make sure you add an one-liner which is
    descriptive and is meant to be seen by the user.
  * When including libraries, it's best if you include modules instead of
    functions because that way our function resolution will work faster and the
    chances of overlapping are minimal
  * All functions should use the OptionParser and should have a usage and
-   descripition field.
+   description field.
 """
 import os
 import sys
@@ -35,7 +36,7 @@ from txclib import messages
 
 
 def cmd_init(argv, path_to_tx):
-    """Initialize a new transifex project."""
+    """Initialize a new Transifex project."""
     parser = init_parser()
     options = parser.parse_args(argv)
     path_to_tx = options.path_to_tx or os.getcwd()
@@ -89,14 +90,16 @@ def cmd_init(argv, path_to_tx):
 
 
 def cmd_set(argv, path_to_tx):
-    """Add local or remote files under transifex. Warning: \
-This command will be deprecated in a future release of the \
-client. You should use the `tx config` command."""
+    """
+    Add local or remote files under Transifex. Warning: This command will be
+    deprecated in a future release of the client. You should use the
+    `tx config` command.
+    """
     cmd_config(argv, path_to_tx, is_legacy=True)
 
 
 def cmd_config(argv, path_to_tx, is_legacy=False):
-    """Add local or remote files under transifex"""
+    """Add local or remote files under Transifex"""
     from_wizard = False
     if len(argv) == 0:
         # since interactive wizard should be equivalent to auto-local
@@ -219,7 +222,7 @@ def _print_instructions(resource, path_to_tx):
 
 
 def subcommand_mapping_bulk(path_to_tx, options, **kwargs):
-    """Add local files for multiple resources under transifex"""
+    """Add local files for multiple resources under Transifex"""
 
     if not options.file_extension.startswith('.'):
         file_extension = '.{}'.format(options.file_extension)
@@ -321,7 +324,7 @@ def _auto_local(path_to_tx, resource, source_language, expression,
     if execute:
         logger.info("Updating file expression for resource %s ( %s )." % (
                     resource, expression))
-        # Eval file_filter relative to root dir
+        # Evaluate file_filter relative to root dir
         file_filter = posix_path(
             os.path.relpath(os.path.join(curpath, expression), path_to_tx)
         )
@@ -590,7 +593,7 @@ def cmd_help(argv, path_to_tx):
     # or print summary of all commands
 
     # the code below will only be executed if the KeyError exception is thrown
-    # becuase in all other cases the function called with --help will exit
+    # because in all other cases the function called with --help will exit
     # instead of return here
     keys = list(fns.keys())
     keys.sort()
@@ -620,7 +623,7 @@ def _go_to_dir(path):
     argument.
 
     Args:
-        path: The path to chdor to.
+        path: The path to chdir to.
     Raises:
         UnInitializedError, in case the directory has not been initialized.
     """
@@ -651,7 +654,7 @@ def _set_type(resource, value, path_to_tx):
 
 
 def _set_project_option(resource, name, value, path_to_tx, func_name):
-    """Save the option to the project config file."""
+    """Save the option to the project configuration file."""
     if value is None:
         return
     if not resource:

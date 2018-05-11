@@ -46,8 +46,8 @@ API_USERNAME = api.Api.USERNAME
 
 
 class Project(object):
-    """Represent an association between the local and
-    remote project instances.
+    """
+    Represent an association between the local and remote project instances.
     """
 
     SKIP_DECODE_I18N_TYPES = ['DOCX', 'XLSX']
@@ -113,7 +113,8 @@ class Project(object):
             # User api info from environment variable
             password = os.environ['TX_TOKEN']
             username = API_USERNAME
-            """We need to check if hostname info exists in the .transifexrc file
+            """
+            We need to check if hostname info exists in the .transifexrc file
             If not, it means that this is the first time this function runs, so
             we need to create its data.
             """
@@ -163,7 +164,7 @@ class Project(object):
         # api we can only use a token and not a password so we do an extra
         # validation and prompt the use for a token if the validation fails
         if only_token and not self.validate_credentials(username, password):
-            logger.info("You need a valid api token to proceed")
+            logger.info("You need a valid API token to proceed")
             username = API_USERNAME
             password = self._token_prompt(host)
             save = True
@@ -205,7 +206,7 @@ class Project(object):
 
     def set_remote_resource(self, resource, source_lang, i18n_type, host,
                             file_filter=None):
-        """Method to handle the add/conf of a remote resource."""
+        """Method to handle the addition/configuration of a remote resource."""
         if file_filter is None:
             file_filter = self.FILE_FILTER
 
@@ -287,7 +288,7 @@ class Project(object):
     def get_resource_files(self, resource, xliff=False):
         """Get a dict for all files assigned to a resource.
         First we calculate the files matching the file expression and
-        then we apply all translation excpetions.
+        then we apply all translation exceptions.
         The resulting dict will be in this format:
 
         { 'en': 'path/foo/en/bar.po',
@@ -349,7 +350,7 @@ class Project(object):
         return None
 
     def get_resource_list(self, project=None):
-        """Parse config file and return tuples with the following format
+        """Parse configuration file and return tuples with the following format
 
         [ (project_slug, resource_slug), (..., ...)]
         """
@@ -366,8 +367,9 @@ class Project(object):
         return resource_list
 
     def save(self):
-        """Store the config dictionary
-        in the .tx/config file of the project.
+        """
+        Store the configuration dictionary in the .tx/config file of the
+        project.
         """
         utils.save_tx_config(self.config_file, self.config)
         utils.save_txrc_file(self.txrc_file, self.txrc)
@@ -1274,10 +1276,10 @@ class Project(object):
         return selected_resources
 
     def _languages_to_pull(self, languages, files, lang_map, stats, force):
-        """Get a set of langauges to pull.
+        """Get a set of languages to pull.
 
         Args:
-            languages: A list of languages the user selected in cmd.
+            languages: A list of languages the user selected in command.
             files: A dictionary of current local translation files.
         Returns:
             A tuple of a set of existing languages and new translations.
@@ -1383,7 +1385,7 @@ class Project(object):
         return r
 
     def _get_url_by_pull_mode(self, mode):
-        """Get the url by the pull mode.
+        """Get the URL by the pull mode.
 
         If the pull mode is not valid, the default pull mode will be used.
         """
@@ -1399,7 +1401,7 @@ class Project(object):
         return DEFAULT_PULL_URL
 
     def _get_option(self, resource, option):
-        """Get the value for the option in the config file.
+        """Get the value for the option in the configuration file.
 
         If the option is not in the resource section, look for it in
         the project.
@@ -1429,7 +1431,7 @@ class Project(object):
         self._set_resource_option(resources, key='mode', value=mode)
 
     def _set_resource_option(self, resources, key, value):
-        """Set options in the config file.
+        """Set options in the configuration file.
 
         If resources is empty. set the option globally.
         """

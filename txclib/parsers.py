@@ -99,11 +99,13 @@ def help_parser():
 
 def init_parser():
     """Return the command-line parser for the init command."""
-    description = "This command initializes a new project for use with "\
-        "Transifex. It is recommended to execute this command in the "\
-        "top level directory of your project so that you can include "\
-        "all files under it in transifex. If no path is provided, the "\
-        "current working dir will be used."
+    description = (
+        "This command initializes a new project for use with Transifex. It "
+        "is recommended to execute this command in the top level directory "
+        "of your project so that you can include all files under it in "
+        "Transifex. If no path is provided, the current working directory"
+        "will be used."
+    )
     parser = ArgumentParser(description=description)
     parser.add_argument("--host", action="store", dest="host", default=None,
                         help="Specify a default Transifex host.")

@@ -36,13 +36,13 @@ class Api(object):
 
     def get(self, api_call, *args, **kwargs):
         """
-        Performs the GET api call specified by api_call and
+        Performs the GET API call specified by api_call and
         parses the response
         """
         # mock response
         if api_call not in self.VALID_CALLS:
             raise Exception(
-                "Tried to perform unsupported api call {}".format(
+                "Tried to perform unsupported API call {}".format(
                     api_call
                 )
             )

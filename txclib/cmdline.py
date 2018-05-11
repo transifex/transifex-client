@@ -94,7 +94,6 @@ https://docs.transifex.com/client/client-configuration#-transifexrc.
     sys.exit(1)
 
 
-# Run baby :) ... run
 if __name__ == "__main__":
     # sys.argv[0] is the name of the script that we’re running.
     main()
