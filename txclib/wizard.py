@@ -122,6 +122,8 @@ class Wizard(object):
 
         formats = [(k, display_format(v)) for k, v in formats.items()
                    if extension in v['file-extensions']]
+        if not formats:
+            raise Exception(messages.TEXTS['formats']['empty'])
         return sorted(formats, key=lambda x: x[0])
 
     def run(self):

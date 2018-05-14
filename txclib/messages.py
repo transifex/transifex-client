@@ -64,6 +64,7 @@ Here’s a list of the supported file formats. For more information,
 check our docs at https://docs.transifex.com/formats/.
 """),
         "error": "Error: Invalid choice. Enter the number corresponding with the format you wish to select.",
+        "empty": "No formats found for this file extension. For more information, check our docs at https://docs.transifex.com/formats/",
         "message": "[?] Select the file format type [{r}]: ",
     },
     "organization": {

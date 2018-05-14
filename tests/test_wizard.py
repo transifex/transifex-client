@@ -3,6 +3,8 @@
 import unittest
 from mock import patch, MagicMock
 
+from six import assertRaisesRegex
+
 from txclib.wizard import Wizard
 
 
@@ -95,6 +97,27 @@ class WizardCase(unittest.TestCase):
             [("INI", "Joomla INI File - .ini"),
              ("SRT", "SubRip subtitles - .srt")]
         )
+
+    def test_unsupported_formats(self, api_mock):
+        self.wizard.api.get.return_value = {
+            "INI": {
+                "mimetype": "text/plain",
+                "file-extensions": ".ini",
+                "description": "Joomla INI File"
+            },
+            "SRT": {
+                "mimetype": "text/plain",
+                "file-extensions": ".srt",
+                "description": "SubRip subtitles"
+            }
+        }
+        error_msg = "No formats found for this file"
+        with assertRaisesRegex(self, Exception, error_msg):
+            self.wizard.get_formats('test.srt.txt')
+        with assertRaisesRegex(self, Exception, error_msg):
+            self.wizard.get_formats('test.init')
+        with assertRaisesRegex(self, Exception, error_msg):
+            self.wizard.get_formats('test.txt')
 
     @patch('txclib.wizard.os.path.isfile')
     def test_run(self, api_mock, isfile_mock):
