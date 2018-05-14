@@ -117,7 +117,7 @@ def parse_tx_url(url):
         if m:
             return type_, m.groupdict()
     raise Exception(
-        "tx: Malformed url given."
+        "tx: Malformed URL given."
         " Please refer to our docs: http://bit.ly/txcconfig"
     )
 
@@ -440,7 +440,7 @@ DISABLE_COLORS = False
 
 def color_text(text, color_name, bold=False):
     """
-    This command can be used to colorify command line output. If the shell
+    This command can be used to colorize command line output. If the shell
     doesn't support this or the --disable-colors options has been set, it just
     returns the plain text.
     Usage:
@@ -582,7 +582,7 @@ def get_tx_dir_path(path_to_tx):
 
 
 def read_config_file(config_file):
-    """Parse the config file and return its contents."""
+    """Parse the configuration file and return its contents."""
     config = OrderedRawConfigParser()
     try:
         config.read(config_file)
@@ -659,7 +659,7 @@ def get_transifex_file(directory=None):
 
 
 def save_tx_config(config_file, config):
-    """Save the local config file."""
+    """Save the local configuration file."""
     fh = open(config_file, "w")
     config.write(fh)
     fh.close()

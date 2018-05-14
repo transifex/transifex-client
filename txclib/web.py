@@ -2,7 +2,7 @@
 
 import os
 import platform
-from pkg_resources import resource_filename, resource_string
+from pkg_resources import resource_filename
 import txclib
 
 
