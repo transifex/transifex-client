@@ -23,7 +23,7 @@ setup(
     license="GPLv2",
     dependency_links=[],
     setup_requires=[],
-    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,<3.8",
+    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,<3.8",
     install_requires=get_file_content("requirements.txt").splitlines(),
     tests_require=["mock"],
     data_files=[],
