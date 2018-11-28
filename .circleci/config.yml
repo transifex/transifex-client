@@ -5,10 +5,8 @@ jobs:
     environment:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
-      TOX_PY27: 2.7.13
-      TOX_PY35: 3.5.5
-      TOX_PY36: 3.6.5
-      TOX_PY37: 3.7-dev
+      TOX_PY2: 2.7.13
+      TOX_PY3: 3.7.0
     # To see the list of pre-built images that CircleCI provides for most
     # common languages see
     # https://circleci.com/docs/2.0/circleci-images/
@@ -40,11 +38,9 @@ jobs:
     # This is based on your 1.0 configuration file or project settings
     - run: pip -V
     - run: pip install -U ipdb
-    - run: pyenv install -s $TOX_PY27
-    - run: pyenv install -s $TOX_PY35
-    - run: pyenv install -s $TOX_PY36
-    - run: pyenv install -s $TOX_PY37
-    - run: pyenv local $TOX_PY27 $TOX_PY35 $TOX_PY36 $TOX_PY37
+    - run: pyenv install -s $TOX_PY2
+    - run: pyenv install -s $TOX_PY3
+    - run: pyenv local $TOX_PY2 $TOX_PY3
     # Save dependency cache
     - save_cache:
         key: txclient-{{ .Branch }}-{{ epoch }}
