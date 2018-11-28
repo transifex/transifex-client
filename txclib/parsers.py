@@ -103,7 +103,7 @@ def init_parser():
         "This command initializes a new project for use with Transifex. It "
         "is recommended to execute this command in the top level directory "
         "of your project so that you can include all files under it in "
-        "Transifex. If no path is provided, the current working directory"
+        "Transifex. If no path is provided, the current working directory "
         "will be used."
     )
     parser = ArgumentParser(description=description)
