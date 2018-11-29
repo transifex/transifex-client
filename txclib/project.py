@@ -544,7 +544,7 @@ class Project(object):
                 if not overwrite:
                     local_file += ".new"
 
-                logger.warning(
+                logger.info(
                     " -> %s: %s" % (utils.color_text(remote_lang, "RED"),
                                     local_file)
                 )
