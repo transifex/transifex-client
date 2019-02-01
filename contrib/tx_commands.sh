@@ -61,5 +61,6 @@ IFS=' ' # Revert splitting back to normal (using spaces)
 echo "Pushing xliff for pt_BR"
 $TX --traceback push -t -l pt_BR --xliff -f --no-interactive
 
-
-$TX --traceback delete -f
+# Retrying logic to delete resource. This is an ugly hack necessitated by a random
+# 'Conflict/Duplicate' server error occuring when trying to delete the resource
+for i in 1 2 3 4; do echo "Attempt to delete Source..."; $TX --traceback delete -f && break || sleep 20; done

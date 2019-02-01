@@ -1,43 +1,37 @@
-branches:
-  only:
-    - master
+# Notes:
+#   - Indent each level of configuration with 2 spaces. Do not use tabs!
+#   - All section names are case-sensitive.
+#   - Section names should be unique on each level.
 
+#   This file is based on the following resources:
+#   - https://www.appveyor.com/docs/appveyor-yml/  (appveyor yaml reference)
+#   - https://www.appveyor.com/docs/lang/python/   (using python stack in appveyor)
+#   - https://packaging.python.org/guides/supporting-windows-using-appveyor/
+#   - https://github.com/ogrisel/python-appveyor-demo
+
+#---------------------------------#
+#      general configuration      #
+#---------------------------------#
+# version format
+version: 1.0.{build}
+
+# Start builds on tags only (GitHub, BitBucket, GitLab, Gitea)
+# skip_non_tags: true
+
+#---------------------------------#
+#    environment configuration    #
+#---------------------------------#
 environment:
-  global:
-    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
-    # /E:ON and /V:ON options are not enabled in the batch script intepreter
-    # See: http://stackoverflow.com/a/13751649/163740
-    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_env.cmd"
-
   matrix:
-
     - PYTHON: "C:\\Python27"
-      PYTHON_VERSION: "2.7.x"
-      PYTHON_ARCH: "32"
-
     - PYTHON: "C:\\Python27-x64"
-      PYTHON_VERSION: "2.7.x"
-      PYTHON_ARCH: "64"
-
-    - PYTHON: "C:\\Python35"
-      PYTHON_VERSION: "3.5.x"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python35-x64"
-      PYTHON_VERSION: "3.5.x"
-      PYTHON_ARCH: "64"
-
-    - PYTHON: "C:\\Python36"
-      PYTHON_VERSION: "3.6.x"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python36-x64"
-      PYTHON_VERSION: "3.6.x"
-      PYTHON_ARCH: "64"
+    - PYTHON: "C:\\Python37"
+    - PYTHON: "C:\\Python37-x64"
 
 matrix:
   fast_finish: true
 
+# scripts that run after cloning repository
 install:
   - ECHO "Filesystem root:"
   - ps: "ls \"C:/\""
@@ -53,8 +47,8 @@ install:
 
   # Upgrade to the latest version of pip to avoid it displaying warnings
   # about it being out of date.
-  - "python -m pip install --disable-pip-version-check --user --upgrade pip==9.0.3"
-  - "python -m pip install pyinstaller==3.4"
+  - "python -m pip install --disable-pip-version-check --user --upgrade pip"
+  - "python -m pip install --no-use-pep517 pyinstaller==3.4"
 
   # Set up the project in develop mode. If some dependencies contain
   # compiled extensions and are not provided as pre-built wheel packages,
@@ -62,27 +56,46 @@ install:
   # target Python version and architecture
   - "python -m pip install -e ."
 
+#---------------------------------#
+#       build configuration       #
+#---------------------------------#
+# disable automatic appveyor artifact builds, we don't need them in python
+build: off
+
 build_script:
   # Build the compiled extension
-  #- "%CMD_IN_ENV% python setup.py build"
+  #- "%PYTHON%\\python.exe setup.py build"
   - pyinstaller contrib/tx.spec
 
+#---------------------------------#
+#       tests configuration       #
+#---------------------------------#
 test_script:
   # Run the project tests
-  #- "%CMD_IN_ENV% python setup.py nosetests"
+  #- "%PYTHON%\\python.exe setup.py nosetests"
   - bash contrib/test_win_build.sh
 
 after_test:
   # If tests are successful, create binary packages for the project.
-  #- "%CMD_IN_ENV% python setup.py bdist_wheel"
-  #- "%CMD_IN_ENV% python setup.py bdist_wininst"
-  #- "%CMD_IN_ENV% python setup.py bdist_msi"
+  #- "%PYTHON%\\python.exe setup.py bdist_wheel"
+  #- "%PYTHON%\\python.exe setup.py bdist_wininst"
+  #- "%PYTHON%\\python.exe setup.py bdist_msi"
   - ps: "ls dist"
 
+#---------------------------------#
+#      artifacts configuration    #
+#---------------------------------#
 artifacts:
   # Archive the generated packages in the ci.appveyor.com build report.
   - path: dist\*
 
+#---------------------------------#
+#     deployment configuration    #
+#---------------------------------#
+
+#---------------------------------#
+#        global handlers          #
+#---------------------------------#
 #on_success:
 #  - TODO: upload the content of dist/*.whl to a public wheelhouse
 #
