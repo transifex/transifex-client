@@ -40,6 +40,75 @@ class MakeRequestTestCase(unittest.TestCase):
         mock_manager.assert_called_once_with(num_pools=1)
         mock_connection.request.assert_called_once()
 
+        # In case the http proxy variable exists but is empty,
+        # it shouldn't break things
+        with patch.dict(os.environ, {'http_proxy': ''}):
+            utils.make_request(
+                'GET',
+                host,
+                url,
+                'a_user',
+                'a_pass'
+            )
+            mock_manager.assert_called_with(num_pools=1)
+            self.assertEqual(mock_connection.request.call_count, 2)
+
+        # In case the https proxy variable exists but is empty,
+        # it shouldn't break things
+        with patch.dict(os.environ, {'https_proxy': ''}):
+            utils.make_request(
+                'GET',
+                host,
+                url,
+                'a_user',
+                'a_pass'
+            )
+            mock_manager.assert_called_with(num_pools=1)
+            self.assertEqual(mock_connection.request.call_count, 3)
+
+    @patch('urllib3.ProxyManager')
+    def test_makes_request_with_proxy(self, mock_manager):
+        response_mock = MagicMock()
+        response_mock.status = 200
+        response_mock.data = 'test_data'
+
+        mock_connection = MagicMock()
+        mock_connection.request.return_value = response_mock
+        mock_manager.return_value = mock_connection
+        url = '/my_test_url/'
+
+        # Test http
+        host = 'http://whynotestsforthisstuff.com'
+        with patch.dict(os.environ, {'http_proxy': 'host:333'}):
+            utils.make_request(
+                'GET',
+                host,
+                url,
+                'a_user',
+                'a_pass'
+            )
+            mock_manager.assert_called_once_with(num_pools=1,
+                                                 proxy_headers=Any(),
+                                                 proxy_url='http://host:333')
+            mock_connection.request.assert_called_once()
+
+        # Test https
+        host = 'https://whynotestsforthisstuff.com'
+        with patch.dict(os.environ, {'https_proxy': 'host:333'}):
+            utils.make_request(
+                'GET',
+                host,
+                url,
+                'a_user',
+                'a_pass'
+            )
+            mock_manager.assert_called_with(num_pools=1,
+                                            proxy_headers=Any(),
+                                            proxy_url='https://host:333',
+                                            ca_certs=Any(),
+                                            cert_reqs=Any())
+            self.assertEqual(mock_connection.request.call_count, 2)
+
     @patch('urllib3.PoolManager')
     @patch('txclib.utils.logger')
     def test_catches_ssl_error(self, mock_logger, mock_manager):
