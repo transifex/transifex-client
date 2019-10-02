@@ -149,7 +149,7 @@ def _prepare_url_request(host, username, password):
 
     if host.lower().startswith("http://"):
         scheme = "http"
-        if "http_proxy" in os.environ:
+        if os.environ.get("http_proxy"):
             proxy_url = urllib3.util.url.parse_url(os.environ["http_proxy"])
             managers["http"] = urllib3.ProxyManager(
                 proxy_url=proxy_url.url,
@@ -162,7 +162,7 @@ def _prepare_url_request(host, username, password):
             managers["http"] = urllib3.PoolManager(num_pools=num_pools)
     elif host.lower().startswith("https://"):
         scheme = "https"
-        if "https_proxy" in os.environ:
+        if os.environ.get("https_proxy"):
             proxy_url = urllib3.util.url.parse_url(os.environ["https_proxy"])
             managers["https"] = urllib3.ProxyManager(
                 proxy_url=proxy_url.url,
