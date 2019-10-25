@@ -151,7 +151,7 @@ def cmd_config(argv, path_to_tx, is_legacy=False):
 
 def _validate_set_arguments(parser, options):
     """
-    Do any extra required validation for set command arguments
+    Do any extra validation required for set command arguments
     """
     if hasattr(options, 'is_source') and hasattr(options, 'language'):
         if options.is_source and not options.language:
@@ -163,9 +163,9 @@ def _validate_set_arguments(parser, options):
 
     if hasattr(options, 'resource') and not\
             utils.valid_resource_slug(options.resource):
-        parser.error("Invalid resource slug. The format is <project_slug>"
-                     ".<resource_slug> and the valid characters include "
-                     "[_-\w].")
+        parser.error("Invalid resource slug. The expected format is "
+                     "<project_slug>.<resource_slug>. The valid slug "
+                     "characters are -, _ and Latin letters.")
 
 
 def bare_set(path_to_tx, options):
