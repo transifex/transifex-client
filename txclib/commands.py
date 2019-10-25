@@ -242,13 +242,11 @@ def subcommand_mapping_bulk(path_to_tx, options, **kwargs):
             resource = source_file.split('.')[0].replace('/', '_')
             relpath = root.split(options.source_file_dir)[1]
 
-            should_continue = True
-            for directory in options.ignore_dirs:
-                if relpath.strip('/').startswith(directory):
-                    should_continue = False
-                    break
-
-            if not should_continue:
+            should_ignore_dirs = [
+                relpath.strip('/').startswith(directory)
+                for directory in options.ignore_dirs
+            ]
+            if any(should_ignore_dirs):
                 break
 
             expr = options.expression.format(
