@@ -1,6 +1,8 @@
 if [[ -z "$TRANSIFEX_USER" || -z "$TRANSIFEX_TOKEN" || -z "$TRANSIFEX_PROJECT" ]] ; then
     echo "NB: Skipping tests of $TX since TRANSIFEX_USER or TRANSIFEX_TOKEN or TRANSIFEX_PROJECT is undefined or empty"
-    test "${CIRCLE_BRANCH}" = master
+
+    # TRANSIFEX_ ENV variables are not expected for pull requests or local builds
+    [[ "${CIRCLE_BRANCH+x}" != x || "${CIRCLE_BRANCH}" == master || "${CIRCLE_BRANCH}" =~ ^pull/.* ]]
     exit $?
 fi
 
