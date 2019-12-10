@@ -143,14 +143,25 @@ def _prepare_url_request(host, username, password):
 
     [1]: http://urllib3.readthedocs.io/en/latest/reference/#urllib3.poolmanager.ProxyManager  # noqa
     """
+    def get_proxy_url(env_proxy, scheme):
+        parsed_proxy = urllib3.util.url.parse_url(env_proxy)
+        return urllib3.util.url.Url(
+            scheme=scheme,
+            auth=parsed_proxy.auth,
+            host=parsed_proxy.host,
+            port=parsed_proxy.port,
+            path=parsed_proxy.path,
+            query=parsed_proxy.query,
+            fragment=parsed_proxy.fragment
+        )
+
     # Initialize http and https pool managers
     num_pools = 1
     managers = {}
-
     if host.lower().startswith("http://"):
         scheme = "http"
-        if "http_proxy" in os.environ:
-            proxy_url = urllib3.util.url.parse_url(os.environ["http_proxy"])
+        if os.environ.get("http_proxy"):
+            proxy_url = get_proxy_url(os.environ["http_proxy"], scheme)
             managers["http"] = urllib3.ProxyManager(
                 proxy_url=proxy_url.url,
                 proxy_headers=urllib3.util.make_headers(
@@ -162,8 +173,8 @@ def _prepare_url_request(host, username, password):
             managers["http"] = urllib3.PoolManager(num_pools=num_pools)
     elif host.lower().startswith("https://"):
         scheme = "https"
-        if "https_proxy" in os.environ:
-            proxy_url = urllib3.util.url.parse_url(os.environ["https_proxy"])
+        if os.environ.get("https_proxy"):
+            proxy_url = get_proxy_url(os.environ["https_proxy"], scheme)
             managers["https"] = urllib3.ProxyManager(
                 proxy_url=proxy_url.url,
                 proxy_headers=urllib3.util.make_headers(
