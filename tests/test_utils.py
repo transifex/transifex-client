@@ -79,7 +79,7 @@ class MakeRequestTestCase(unittest.TestCase):
 
         # Test http
         host = 'http://whynotestsforthisstuff.com'
-        with patch.dict(os.environ, {'http_proxy': 'host:333'}):
+        with patch.dict(os.environ, {'http_proxy': 'proxy.host:333'}):
             utils.make_request(
                 'GET',
                 host,
@@ -89,12 +89,12 @@ class MakeRequestTestCase(unittest.TestCase):
             )
             mock_manager.assert_called_once_with(num_pools=1,
                                                  proxy_headers=Any(),
-                                                 proxy_url='http://host:333')
+                                                 proxy_url='http://proxy.host:333')
             mock_connection.request.assert_called_once()
 
         # Test https
         host = 'https://whynotestsforthisstuff.com'
-        with patch.dict(os.environ, {'https_proxy': 'host:333'}):
+        with patch.dict(os.environ, {'https_proxy': 'proxy.host:333'}):
             utils.make_request(
                 'GET',
                 host,
@@ -104,7 +104,7 @@ class MakeRequestTestCase(unittest.TestCase):
             )
             mock_manager.assert_called_with(num_pools=1,
                                             proxy_headers=Any(),
-                                            proxy_url='https://host:333',
+                                            proxy_url='https://proxy.host:333',
                                             ca_certs=Any(),
                                             cert_reqs=Any())
             self.assertEqual(mock_connection.request.call_count, 2)
