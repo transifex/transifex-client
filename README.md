@@ -21,7 +21,7 @@ You can use the command line tool to create new resources, map locale files to t
 [Click  here](http://docs.transifex.com/client/) for complete documentation on the Transifex Command-line Tool via our documentation site.
 
 Installation
-----------
+------------
 
 You can install the latest version of transifex-client running `pip install transifex-client` or `easy_install transifex-client`.
 
