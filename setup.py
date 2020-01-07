@@ -17,6 +17,7 @@ setup(
     entry_points={"console_scripts": ["tx=txclib.cmdline:main"]},
     description="A command line interface for Transifex",
     long_description=get_file_content("README.md"),
+    long_description_content_type="text/markdown",
     author="Transifex",
     author_email="admin@transifex.com",
     url="https://www.transifex.com",
