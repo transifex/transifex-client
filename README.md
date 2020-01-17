@@ -34,7 +34,7 @@ Build transifex-client for Windows
 
 2.  Download and install [Python](https://www.python.org/downloads/windows/).
 
-    At this step choose the right version of python (2.7, 3.5, 3.6 or 3.7) and x86 or x86-64 instruction set.
+    At this step choose the right version of python (2.7, 3.5, 3.6, 3.7 or 3.8) and x86 or x86-64 instruction set.
 
     Make sure pip marked for installation(default for latest installers).
 
