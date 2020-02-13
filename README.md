@@ -63,7 +63,7 @@ Build transifex-client for Windows
 
 Getting Help
 ---
-You can always get additional help via [GitHub issues](https://github.com/transifex/txgh/issues) or [Transifex support](https://www.transifex.com/contact/)
+You can always get additional help via [GitHub issues](https://github.com/transifex/transifex-client/issues) or [Transifex support](https://www.transifex.com/contact/)
 
 License
 ---

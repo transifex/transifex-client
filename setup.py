@@ -26,7 +26,7 @@ setup(
     setup_requires=[],
     python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,<3.9",
     install_requires=get_file_content("requirements.txt").splitlines(),
-    tests_require=["mock"],
+    tests_require=["mock>=3.0.5,<4.0"],
     data_files=[],
     test_suite="tests",
     zip_safe=False,
