@@ -505,8 +505,9 @@ def get_project_files(curpath, expression):
             continue
 
         for file_path in files:
+            path_to_match = os.path.join(root, file_path)
             full_path = os.path.realpath(os.path.join(root, file_path))
-            match = expression_regex.match(posix_path(full_path))
+            match = expression_regex.match(posix_path(path_to_match))
             if match:
                 try:
                     lang = match.group(1)
