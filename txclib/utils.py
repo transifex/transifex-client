@@ -495,12 +495,12 @@ def get_project_files(curpath, expression):
     expr_re = regex_from_filefilter(os.path.join(*expression_parts), curpath)
     expression_regex = re.compile(expr_re)
 
-    visited = set()
+    initial_depth = curpath.count(os.sep)
+    max_depth = 50
     for root, dirs, files in os.walk(curpath, followlinks=True):
-        root_realpath = os.path.realpath(root)
 
         # Don't visit any subdirectory
-        if root_realpath in visited:
+        if root.count(os.sep) > initial_depth + max_depth:
             del dirs[:]
             continue
 
@@ -517,16 +517,6 @@ def get_project_files(curpath, expression):
                     raise MalformedConfigFile(msg)
                 yield full_path, lang
 
-        visited.add(root_realpath)
-
-        # Find which directories are already visited and remove them from
-        # further processing
-        removals = list(
-            d for d in dirs
-            if os.path.realpath(os.path.join(root, d)) in visited
-        )
-        for removal in removals:
-            dirs.remove(removal)
 
 
 def encode_args(func):
