@@ -462,7 +462,7 @@ class Project(object):
                 )
                 if self._should_download(
                         slang, stats, local_file=pseudo_file,
-                        use_git_timestamps=False):
+                        use_git_timestamps=use_git_timestamps):
                     logger.info("Pulling pseudo file for resource %s (%s)." % (
                         resource,
                         utils.color_text(pseudo_file, "RED")
@@ -475,7 +475,7 @@ class Project(object):
 
             if fetchall:
                 new_translations = self._new_translations_to_add(
-                    files, slang, lang_map, stats, force
+                    files, slang, lang_map, stats, force, use_git_timestamps
                 )
                 if new_translations:
                     msg = ("New translations found "
@@ -529,6 +529,7 @@ class Project(object):
                     'local_file': local_file,
                     'force': force,
                     'mode': mode,
+                    'use_git_timestamps': use_git_timestamps
                 }
 
                 # xliff files should be always pulled
@@ -746,6 +747,7 @@ class Project(object):
                         'stats': stats,
                         'local_file': local_file,
                         'force': force,
+                        'use_git_timestamps': use_git_timestamps,
                     }
                     if not self._should_push_translation(**kwargs):
                         msg = "Skipping '%s' translation (file: %s)."
@@ -989,7 +991,7 @@ class Project(object):
         )
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
-                                   mode=None):
+                                   mode=None, use_git_timestamps=False):
         """Whether a translation should be udpated from Transifex.
 
         We use the following criteria for that:
@@ -1007,9 +1009,9 @@ class Project(object):
         Returns:
             True or False.
         """
-        return self._should_download(lang, stats, local_file, force)
+        return self._should_download(lang, stats, local_file, force, use_git_timestamps=use_git_timestamps)
 
-    def _should_add_translation(self, lang, stats, force=False, mode=None):
+    def _should_add_translation(self, lang, stats, force=False, mode=None, use_git_timestamps=False):
         """Whether a translation should be added from Transifex.
 
         We use the following criteria for that:
@@ -1025,7 +1027,7 @@ class Project(object):
         Returns:
             True or False.
         """
-        return self._should_download(lang, stats, None, force)
+        return self._should_download(lang, stats, None, force, use_git_timestamps=use_git_timestamps)
 
     def _should_download(self, lang, stats, local_file=None, force=False,
                          mode=None, use_git_timestamps=False):
@@ -1119,6 +1121,10 @@ class Project(object):
             epoch_timestamp = utils.get_git_file_timestamp(path)
             if epoch_timestamp:
                 return time.mktime(time.gmtime(epoch_timestamp))
+            else:
+                logger.warning(
+                    "Failed to find git repository. Fallback to OS timstamp"
+                )
 
         return time.mktime(time.gmtime(os.path.getmtime(path)))
 
@@ -1220,7 +1226,7 @@ class Project(object):
             fd.write(response['content'].encode("utf-8"))
 
     def _new_translations_to_add(self, files, slang, lang_map,
-                                 stats, force=False):
+                                 stats, force=False, use_git_timestamps=False):
         """Return a list of translations which are
         new to the local installation.
         """
@@ -1236,7 +1242,7 @@ class Project(object):
             )
             if lang_exists or lang_is_source or mapped_lang_exists:
                 continue
-            if self._should_add_translation(lang, stats, force):
+            if self._should_add_translation(lang, stats, force, use_git_timestamps):
                 new_translations.append(lang)
         return set(new_translations)
 
