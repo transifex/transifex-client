@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import git
 import fnmatch
 import datetime
 import time
@@ -394,7 +395,7 @@ class Project(object):
     def pull(self, languages=None, resources=None, overwrite=True,
              fetchall=False, fetchsource=False, force=False, skip=False,
              minimum_perc=0, mode=None, pseudo=False, xliff=False, branch=None,
-             parallel=False, no_interactive=False):
+             parallel=False, no_interactive=False, use_git_timestamps=False):
         """Pull all translations file from Transifex server."""
         languages = languages or []
         resources = resources or []
@@ -460,7 +461,9 @@ class Project(object):
                 pseudo_file = self._get_pseudo_file(
                     slang, resource, file_filter
                 )
-                if self._should_download(slang, stats, local_file=pseudo_file):
+                if self._should_download(
+                        slang, stats, local_file=pseudo_file,
+                        use_git_timestamps=False):
                     logger.info("Pulling pseudo file for resource %s (%s)." % (
                         resource,
                         utils.color_text(pseudo_file, "RED")
@@ -611,7 +614,7 @@ class Project(object):
 
     def push(self, source=False, translations=False, force=False,
              resources=None, languages=None, skip=False, no_interactive=False,
-             xliff=False, branch=None, parallel=False):
+             xliff=False, branch=None, parallel=False, use_git_timestamps=False):
         """Push all the resources"""
         languages = languages or []
         resources = resources or []
@@ -1026,7 +1029,7 @@ class Project(object):
         return self._should_download(lang, stats, None, force)
 
     def _should_download(self, lang, stats, local_file=None, force=False,
-                         mode=None):
+                         mode=None, use_git_timestamps=False):
         """Return whether a translation should be downloaded.
 
         If local_file is None, skip the timestamps check (the file does
@@ -1048,12 +1051,12 @@ class Project(object):
 
         if local_file is not None:
             remote_update = self._extract_updated(lang_stats)
-            if not self._remote_is_newer(remote_update, local_file):
+            if not self._remote_is_newer(remote_update, local_file, use_git_timestamps):
                 logger.debug("Local is newer than remote for lang %s" % lang)
                 return False
         return True
 
-    def _should_push_translation(self, lang, stats, local_file, force=False):
+    def _should_push_translation(self, lang, stats, local_file, force=False, use_git_timestamps=False):
         """Return whether a local translation file should be
         pushed to Trasnifex.
 
@@ -1080,7 +1083,7 @@ class Project(object):
             return True
         if local_file is not None:
             remote_update = self._extract_updated(lang_stats)
-            if self._remote_is_newer(remote_update, local_file):
+            if self._remote_is_newer(remote_update, local_file, use_git_timestamps):
                 msg = "Remote translation is newer than local file for lang %s"
                 logger.debug(msg % lang)
                 return False
@@ -1102,7 +1105,7 @@ class Project(object):
             ).utctimetuple()
         )
 
-    def _get_time_of_local_file(self, path):
+    def _get_time_of_local_file(self, path, use_git_timestamps=False):
         """Get the modified time of the path_.
 
         Args:
@@ -1112,7 +1115,20 @@ class Project(object):
         """
         if not os.path.exists(path):
             return None
-        return time.mktime(time.gmtime(os.path.getmtime(path)))
+
+        if use_git_timestamps:
+            repo = git.Repo()
+            commits_touching_path = list(
+                repo.iter_commits(paths=path)
+            )
+            if len(commits_touching_path) > 0:
+                latest_commit = commits_touching_path[0]
+                tatest_commit_tx = latest_commit.committed_date
+                return time.mktime(time.gmtime(tatest_commit_tx))
+            else:
+                return None
+        else:
+            return time.mktime(time.gmtime(os.path.getmtime(path)))
 
     def _satisfies_min_translated(self, stats, mode=None):
         """Check whether a translation fulfills the filter used for
@@ -1139,7 +1155,7 @@ class Project(object):
             minimum_percent = resource_minimum
         return cur >= minimum_percent
 
-    def _remote_is_newer(self, remote_updated, local_file):
+    def _remote_is_newer(self, remote_updated, local_file, use_git_timestamps=False):
         """Check whether the remote translation is newer that the local file.
 
         Args:
@@ -1154,7 +1170,8 @@ class Project(object):
             return False
         remote_time = self._generate_timestamp(remote_updated)
         local_time = self._get_time_of_local_file(
-            self.get_full_path(local_file)
+            self.get_full_path(local_file),
+            use_git_timestamps
         )
         logger.debug(
             "Remote time is %s and local %s" % (remote_time, local_time)
