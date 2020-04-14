@@ -1123,8 +1123,8 @@ class Project(object):
             )
             if len(commits_touching_path) > 0:
                 latest_commit = commits_touching_path[0]
-                tatest_commit_tx = latest_commit.committed_date
-                return time.mktime(time.gmtime(tatest_commit_tx))
+                latest_commit_ts = latest_commit.committed_date
+                return time.mktime(time.gmtime(latest_commit_ts))
             else:
                 # Fallback to file OS timestamp
                 time.mktime(time.gmtime(os.path.getmtime(path)))
