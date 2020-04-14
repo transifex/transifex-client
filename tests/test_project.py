@@ -704,6 +704,27 @@ class TestProjectPull(unittest.TestCase):
                 res = self.p._should_download('pt', self.stats, None, True)
                 self.assertEqual(res, True)
 
+            with patch.object(utils, 'get_git_file_timestamp') as ts_mock:
+                # Note that the test needs an existing file path
+                # and the current test file is the only one
+                # we're sure will exist
+
+                # very old timestamp
+                ts_mock.return_value = 640124371
+                res = self.p._should_download(
+                    'pt', self.stats, os.path.abspath(__file__), False,
+                    use_git_timestamps=True
+                )
+                self.assertEqual(res, True)
+
+                # Please fix this test before the year 2100
+                ts_mock.return_value = 4111417171
+                res = self.p._should_download(
+                    'pt', self.stats, os.path.abspath(__file__), False,
+                    use_git_timestamps=True
+                )
+                self.assertEqual(res, False)
+
     def test_get_url_by_pull_mode(self):
         self.assertEqual(
             'pull_sourceastranslation_file',
