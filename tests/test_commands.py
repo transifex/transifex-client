@@ -204,6 +204,22 @@ class TestPullCommand(unittest.TestCase):
         self.assertEqual(pr_instance.pull.call_count, 1)
         pr_instance.pull.assert_has_calls([pull_call])
 
+    @patch('txclib.commands.project')
+    def test_pull_with_git_timestamps(self, project_mock):
+        pr_instance = MagicMock()
+        pr_instance.pull.return_value = True
+        project_mock.Project.return_value = pr_instance
+        cmd_pull(['--use-git-timestamps'], '.')
+        pull_call = call(
+            fetchall=False, force=False, minimum_perc=None,
+            skip=False, no_interactive=False, resources=[], pseudo=False,
+            languages=[], fetchsource=False, mode=None, branch=None,
+            xliff=False, parallel=False, overwrite=True,
+            use_git_timestamps=True
+        )
+        self.assertEqual(pr_instance.pull.call_count, 1)
+        pr_instance.pull.assert_has_calls([pull_call])
+
 
 class TestConfigCommand(unittest.TestCase):
 
