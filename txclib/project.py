@@ -1126,7 +1126,8 @@ class Project(object):
                 tatest_commit_tx = latest_commit.committed_date
                 return time.mktime(time.gmtime(tatest_commit_tx))
             else:
-                return None
+                # Fallback to file OS timestamp
+                time.mktime(time.gmtime(os.path.getmtime(path)))
         else:
             return time.mktime(time.gmtime(os.path.getmtime(path)))
 
