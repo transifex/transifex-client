@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import git
 import fnmatch
 import datetime
 import time
@@ -1117,19 +1116,11 @@ class Project(object):
             return None
 
         if use_git_timestamps:
-            repo = git.Repo()
-            commits_touching_path = list(
-                repo.iter_commits(paths=path)
-            )
-            if len(commits_touching_path) > 0:
-                latest_commit = commits_touching_path[0]
-                latest_commit_ts = latest_commit.committed_date
-                return time.mktime(time.gmtime(latest_commit_ts))
-            else:
-                # Fallback to file OS timestamp
-                time.mktime(time.gmtime(os.path.getmtime(path)))
-        else:
-            return time.mktime(time.gmtime(os.path.getmtime(path)))
+            epoch_timestamp = utils.get_git_file_timestamp(path)
+            if epoch_timestamp:
+                return time.mktime(time.gmtime(epoch_timestamp))
+
+        return time.mktime(time.gmtime(os.path.getmtime(path)))
 
     def _satisfies_min_translated(self, stats, mode=None):
         """Check whether a translation fulfills the filter used for
