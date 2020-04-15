@@ -706,10 +706,10 @@ class TestProjectPull(unittest.TestCase):
 
             with patch.object(utils, 'get_git_file_timestamp') as ts_mock:
                 # Note that the test needs an existing file path
-                # and the current test file is the only one
-                # we're sure will exist
+                # The current test (__file__) is the only file
+                # we're sure will exist and won't change
 
-                # very old timestamp
+                # Old timestamp (1990)
                 ts_mock.return_value = 640124371
                 res = self.p._should_download(
                     'pt', self.stats, os.path.abspath(__file__), False,
@@ -717,7 +717,7 @@ class TestProjectPull(unittest.TestCase):
                 )
                 self.assertEqual(res, True)
 
-                # Please fix this test before the year 2100
+                # "Recent" timestamp (in the future - 2100)
                 ts_mock.return_value = 4111417171
                 res = self.p._should_download(
                     'pt', self.stats, os.path.abspath(__file__), False,
