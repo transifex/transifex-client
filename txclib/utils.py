@@ -737,6 +737,9 @@ def update_progress(done, total):
 
 
 def get_git_file_timestamp(file_path):
+    """
+    Return the timestamp (epoch) for the latest commit of a file
+    """
     try:
         repo = git.Repo()
         commits_touching_path = list(
