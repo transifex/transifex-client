@@ -1006,6 +1006,9 @@ class Project(object):
             local_file: The local translation file.
             force: A boolean flag.
             mode: The mode for the translation.
+            use_git_timestamps: Boolean flag -  use latest commit timestamp
+                instead of system timestamps for checking if local file is
+                older than Transifex's.
         Returns:
             True or False.
         """
@@ -1024,6 +1027,9 @@ class Project(object):
             stats: The (global) statistics object.
             force: A boolean flag.
             mode: The mode for the translation.
+            use_git_timestamps: Boolean flag -  use latest commit timestamp
+                instead of system timestamps for checking if local file is
+                older than Transifex's.
         Returns:
             True or False.
         """
@@ -1071,6 +1077,9 @@ class Project(object):
             stats: The (global) statistics object.
             local_file: The local translation file.
             force: A boolean flag.
+            use_git_timestamps: Boolean flag -  use latest commit timestamp
+                instead of system timestamps for checking if local file is
+                older than Transifex's.
         Returns:
             True or False.
         """
@@ -1111,6 +1120,9 @@ class Project(object):
 
         Args:
             path: The path we want the mtime for.
+            use_git_timestamps: Boolean flag -  use latest commit timestamp
+                instead of system timestamps for checking if local file is
+                older than Transifex's.
         Returns:
             The time as a timestamp or None, if the file does not exist
         """
