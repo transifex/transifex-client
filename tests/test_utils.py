@@ -382,5 +382,5 @@ class GitUtilsTestCase(unittest.TestCase):
         epoch_ts = utils.get_git_file_timestamp(
             os.path.dirname(os.path.abspath(__file__))
         )
-        time.mktime(time.gmtime(epoch_ts))
-        self.assertIsNotNone(epoch_ts)
+        parsed_ts = time.mktime(time.gmtime(epoch_ts))
+        self.assertIsNotNone(parsed_ts)
