@@ -1172,6 +1172,9 @@ class Project(object):
             remote_updated: The date and time the translation was last
                 updated remotely.
             local_file: The local file.
+            use_git_timestamps: Boolean flag -  use latest commit timestamp
+                instead of system timestamps for checking if local file is
+                older than Transifex's.
         Returns:
             True or False.
         """
