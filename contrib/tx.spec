@@ -26,4 +26,4 @@ exe = EXE(pyz,
           debug=False,
           strip=None,
           upx=False,
-          console=True , icon='contrib/tx.ico')
+          console=True , icon='tx.ico')
