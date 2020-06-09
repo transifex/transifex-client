@@ -394,7 +394,7 @@ class Project(object):
     def pull(self, languages=None, resources=None, overwrite=True,
              fetchall=False, fetchsource=False, force=False, skip=False,
              minimum_perc=0, mode=None, pseudo=False, xliff=False, branch=None,
-             parallel=False, no_interactive=False):
+             parallel=False, no_interactive=False, use_git_timestamps=False):
         """Pull all translations file from Transifex server."""
         languages = languages or []
         resources = resources or []
@@ -460,7 +460,9 @@ class Project(object):
                 pseudo_file = self._get_pseudo_file(
                     slang, resource, file_filter
                 )
-                if self._should_download(slang, stats, local_file=pseudo_file):
+                if self._should_download(
+                        slang, stats, local_file=pseudo_file,
+                        use_git_timestamps=use_git_timestamps):
                     logger.info("Pulling pseudo file for resource %s (%s)." % (
                         resource,
                         utils.color_text(pseudo_file, "RED")
@@ -473,7 +475,7 @@ class Project(object):
 
             if fetchall:
                 new_translations = self._new_translations_to_add(
-                    files, slang, lang_map, stats, force
+                    files, slang, lang_map, stats, force, use_git_timestamps
                 )
                 if new_translations:
                     msg = ("New translations found "
@@ -527,6 +529,7 @@ class Project(object):
                     'local_file': local_file,
                     'force': force,
                     'mode': mode,
+                    'use_git_timestamps': use_git_timestamps
                 }
 
                 # xliff files should be always pulled
@@ -611,7 +614,7 @@ class Project(object):
 
     def push(self, source=False, translations=False, force=False,
              resources=None, languages=None, skip=False, no_interactive=False,
-             xliff=False, branch=None, parallel=False):
+             xliff=False, branch=None, parallel=False, use_git_timestamps=False):
         """Push all the resources"""
         languages = languages or []
         resources = resources or []
@@ -744,6 +747,7 @@ class Project(object):
                         'stats': stats,
                         'local_file': local_file,
                         'force': force,
+                        'use_git_timestamps': use_git_timestamps,
                     }
                     if not self._should_push_translation(**kwargs):
                         msg = "Skipping '%s' translation (file: %s)."
@@ -987,7 +991,7 @@ class Project(object):
         )
 
     def _should_update_translation(self, lang, stats, local_file, force=False,
-                                   mode=None):
+                                   mode=None, use_git_timestamps=False):
         """Whether a translation should be udpated from Transifex.
 
         We use the following criteria for that:
@@ -1002,12 +1006,15 @@ class Project(object):
             local_file: The local translation file.
             force: A boolean flag.
             mode: The mode for the translation.
+            use_git_timestamps: Boolean flag -  use latest commit timestamp
+                instead of system timestamps for checking if local file is
+                older than Transifex's.
         Returns:
             True or False.
         """
-        return self._should_download(lang, stats, local_file, force)
+        return self._should_download(lang, stats, local_file, force, use_git_timestamps=use_git_timestamps)
 
-    def _should_add_translation(self, lang, stats, force=False, mode=None):
+    def _should_add_translation(self, lang, stats, force=False, mode=None, use_git_timestamps=False):
         """Whether a translation should be added from Transifex.
 
         We use the following criteria for that:
@@ -1020,13 +1027,16 @@ class Project(object):
             stats: The (global) statistics object.
             force: A boolean flag.
             mode: The mode for the translation.
+            use_git_timestamps: Boolean flag -  use latest commit timestamp
+                instead of system timestamps for checking if local file is
+                older than Transifex's.
         Returns:
             True or False.
         """
-        return self._should_download(lang, stats, None, force)
+        return self._should_download(lang, stats, None, force, use_git_timestamps=use_git_timestamps)
 
     def _should_download(self, lang, stats, local_file=None, force=False,
-                         mode=None):
+                         mode=None, use_git_timestamps=False):
         """Return whether a translation should be downloaded.
 
         If local_file is None, skip the timestamps check (the file does
@@ -1048,12 +1058,12 @@ class Project(object):
 
         if local_file is not None:
             remote_update = self._extract_updated(lang_stats)
-            if not self._remote_is_newer(remote_update, local_file):
+            if not self._remote_is_newer(remote_update, local_file, use_git_timestamps):
                 logger.debug("Local is newer than remote for lang %s" % lang)
                 return False
         return True
 
-    def _should_push_translation(self, lang, stats, local_file, force=False):
+    def _should_push_translation(self, lang, stats, local_file, force=False, use_git_timestamps=False):
         """Return whether a local translation file should be
         pushed to Trasnifex.
 
@@ -1067,6 +1077,9 @@ class Project(object):
             stats: The (global) statistics object.
             local_file: The local translation file.
             force: A boolean flag.
+            use_git_timestamps: Boolean flag -  use latest commit timestamp
+                instead of system timestamps for checking if local file is
+                older than Transifex's.
         Returns:
             True or False.
         """
@@ -1080,7 +1093,7 @@ class Project(object):
             return True
         if local_file is not None:
             remote_update = self._extract_updated(lang_stats)
-            if self._remote_is_newer(remote_update, local_file):
+            if self._remote_is_newer(remote_update, local_file, use_git_timestamps):
                 msg = "Remote translation is newer than local file for lang %s"
                 logger.debug(msg % lang)
                 return False
@@ -1102,16 +1115,29 @@ class Project(object):
             ).utctimetuple()
         )
 
-    def _get_time_of_local_file(self, path):
+    def _get_time_of_local_file(self, path, use_git_timestamps=False):
         """Get the modified time of the path_.
 
         Args:
             path: The path we want the mtime for.
+            use_git_timestamps: Boolean flag -  use latest commit timestamp
+                instead of system timestamps for checking if local file is
+                older than Transifex's.
         Returns:
             The time as a timestamp or None, if the file does not exist
         """
         if not os.path.exists(path):
             return None
+
+        if use_git_timestamps:
+            epoch_timestamp = utils.get_git_file_timestamp(path)
+            if epoch_timestamp:
+                return time.mktime(time.gmtime(epoch_timestamp))
+            else:
+                logger.warning(
+                    "Failed to find git repository. Fallback to OS timstamp"
+                )
+
         return time.mktime(time.gmtime(os.path.getmtime(path)))
 
     def _satisfies_min_translated(self, stats, mode=None):
@@ -1139,13 +1165,16 @@ class Project(object):
             minimum_percent = resource_minimum
         return cur >= minimum_percent
 
-    def _remote_is_newer(self, remote_updated, local_file):
+    def _remote_is_newer(self, remote_updated, local_file, use_git_timestamps=False):
         """Check whether the remote translation is newer that the local file.
 
         Args:
             remote_updated: The date and time the translation was last
                 updated remotely.
             local_file: The local file.
+            use_git_timestamps: Boolean flag -  use latest commit timestamp
+                instead of system timestamps for checking if local file is
+                older than Transifex's.
         Returns:
             True or False.
         """
@@ -1154,7 +1183,8 @@ class Project(object):
             return False
         remote_time = self._generate_timestamp(remote_updated)
         local_time = self._get_time_of_local_file(
-            self.get_full_path(local_file)
+            self.get_full_path(local_file),
+            use_git_timestamps
         )
         logger.debug(
             "Remote time is %s and local %s" % (remote_time, local_time)
@@ -1211,7 +1241,7 @@ class Project(object):
             fd.write(response['content'].encode("utf-8"))
 
     def _new_translations_to_add(self, files, slang, lang_map,
-                                 stats, force=False):
+                                 stats, force=False, use_git_timestamps=False):
         """Return a list of translations which are
         new to the local installation.
         """
@@ -1227,7 +1257,7 @@ class Project(object):
             )
             if lang_exists or lang_is_source or mapped_lang_exists:
                 continue
-            if self._should_add_translation(lang, stats, force):
+            if self._should_add_translation(lang, stats, force, use_git_timestamps):
                 new_translations.append(lang)
         return set(new_translations)
 

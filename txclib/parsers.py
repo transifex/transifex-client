@@ -182,6 +182,11 @@ def pull_parser():
     parser.add_argument("--pseudo", action="store_true", dest="pseudo",
                         default=False, help="Apply this option to download "
                         "a pseudo file.")
+    parser.add_argument("--use-git-timestamps", action="store_true",
+                        dest="use_git_timestamps", default=False,
+                        help="Compare local files to their Transifex version "
+                        "by their latest commit timestamps. Use this option, "
+                        "for example, when cloning a Git repository.")
     parser.add_argument(
         "--mode", action="store", dest="mode", help=(
             "Specify the mode of the translation file to pull (e.g. "
@@ -244,6 +249,11 @@ def push_parser():
     parser.add_argument("-x", "--xliff", action="store_true", dest="xliff",
                         default=False, help="Apply this option to upload "
                         "file as xliff.")
+    parser.add_argument("--use-git-timestamps", action="store_true",
+                        dest="use_git_timestamps", default=False,
+                        help="Compare local files to their Transifex version "
+                        "by their latest commit timestamps. Use this option, "
+                        "for example, when cloning a Git repository.")
     parser.add_argument(
         "-b", "--branch", action="store", dest="branch",
         default=None, nargs="?", const='-1',

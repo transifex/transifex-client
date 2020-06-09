@@ -1,4 +1,5 @@
 import os
+import time
 import unittest
 import six
 from mock import patch, MagicMock, mock_open
@@ -364,3 +365,22 @@ class ProjectFilesTestCase(unittest.TestCase):
         with six.assertRaisesRegex(self, exceptions.MalformedConfigFile, msg):
             for file, lang in utils.get_project_files(os.getcwd(), expression):
                 pass
+
+class GitUtilsTestCase(unittest.TestCase):
+
+    def test_fetch_timestamp_from_git_tree(self):
+        # A bit meta, lets try to get the timestamp of the
+        # current file
+        epoch_ts = utils.get_git_file_timestamp(
+            os.path.dirname(os.path.abspath(__file__))
+        )
+        self.assertIsNotNone(epoch_ts)
+
+    def test_git_timestamp_is_parsable(self):
+        # A bit meta, lets try to get the timestamp of the
+        # current file
+        epoch_ts = utils.get_git_file_timestamp(
+            os.path.dirname(os.path.abspath(__file__))
+        )
+        parsed_ts = time.mktime(time.gmtime(epoch_ts))
+        self.assertIsNotNone(parsed_ts)

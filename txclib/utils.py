@@ -3,6 +3,7 @@ import functools
 import os
 import sys
 import re
+import git
 import errno
 import urllib3
 import collections
@@ -733,3 +734,23 @@ def update_progress(done, total):
     # Print a new line when done
     if done == total:
         sys.stdout.write('\n')
+
+
+def get_git_file_timestamp(file_path):
+    """
+    Return the timestamp (epoch) for the latest commit of a file
+    """
+    try:
+        repo = git.Repo()
+        commits_touching_path = list(
+            repo.iter_commits(paths=file_path, max_count=1)
+        )
+        if commits_touching_path:
+            latest_commit = commits_touching_path[0]
+            latest_commit_ts = latest_commit.committed_date
+            return latest_commit_ts
+        else:
+            return None
+    except git.InvalidGitRepositoryError:
+        # Current path is not a git repo.
+        return None
