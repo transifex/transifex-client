@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import argparse
 import os
 import sys
 
@@ -10,6 +11,11 @@ from txclib.utils import get_version
 MAPPING, MAPPINGREMOTE, MAPPINGBULK = (
     'mapping', 'mapping-remote', 'mapping-bulk'
 )
+
+def check_file_exists(file=None):
+    if file and not os.path.isfile(file):
+        raise argparse.ArgumentTypeError(
+            'certificate file %s not found' % file)
 
 
 def tx_main_parser():
@@ -45,6 +51,12 @@ def tx_main_parser():
         "--disable-colors", action="store_true", dest="color_disable",
         default=(os.name == 'nt' or not sys.stdout.isatty()),
         help="disable colors in the output of commands"
+    )
+    # set a private CA cert bundle file to override the system one
+    parser.add_argument(
+        "--cacert", action="store", dest="cacert", default=None,
+        help="set path to CA certificate bundle file",
+        metavar='/path/to/ca-cert-bundle-file', type=check_file_exists
     )
     parser.add_argument(
         "command", action="store", help="TX command", nargs='?', default=None

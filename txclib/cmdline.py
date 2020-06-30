@@ -4,7 +4,7 @@
 import sys
 from urllib3.exceptions import SSLError
 
-from txclib import utils
+from txclib import utils, web
 from txclib.log import set_log_level, logger
 from txclib.parsers import tx_main_parser
 from txclib.exceptions import AuthenticationError
@@ -61,6 +61,8 @@ def main(argv=None):
         set_log_level('WARNING')
     elif options.debug:
         set_log_level('DEBUG')
+
+    web.cacerts_file = options.cacert
 
     # find .tx
     path_to_tx = options.root_dir or utils.find_dot_tx()
