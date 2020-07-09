@@ -6,6 +6,8 @@ from pkg_resources import resource_filename
 import txclib
 
 
+cacerts_file = None
+
 def user_agent_identifier():
     """Return the user agent for the client."""
     client_info = (txclib.__version__, platform.system(), platform.machine())
@@ -13,6 +15,10 @@ def user_agent_identifier():
 
 
 def certs_file():
+    return cacerts_file or system_certs_file()
+
+
+def system_certs_file():
     if platform.system() == 'Windows':
         return os.path.join(txclib.utils.get_base_dir(), 'cacert.pem')
     else:
