@@ -2,7 +2,7 @@ import os
 import time
 import unittest
 import six
-from mock import patch, MagicMock, mock_open
+from mock import patch, MagicMock, Mock, mock_open
 from urllib3.exceptions import SSLError
 
 from txclib import utils, exceptions
@@ -384,3 +384,12 @@ class GitUtilsTestCase(unittest.TestCase):
         )
         parsed_ts = time.mktime(time.gmtime(epoch_ts))
         self.assertIsNotNone(parsed_ts)
+
+    def test_uses_authorized_date(self):
+        commit = Mock()
+        commit.authored_date = 1590969254
+        commit.committed_date = 1590970456
+        with patch('txclib.utils.git.Repo') as repo:
+            repo.return_value.iter_commits.return_value = [commit]
+            epoch_ts = utils.get_git_file_timestamp('any')
+        self.assertEqual(1590969254, epoch_ts)
