@@ -747,7 +747,7 @@ def get_git_file_timestamp(file_path):
         )
         if commits_touching_path:
             latest_commit = commits_touching_path[0]
-            latest_commit_ts = latest_commit.committed_date
+            latest_commit_ts = latest_commit.authored_date
             return latest_commit_ts
         else:
             return None
