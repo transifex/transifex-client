@@ -5,8 +5,14 @@ jobs:
     environment:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
-      TOX_PY2: 2.7.13
-      TOX_PY3: 3.8.0
+      TOX_PY2: '2.7'
+      TOX_PY3: '3.9'
+      # NOTE(honles): The following are the official names, but point releases
+      # will likely be aliased as above pending either:
+      # - https://github.com/randomknowledge/docker-pyenv-tox/pull/6
+      # - https://github.com/randomknowledge/docker-pyenv-tox/pull/7
+      TOX_PY2_FALLBACK: 2.7.13
+      TOX_PY3_FALLBACK: 3.9.0
     # To see the list of pre-built images that CircleCI provides for most
     # common languages see
     # https://circleci.com/docs/2.0/circleci-images/
@@ -38,9 +44,24 @@ jobs:
     # This is based on your 1.0 configuration file or project settings
     - run: pip -V
     - run: pip install -U ipdb
-    - run: pyenv install -s $TOX_PY2
-    - run: pyenv install -s $TOX_PY3
-    - run: pyenv local $TOX_PY2 $TOX_PY3
+    # allow installing pyenv versions not in the base image
+    - run: |
+        if ! pyenv install -s $TOX_PY2; then
+          TOX_PY2=$TOX_PY2_FALLBACK
+          PYENV_UPDATED=1
+          # update pyenv just in case
+          : $(cd /pyenv/ && git pull)
+          pyenv install -s $TOX_PY2
+        fi
+
+        if ! pyenv install -s $TOX_PY3; then
+          TOX_PY3=$TOX_PY3_FALLBACK
+          # if not already updated, update pyenv
+          test -z "$PYENV_UPDATED" && : $(cd /pyenv/ && git pull)
+          pyenv install -s $TOX_PY3
+        fi
+
+        pyenv local $TOX_PY2 $TOX_PY3
     # Save dependency cache
     - save_cache:
         key: txclient-{{ .Branch }}-{{ epoch }}
