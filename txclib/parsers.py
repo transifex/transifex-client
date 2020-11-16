@@ -16,6 +16,7 @@ def check_file_exists(file=None):
     if file and not os.path.isfile(file):
         raise argparse.ArgumentTypeError(
             'certificate file %s not found' % file)
+    return file
 
 
 def tx_main_parser():
