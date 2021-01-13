@@ -7,7 +7,10 @@ try:
     from StringIO import StringIO
 except ImportError:
     from io import StringIO
-from mock import patch, MagicMock, call
+try:
+    from unittest.mock import patch, MagicMock, call
+except ImportError:
+    from mock import patch, MagicMock, call
 from six import assertRaisesRegex
 from txclib.commands import _set_source_file, _set_translation, cmd_pull, \
     cmd_init, cmd_config, cmd_status, cmd_help, UnInitializedError

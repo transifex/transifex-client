@@ -13,7 +13,10 @@ except ImportError:
     import ConfigParser as configparser
 
 from functools import wraps
-from mock import Mock, patch, mock_open
+try:
+    from unittest.mock import Mock, patch, mock_open
+except ImportError:
+    from mock import Mock, patch, mock_open
 from collections import namedtuple
 from os.path import dirname
 from sys import modules, version_info

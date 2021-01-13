@@ -2,7 +2,10 @@
 
 import os
 import unittest
-from mock import patch
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 from txclib.paths import posix_path, native_path
 
 

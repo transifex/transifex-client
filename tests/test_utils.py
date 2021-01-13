@@ -2,7 +2,10 @@ import os
 import time
 import unittest
 import six
-from mock import patch, MagicMock, Mock, mock_open
+try:
+    from unittest.mock import patch, MagicMock, Mock, mock_open
+except ImportError:
+    from mock import patch, MagicMock, Mock, mock_open
 from urllib3.exceptions import SSLError
 
 from txclib import utils, exceptions

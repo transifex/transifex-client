@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from mock import patch, MagicMock
+try:
+    from unittest.mock import patch, MagicMock
+except ImportError:
+    from mock import patch, MagicMock
 
 from six import assertRaisesRegex
 
