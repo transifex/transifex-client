@@ -717,8 +717,8 @@ class TestProjectPull(unittest.TestCase):
                 )
                 self.assertEqual(res, True)
 
-                # "Recent" timestamp (in the future - 2100)
-                ts_mock.return_value = 4111417171
+                # "Recent" timestamp (in the future - 2038)
+                ts_mock.return_value = 2147483000
                 res = self.p._should_download(
                     'pt', self.stats, os.path.abspath(__file__), False,
                     use_git_timestamps=True
