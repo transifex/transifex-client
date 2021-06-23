@@ -489,7 +489,9 @@ class Project(object):
             new_translations |= new
             logger.debug("Adding to new translations: %s" % new)
 
-            if fetchsource:
+            if fetchsource or slang in languages:
+                new_translations.discard(slang)
+                pull_languages.discard(slang)
                 if sfile and slang not in pull_languages:
                     pull_languages.add(slang)
                 elif slang not in new_translations:
