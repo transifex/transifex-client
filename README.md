@@ -5,7 +5,7 @@ Transifex Command-Line Tool
 [![codecov](https://codecov.io/gh/transifex/transifex-client/branch/master/graph/badge.svg)](https://codecov.io/gh/transifex/transifex-client)
 [![PyPI version](https://badge.fury.io/py/transifex-client.svg)](https://badge.fury.io/py/transifex-client)
 
-
+> _⚠️ A new client, compatible with the [new API](https://transifex.github.io/openapi/), is under development. Check out the Alpha version [here](https://github.com/transifex/cli)._https://github.com/transifex/cli
 
 ## Getting started
 Whether you have experience with the command line or not, [this interactive tutorial](https://www.transifex.com/learn/txclient/) is intended for everyone who wishes to learn how the Transifex client works. There is no need to download anything - Just click on the link provided above, and follow the instructions.
