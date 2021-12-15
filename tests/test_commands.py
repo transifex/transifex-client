@@ -81,7 +81,7 @@ class TestInitCommand(unittest.TestCase):
 
     def test_init(self):
         argv = []
-        config_text = "[main]\nhost = https://www.transifex.com\n\n"
+        config_text = "[main]\nhost = https://www.transifex.com\n"
         with patch('txclib.commands.project.Project'):
             with patch('txclib.commands.cmd_config') as set_mock:
                 cmd_init(argv, '')
@@ -255,7 +255,7 @@ class TestConfigCommand(unittest.TestCase):
 
     def test_bare_set_source_file(self):
         expected = ("[main]\nhost = https://foo.var\n\n[project1.resource1]\n"
-                    "source_file = test.txt\nsource_lang = en\n\n")
+                    "source_file = test.txt\nsource_lang = en\n")
         args = ["-r", "project1.resource1", '--source', '-l', 'en', 'test.txt']
         cmd_config(args, self.path_to_tx)
         with open(self.config_file) as config:
@@ -264,7 +264,7 @@ class TestConfigCommand(unittest.TestCase):
         # set translation file for de
         expected = ("[main]\nhost = https://foo.var\n\n[project1.resource1]\n"
                     "source_file = test.txt\nsource_lang = en\n"
-                    "trans.de = translations/de.txt\n\n")
+                    "trans.de = translations/de.txt\n")
         args = ["-r", "project1.resource1", '-l', 'de', 'translations/de.txt']
         cmd_config(args, self.path_to_tx)
         with open(self.config_file) as config:
@@ -289,7 +289,7 @@ class TestConfigCommand(unittest.TestCase):
         expected = ("[main]\nhost = https://foo.var\n\n[project1.resource1]\n"
                     "file_filter = translations/<lang>/test.txt\n"
                     "source_file = translations/en/test.txt\n"
-                    "source_lang = en\n\n")
+                    "source_lang = en\n")
 
         args = ["--auto-local", "-r", "project1.resource1",
                 '--source-language', 'en', '--execute',
@@ -302,7 +302,7 @@ class TestConfigCommand(unittest.TestCase):
         expected = ("[main]\nhost = https://foo.var\n\n[project1.resource1]\n"
                     "file_filter = translations/<lang>/test.txt\n"
                     "source_file = translations/en/test.txt\n"
-                    "source_lang = en\n\n")
+                    "source_lang = en\n")
 
         args = [MAPPING, "-r", "project1.resource1", '--source-language',
                 'en', '--execute', 'translations/<lang>/test.txt']
@@ -333,7 +333,7 @@ class TestConfigCommand(unittest.TestCase):
                     "file_filter = translations/proj.resource_1/<lang>.txt\n"
                     "source_lang = fr\ntype = TXT\n\n[proj.resource_2]\n"
                     "file_filter = translations/proj.resource_2/<lang>.txt\n"
-                    "source_lang = fr\ntype = TXT\n\n")
+                    "source_lang = fr\ntype = TXT\n")
         extension_mock.return_value = ".txt"
         get_details_mock.side_effect = [
             # project details
@@ -372,7 +372,7 @@ class TestConfigCommand(unittest.TestCase):
                     "file_filter = translations/proj.resource_1/<lang>.txt\n"
                     "source_lang = fr\ntype = TXT\n\n[proj.resource_2]\n"
                     "file_filter = translations/proj.resource_2/<lang>.txt\n"
-                    "source_lang = fr\ntype = TXT\n\n")
+                    "source_lang = fr\ntype = TXT\n")
         extension_mock.return_value = ".txt"
         get_details_mock.side_effect = [
             # project details
@@ -417,7 +417,7 @@ class TestConfigCommand(unittest.TestCase):
                     "[test-project.translations_en_test]\n"
                     "file_filter = translations/<lang>/en/test.txt\n"
                     "source_file = translations/en/test.txt\n"
-                    "source_lang = en\ntype = TXT\n\n")
+                    "source_lang = en\ntype = TXT\n")
         args = [MAPPINGBULK, "-p", "test-project", "--source-file-dir",
                 "translations", "--source-language", "en", "-t", "TXT",
                 "--file-extension", ".txt", "--execute", "--expression",
