@@ -24,7 +24,7 @@ setup(
     license="GPLv2",
     dependency_links=[],
     setup_requires=[],
-    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,<3.10",
+    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=3.4",
     install_requires=get_file_content("requirements.txt").splitlines(),
     tests_require=["mock>=3.0.5,<4.0"],
     data_files=[],
@@ -43,5 +43,6 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
 )
