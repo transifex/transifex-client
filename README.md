@@ -6,7 +6,7 @@ Transifex Command-Line Tool
 [![PyPI version](https://badge.fury.io/py/transifex-client.svg)](https://badge.fury.io/py/transifex-client)
 
 ## The New Client 🎉
-We released a stable version of a new Transifex Client, compatible with the [new API](https://transifex.github.io/openapi/), and offered as single executable.
+We released a stable version of a new Transifex Client, compatible with the [new API](https://api-docs.transifex.com/), and offered as single executable.
 
 Please start using the new Transifex CLI [here](https://github.com/transifex/cli) , since this software is considered deprecated (as of January 2022) and will sunset on Nov 30, 2022.
 
