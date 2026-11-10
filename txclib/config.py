@@ -111,7 +111,12 @@ class Flipdict(dict):
         dict.__delitem__(self._flip, val)
 
     def pop(self, key, *args):
-        val = dict.pop(self, key, *args)
+        try:
+            val = dict.pop(self, key)
+        except KeyError:
+            if args:
+                return args[0]
+            raise
         dict.__delitem__(self._flip, val)
         return val
 
